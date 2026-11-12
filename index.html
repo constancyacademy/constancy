@@ -3064,8 +3064,21 @@ function dailyCard() {
     <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.15);margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:${S.done ? 100 : pct}%;background:var(--gold)"></i></div>
     <div class="note" style="margin:6px 0 0">${S.done ? "✓ Fait aujourd'hui" : D.k === "pied" ? Math.round(S.prog) + " m sur " + D.n : S.prog + " sur " + D.n} · ${P.dailyDone || 0} défi${(P.dailyDone || 0) > 1 ? "s" : ""} réussi${(P.dailyDone || 0) > 1 ? "s" : ""} au total</div></div>`;
 }
+// ---------- phares et feux arrière de la circulation la nuit (visibles de loin, au-delà du brouillard)
+const CARL = { head: null, tail: null };
+function updateCarLights() {
+  if (!CARL.head) { const mk = (c, sz) => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(traffic.length * 6 + 6), 3)); const m = new THREE.PointsMaterial({ map: glowTexture(), color: c, size: sz, sizeAttenuation: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, opacity: 0 }); const pts = new THREE.Points(g, m); pts.frustumCulled = false; scene.add(pts); return pts; };
+    CARL.head = mk(0xfffaf0, 2.6); CARL.tail = mk(0xff2418, 1.4); }
+  const k = clamp((nightK - 0.25) / 0.45, 0, 1); CARL.head.material.opacity = k; CARL.tail.material.opacity = k * 0.85; CARL.head.visible = CARL.tail.visible = k > 0.01 && !G.inside; if (!CARL.head.visible) return;
+  const H = CARL.head.geometry.attributes.position, T = CARL.tail.geometry.attributes.position, o = target(); let n = 0;
+  traffic.forEach(a => { if (a.gone || !a.mesh || n + 2 > H.count) return; const d = Math.hypot(a.x - o.x, a.z - o.z); if (d > 900) return;
+    const fx = Math.sin(a.h), fz = Math.cos(a.h), sx = fz * 0.72, sz = -fx * 0.72;
+    H.setXYZ(n, a.x + fx * 2.15 + sx, 0.72, a.z + fz * 2.15 + sz); T.setXYZ(n, a.x - fx * 2.2 + sx, 0.85, a.z - fz * 2.2 + sz); n++;
+    H.setXYZ(n, a.x + fx * 2.15 - sx, 0.72, a.z + fz * 2.15 - sz); T.setXYZ(n, a.x - fx * 2.2 - sx, 0.85, a.z - fz * 2.2 - sz); n++; });
+  CARL.head.geometry.setDrawRange(0, n); CARL.tail.geometry.setDrawRange(0, n); H.needsUpdate = T.needsUpdate = true;
+}
 function updateWorldLife(dt) {
-  updateDaily(dt); updateTrafficLights(); updateStreetScenes(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
+  updateDaily(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
   const cxp = camera.position.x, czp = camera.position.z;
   for (let i = 0; i < rentals.length; i++) { const r = rentals[i]; r.mesh.visible = (r.x - cxp) ** 2 + (r.z - czp) ** 2 < 52900; }
   const me = target();

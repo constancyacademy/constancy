@@ -3027,8 +3027,45 @@ function updateStreetScenes(dt) {
       else if (G.onFoot && h.visible) { const dx = G.me.x - h.position.x, dz = G.me.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 0.75) { const n = dc || 1; G.me.x += dx / n * (0.75 - dc); G.me.z += dz / n * (0.75 - dc); } } });
   });
 }
+// ---------- défi du jour (vraie date) : une petite chose à faire chaque jour, comme dans la vraie vie
+const DAILY = [
+  { k: "feux", n: 4, t: "Code de la route", d: "Arrête-toi à 4 feux rouges en voiture.", w: "Tu t'es arrêté au rouge 4 fois. Personne ne t'a vu. C'est justement pour ça que ça compte." },
+  { k: "propre", n: 2, t: "Conduite propre", d: "Réussis 2 missions sans un seul choc.", w: "Deux missions, zéro choc. La régularité, c'est aussi faire les choses proprement." },
+  { k: "pied", n: 800, t: "Marche quotidienne", d: "Fais 800 mètres à pied.", w: "800 mètres à pied. Petit effort, mais fait aujourd'hui. Demain, on remet ça." }
+];
+function dailyDef() { const d = new Date(); return DAILY[(d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) % DAILY.length]; }
+function dailyState() { const t = todayStr(), D = dailyDef(); if (!P.daily || P.daily.date !== t) P.daily = { date: t, k: D.k, prog: 0, done: false }; return P.daily; }
+function dailyAdd(k, v) {
+  if (!P || G.mode !== "play") return; const S = dailyState(), D = dailyDef(); if (S.done || S.k !== k) return;
+  const before = S.prog; S.prog = Math.min(D.n, S.prog + v);
+  if (k === "feux") help(`<b>Arrêt au feu rouge.</b> Défi du jour : ${S.prog}/${D.n}.`, 2.5);
+  else if (k === "propre") help(`<b>Mission sans choc.</b> Défi du jour : ${S.prog}/${D.n}.`, 3);
+  else if (Math.floor(before / 200) !== Math.floor(S.prog / 200) && S.prog < D.n) help(`Défi du jour : ${Math.round(S.prog)} m sur ${D.n} à pied.`, 2.5);
+  if (S.prog >= D.n) { S.done = true; P.dailyDone = (P.dailyDone || 0) + 1; P.dailyLast = S.date; addCash(250); P.mindset += Math.round(3 * P.mult); sfx.win(); stat("defi-du-jour-" + k);
+    notify("gold", `<b>Défi du jour réussi.</b> ${D.w} <b style="color:var(--cash)">+$250</b>`, 8);
+    setTimeout(() => feedPost("coach", P.dailyDone > 1 ? `${P.dailyDone} défis du jour réussis. Un petit truc chaque jour, et regardez où il en est. 💪` : "Premier défi du jour réussi pour le nouveau. Le plus dur, c'est de commencer. 💪", { toast: false }), 3000);
+    saveNow(); }
+}
+function updateDaily(dt) {
+  if (!P || G.mode !== "play" || !G.started || G.inside) return; const S = dailyState(); if (S.done) return;
+  if (!G.dailyShown) { G.dailyT = (G.dailyT || 0) + dt; if (G.dailyT > 14 && !G.mission) { G.dailyShown = true; const D = dailyDef(); notify("info", `<b>Défi du jour · ${D.t}.</b> ${D.d} Il change chaque jour. Reviens demain pour le suivant.`, 8); } }
+  if (S.k === "pied") { const m = G.me; if (G.onFoot && G.dailyP) { const d = Math.hypot(m.x - G.dailyP[0], m.z - G.dailyP[1]); if (d > 0.02 && d < 3) dailyAdd("pied", d); } G.dailyP = G.onFoot ? [m.x, m.z] : null; }
+  if (S.k === "feux" && !G.onFoot && carMesh && Math.abs(G.car.v) < 0.6) {
+    const c = G.car, i = Math.round((c.x + HALF - ROAD / 2) / STEP), j = Math.round((c.z + HALF - ROAD / 2) / STEP); if (i < 1 || i >= NB || j < 1 || j >= NB) return;
+    const nx = rc(i), nz = rc(j), fx = Math.sin(c.h), fz = Math.cos(c.h), ax = Math.abs(fx) > Math.abs(fz) ? "x" : "z", along = (nx - c.x) * fx + (nz - c.z) * fz, side = Math.abs((nx - c.x) * fz - (nz - c.z) * fx);
+    if (along > 5 && along < 24 && side < ROAD && tlState(ax, tlNow()) === "r") { const key = i + "," + j + "," + Math.floor(tlNow() / TL.per); if (G.dailyKey !== key) { G.dailyKey = key; dailyAdd("feux", 1); } }
+  }
+  if (S.k === "propre" && G.mission && G.mission !== G.dailyM) { G.dailyM = G.mission; G.dailyB = G.bumps || 0; }
+}
+function dailyCard() {
+  const S = dailyState(), D = dailyDef(), pct = Math.round(S.prog / D.n * 100);
+  return `<div class="card" style="text-align:left"><div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700">Défi du jour · ${D.t}</div>
+    <div style="font-size:15px;margin-top:4px">${S.done ? "Réussi. Reviens demain pour le suivant." : D.d}</div>
+    <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.15);margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:${S.done ? 100 : pct}%;background:var(--gold)"></i></div>
+    <div class="note" style="margin:6px 0 0">${S.done ? "✓ Fait aujourd'hui" : D.k === "pied" ? Math.round(S.prog) + " m sur " + D.n : S.prog + " sur " + D.n} · ${P.dailyDone || 0} défi${(P.dailyDone || 0) > 1 ? "s" : ""} réussi${(P.dailyDone || 0) > 1 ? "s" : ""} au total</div></div>`;
+}
 function updateWorldLife(dt) {
-  updateTrafficLights(); updateStreetScenes(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
+  updateDaily(dt); updateTrafficLights(); updateStreetScenes(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
   const cxp = camera.position.x, czp = camera.position.z;
   for (let i = 0; i < rentals.length; i++) { const r = rentals[i]; r.mesh.visible = (r.x - cxp) ** 2 + (r.z - czp) ** 2 < 52900; }
   const me = target();
@@ -4002,6 +4039,7 @@ function startMamie() {
 }
 function endMission(ok) {
   const M = G.mission; if (!M) return;
+  if (ok && P.daily && P.daily.k === "propre" && G.dailyM === M && (G.bumps || 0) === G.dailyB) setTimeout(() => dailyAdd("propre", 1), 1200);
   if (ok) setTimeout(() => feedPost(pick(["kebab", "lea", "tom", "mamie"]), pick(["Le livreur du quartier vient encore de frapper. Toujours à l'heure. 🔥", "Je l'ai vu passer, il ne s'arrête jamais celui-là.", "Livré chaud, livré à l'heure. Qui est ce gars ?", "Un jour de plus pour le nouveau. Il tient. 👀"]), { toast: true }), 2500);
   if (M.type === "livraison" && (M.kebab || M.courses) && ok) {
     destBeacon.visible = false; const tip = M.kebab ? 2600 : 1800; addCash(tip); P.deliveries++; P.counts.livraison = (P.counts.livraison || 0) + 1; addXP(120); sfx.win();
@@ -4644,6 +4682,7 @@ function openMenu() {
       <span>Business</span><span>niv. ${lvl(P.biz)}</span><span>Statut</span><span>niv. ${lvl(P.statut)}</span><span>Mindset</span><span>niv. ${lvl(P.mindset)}</span>
       <span>Santé</span><span>${Math.round(santeVal())}%</span><span>Constancy</span><span>${multTxt(P.mult)}</span><span>Jokers</span><span>${P.jokers}</span><span>Jours d'affilée (vraie vie)</span><span>${P.streakDays || 1}</span></div></div>
     ${streakCard()}
+    ${dailyCard()}
     <div class="card goals-card">${$("goals").innerHTML}</div>
     ${timelineHtml()}
     <p class="note">Objectif : ${OBJ[P.objective].label}. Ta progression est sauvegardée sur cet appareil.</p>
@@ -4719,7 +4758,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ offerVtc, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

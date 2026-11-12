@@ -586,6 +586,31 @@ function updateMusic(on) {
   if (on && title && SND.on) { M.an = Math.max(M.an || 0, t + 0.05); const PAT = [0, 2, 3, 1, 2, 3, 2, 1];
     while (M.an < t + 0.35) { const k = (M.ak = ((M.ak || 0) + 1) % PAT.length), f = CHORDS[M.i][PAT[k]] * 2, o = c.createOscillator(), g = c.createGain(); o.type = "triangle"; o.frequency.value = f; g.gain.setValueAtTime(0, M.an); g.gain.linearRampToValueAtTime(k % 4 ? 0.13 : 0.2, M.an + 0.012); g.gain.exponentialRampToValueAtTime(0.001, M.an + 0.9); o.connect(g); g.connect(M.out); o.start(M.an); o.stop(M.an + 1); M.an += 0.3; } }
 }
+function horn(vol) {
+  const c = SND.ctx; if (!c || vol < 0.01) return; const t = c.currentTime, d = 0.18 + Math.random() * 0.35, two = Math.random() < 0.4, g = c.createGain(), f = c.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = 1600 + Math.random() * 900; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.02); g.gain.setValueAtTime(vol, t + d); g.gain.linearRampToValueAtTime(0, t + d + 0.05);
+  if (two) { g.gain.setValueAtTime(0, t + d + 0.12); g.gain.linearRampToValueAtTime(vol, t + d + 0.14); g.gain.setValueAtTime(vol, t + d * 2 + 0.1); g.gain.linearRampToValueAtTime(0, t + d * 2 + 0.16); }
+  const base = 330 + Math.random() * 120; [1, 1.26].forEach(k => { const o = c.createOscillator(); o.type = "sawtooth"; o.frequency.value = base * k; o.connect(f); o.start(t); o.stop(t + d * 2 + 0.3); });
+  f.connect(g); g.connect(c.destination);
+}
+function crickets(vol) {
+  const c = SND.ctx; if (!c || vol < 0.01) return; const t = c.currentTime, src = c.createBufferSource(), n = 3 + Math.floor(Math.random() * 4);
+  src.buffer = noiseBuf(0.05 * n + 0.1, x => (Math.sin(x * n * Math.PI) > 0.2 ? 1 : 0) * (0.6 + 0.4 * Math.sin(x * 400)));
+  const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 4200 + Math.random() * 900; f.Q.value = 9; const g = c.createGain(); g.gain.value = vol; src.connect(f); f.connect(g); g.connect(c.destination); src.start();
+}
+function coo(vol) {
+  const c = SND.ctx; if (!c || vol < 0.01) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+  o.type = "sine"; o.frequency.setValueAtTime(380, t); o.frequency.exponentialRampToValueAtTime(290, t + 0.5); lfo.frequency.value = 22; lg.gain.value = vol * 0.6; lfo.connect(lg); lg.connect(g.gain);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.06); g.gain.linearRampToValueAtTime(0, t + 0.55); o.connect(g); g.connect(c.destination); o.start(t); lfo.start(t); o.stop(t + 0.6); lfo.stop(t + 0.6);
+}
+function ambientEvents(pos, inCity) {
+  if (!pos || G.inside) return; const f = 1 / 60, day = nightK < 0.45;
+  if (inCity > 0.6 && Math.random() < f / 22) { let best = 1e9; traffic.forEach(a => { const d = Math.hypot(a.x - pos.x, a.z - pos.z); if (d < best) best = d; }); if (best < 90) horn(clamp(1 - best / 90, 0, 1) * 0.09); }
+  const i = Math.floor((pos.x + HALF) / STEP), j = Math.floor((pos.z + HALF) / STEP), z = ZONES.get(i + "," + j), green = z === "park" || z === "houses" || pos.z < -470;
+  if (green && day && Math.random() < f / 3) chirp(0.03 + Math.random() * 0.03);
+  if ((green || inCity < 0.3) && !day && Math.random() < f / 1.6) crickets(0.035 + Math.random() * 0.03);
+  if (PIG.list.length && Math.random() < f / 4) { const q = PIG.list.find(q => q.st === 0 && q.y > 0 && Math.hypot(q.x - pos.x, q.z - pos.z) < 12); if (q) coo(0.05 * (1 - Math.hypot(q.x - pos.x, q.z - pos.z) / 12)); }
+}
 function updateSound() {
   if (!SND.ctx) return;
   const t = SND.ctx.currentTime, playing = G.mode === "play" && SND.on;
@@ -619,6 +644,7 @@ function updateSound() {
   if (playing && pos && mtn > 0.3 && Math.random() < 0.004 * mtn) chirp(0.035 + Math.random() * 0.03);
   if (playing && pos && typeof dinos !== "undefined" && dinos.length) { const d0 = dinos[0]; if (d0 && d0.mesh && d0.mesh.visible) { const dd = d0.mesh.position.distanceTo(camera.position); if (dd < 140 && (SND.nextThump || 0) < t) { SND.nextThump = t + 0.75; thump(0.35 * (1 - dd / 140)); } } }
   loopVol("gymamb", playing && G.inside && G.inside !== "home" ? 0.35 : 0, t, 0.5);
+  if (playing) ambientEvents(pos, inCity);
   if (playing && pos && nearSea > 0.6 && Math.random() < 0.0015) playBuf("gull", 0.25, 0.9 + Math.random() * 0.2);
   const sirOn = playing && G.police, realSir = SND.loops.siren;
   SND.sir.frequency.setTargetAtTime(Math.floor(performance.now() / 450) % 2 ? 900 : 640, t, 0.02);
@@ -1209,7 +1235,10 @@ function prepModel(key, gltf) {
       const wm = new Map(); by.wheels.forEach(([gg, m, front]) => { gg.computeBoundingBox(); const bb = gg.boundingBox, c = bb.getCenter(new THREE.Vector3()); wr = Math.max(wr, (bb.max.y - bb.min.y) / 2); gg.translate(-c.x, -c.y, -c.z);
         if (!wm.has(m)) wm.set(m, new THREE.MeshLambertMaterial({ color: m.color, map: m.map || null })); const wh = new THREE.Mesh(gg, wm.get(m)); wh.position.copy(c); wh.name = front ? "wheelF" : "wheelB"; wh.rotation.order = "YXZ"; inner.add(wh); });
       by.wr = wr; }
-    by.forEach((list, m) => { const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(list); if (merged) { const lm = new THREE.MeshLambertMaterial({ color: def.col && def.col[m.name] != null ? new THREE.Color(def.col[m.name]) : m.color, map: m.map || null, transparent: m.transparent, opacity: m.opacity, side: m.side, emissive: /light/i.test(m.name) ? m.color : 0x000000 }); lm.name = m.name; bodyG.add(new THREE.Mesh(merged, lm)); } });
+    by.forEach((list, m) => { const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(list); if (merged) { const o0 = { color: def.col && def.col[m.name] != null ? new THREE.Color(def.col[m.name]) : m.color, map: m.map || null, transparent: m.transparent, opacity: m.opacity, side: m.side, emissive: /light/i.test(m.name) ? m.color : 0x000000 };
+        // voitures : peinture vernie et vitres qui brillent au soleil (reflets), pneus mats
+        const glossy = WHEELED.test(key) && !/light/i.test(m.name) && !/black|tire|rubber/i.test(m.name), win = /window|glass/i.test(m.name);
+        const lm = glossy ? new THREE.MeshPhongMaterial(Object.assign(o0, { shininess: win ? 160 : /grey|gray|chrome|metal/i.test(m.name) ? 70 : 95, specular: win ? 0xaabbcc : 0x8a8a8a })) : new THREE.MeshLambertMaterial(o0); lm.name = m.name; bodyG.add(new THREE.Mesh(merged, lm)); } });
     if (by.wr) wrap.userData.wr = by.wr;
   }
   wrap.updateMatrixWorld(true);
@@ -2569,7 +2598,7 @@ function buildWorld() {
   const mamie = mamieMesh = makeHuman({ shirt: 0x9fd8b0, pants: 0x6a6a7a, skin: 0xf0c8a8, hair: 0xdedede }); mamie.position.set(LM.mamie.x - 4, 0.25, bMax(0) - 2); mamie.rotation.y = 0; scene.add(mamie); if (mamie.userData.q) setClip(mamie, "Idle_Talking_Loop");
   const mentor = makeHuman({ shirt: 0x1d2a44, pants: 0x1d2a44, skin: 0xc68a5e, hair: 0x111111 }); mentor.position.set(HALF + 34, 0.6, bC(5)); mentor.rotation.y = -Math.PI / 2; scene.add(mentor); if (mentor.userData.q) { mentor.position.y = 0.6; setClip(mentor, "Idle_Talking_Loop"); }
 
-  buildTraffic(); buildPeds(); buildLife(); buildRentals();
+  buildTrafficLights(); buildTraffic(); buildPeds(); buildLife(); buildRentals();
   PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeInterior(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildUfo();
   ownMark = makeBeacon(new THREE.Color(0xffffff)); ownMark.userData.col.scale.set(0.5, 0.35, 0.5); ownMark.userData.col.position.y = 12;
   const ol = label("Ta voiture", "#ffffff"); ol.scale.set(9, 2.2, 1); ol.position.y = 6; ownMark.add(ol); ownMark.visible = false; scene.add(ownMark);
@@ -2597,6 +2626,30 @@ const chooseRandom = a => pick(notBack(a));
 const chooseFlee = a => { const o = notBack(a).sort((p, q) => Math.hypot(rc(q[0]) - G.car.x, rc(q[1]) - G.car.z) - Math.hypot(rc(p[0]) - G.car.x, rc(p[1]) - G.car.z)); return Math.random() < .7 ? o[0] : pick(o); };
 const chooseChase = a => { const t = target(); return nb(a.from).sort((p, q) => Math.hypot(rc(p[0]) - t.x, rc(p[1]) - t.z) - Math.hypot(rc(q[0]) - t.x, rc(q[1]) - t.z))[0]; };
 const TRAFFIC_COLORS = [0xe8e4dc, 0x2d5aa8, 0xb83a3a, 0x3a3a40, 0xf0f0f0, 0x6fa86a, 0xd9b44a, 0x8a5cc2, 0x222222, 0xc0c4cc, 0x3fb5c9, 0xe07a3a];
+const TL = { per: 18, inst: null, list: [], phase: -1 };
+function tlState(axis, t) { // "g" vert, "a" orange, "r" rouge pour l'axe x ou z
+  const k = ((t % TL.per) + TL.per) % TL.per, x = k < 7.5 ? "g" : k < 9 ? "a" : "r", z = k >= 9 && k < 16.5 ? "g" : k >= 16.5 ? "a" : "r";
+  return axis === "x" ? x : z;
+}
+function tlNow() { return (P ? P.dayT : 0) * 1.0; }
+function buildTrafficLights() {
+  const pole = new THREE.MeshLambertMaterial({ color: 0x24252b }), box = new THREE.MeshLambertMaterial({ color: 0x17181c });
+  const lens = new THREE.CircleGeometry(0.115, 14), N = (NB - 1) * (NB - 1) * 2 * 2 * 3;
+  TL.inst = new THREE.InstancedMesh(lens, new THREE.MeshBasicMaterial({ color: 0xffffff }), N); TL.inst.frustumCulled = false; scene.add(TL.inst);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1); let n = 0;
+  for (let i = 1; i < NB; i++) for (let j = 1; j < NB; j++) for (const sg of [1, -1]) {
+    const x = rc(i) + sg * (ROAD / 2 + 0.9), z = rc(j) + sg * (ROAD / 2 + 0.9);
+    addGeo(pole, new THREE.CylinderGeometry(0.09, 0.12, 4.4, 8), x, 0.25 + 2.2, z); addGeo(box, new THREE.BoxGeometry(0.42, 1.15, 0.42), x, 0.25 + 4.85, z); addProp(x, z, 0.18);
+    [["x", sg, 0], ["z", 0, sg]].forEach(([axis, fx, fz]) => { // face tournée vers les voitures qui arrivent sur cet axe
+      ["r", "a", "g"].forEach((c, k) => { v.set(x + fx * 0.215, 0.25 + 5.2 - k * 0.36, z + fz * 0.215); e.set(0, fx ? (fx > 0 ? Math.PI / 2 : -Math.PI / 2) : (fz > 0 ? 0 : Math.PI), 0); q.setFromEuler(e); m.compose(v, q, one); TL.inst.setMatrixAt(n, m); TL.list.push({ axis, c }); n++; }); });
+  }
+  TL.inst.count = n; updateTrafficLights(true);
+}
+const TL_ON = { r: new THREE.Color(0xff2a2a), a: new THREE.Color(0xffb020), g: new THREE.Color(0x2bff7a) }, TL_OFF = new THREE.Color(0x1d1f24);
+function updateTrafficLights(force) {
+  if (!TL.inst) return; const t = tlNow(), ph = tlState("x", t) + tlState("z", t); if (ph === TL.phase && !force) return; TL.phase = ph;
+  TL.list.forEach((l, k) => TL.inst.setColorAt(k, tlState(l.axis, t) === l.c ? TL_ON[l.c] : TL_OFF)); TL.inst.instanceColor.needsUpdate = true;
+}
 function buildTraffic() {
   // trafic varié : voitures de toutes sortes, taxis, pick-up, bus, et des patrouilles de police et ambulances qui passent
   const mix = ["car_city", "car_city", "car_suv", "car_taxi", "car_pickup", "car_sport", "car_city", "car_suv"];
@@ -2814,6 +2867,7 @@ function pushRect(o, x, z, h, hw, hl, rad) { // repousse o hors d'un rectangle o
 }
 function carHalf(mesh) { const L = (mesh && mesh.userData.len) || 4.6; return [Math.min(1.25, 0.24 * L + 0.05), L / 2]; }
 function updateWorldLife(dt) {
+  updateTrafficLights();
   const cxp = camera.position.x, czp = camera.position.z;
   for (let i = 0; i < rentals.length; i++) { const r = rentals[i]; r.mesh.visible = (r.x - cxp) ** 2 + (r.z - czp) ** 2 < 52900; }
   const me = target();
@@ -2827,6 +2881,10 @@ function updateWorldLife(dt) {
     const ahead = (dx * fx + dz * fz) > 0 && d < 11 && Math.abs(dx * fz - dz * fx) < 3.5;
     if (a.frozen) return;
     a.speed += ((ahead ? 0 : a.base) - a.speed) * Math.min(1, dt * 3);
+    if (a.to && a.to[0] > 0 && a.to[0] < NB && a.to[1] > 0 && a.to[1] < NB && a.base > 0) { // feu rouge ou orange devant : on s'arrête à la ligne
+      const dist = (1 - a.t) * STEP, axis = a.to[0] !== a.from[0] ? "x" : "z";
+      if (dist > 9 && dist < 26 && tlState(axis, tlNow()) !== "g") a.speed = Math.min(a.speed, Math.max(0, (dist - 9.6) * 1.6));
+    }
     stepAgent(a, dt, chooseRandom);
     if (a.mesh.visible && d < 70) { const ve = a.vEff == null ? a.speed : a.vEff; spinWheels(a.mesh, ve, clamp((a.dh || 0) * 1.6, -0.5, 0.5), dt); brakeLights(a.mesh, ve < a.base * 0.72); }
     if (a.mesh.visible && d < 16) { const [hw, hl] = carHalf(a.mesh);
@@ -4358,7 +4416,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG });
+window.__X = () => ({ ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

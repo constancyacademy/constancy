@@ -1590,6 +1590,22 @@ function zoneOf(i, j, dist, r) {
   if (h < .1) return "park"; if (h < .17) return "parking";
   return "mixed";
 }
+const SHOPS = [["CAFÉ", "#f4e9d8", "#2a1d16"], ["PHARMACIE", "#ffffff", "#0f6b3a"], ["BOULANGERIE", "#3a2414", "#f3d9a4"], ["BARBER SHOP", "#ffffff", "#141414"], ["TACOS 24/7", "#ffd23f", "#b3122e"], ["LAVERIE", "#0f2c4f", "#e9f3ff"], ["FLEURISTE", "#ffffff", "#c2457a"], ["PIZZERIA", "#ffffff", "#1d5e2f"]];
+let SHOP_M = null, SHOP_G = null;
+function shopSigns() {
+  if (SHOP_M) return; const c = document.createElement("canvas"); c.width = 1024; c.height = 64 * SHOPS.length; const g = c.getContext("2d");
+  SHOPS.forEach(([t, fg, bg], k) => { const y = k * 64; g.fillStyle = bg; g.fillRect(0, y, 1024, 64); g.fillStyle = fg; g.font = "bold 40px Inter, Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+    if (t === "PHARMACIE") { g.fillStyle = "#3dff7a"; g.fillRect(70, y + 14, 36, 36); g.fillStyle = bg; g.fillRect(70, y + 14, 12, 12); g.fillRect(94, y + 14, 12, 12); g.fillRect(70, y + 38, 12, 12); g.fillRect(94, y + 38, 12, 12); g.fillStyle = fg; }
+    g.fillText(t, 512, y + 34); g.strokeStyle = "rgba(255,255,255,.18)"; g.lineWidth = 3; g.strokeRect(4, y + 4, 1016, 56); });
+  const tx = new THREE.CanvasTexture(c); tx.anisotropy = 4; SHOP_M = new THREE.MeshBasicMaterial({ map: tx, color: 0xe6e6e6 });
+  SHOP_G = SHOPS.map((_, k) => { const g2 = new THREE.PlaneGeometry(6, 0.75), uv = g2.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, (SHOPS.length - 1 - k + uv.getY(i)) / SHOPS.length); return g2; });
+}
+function addShopSign(x, z, w, d, base, faces, r) {
+  shopSigns();
+  faces.forEach(([nx, nz]) => { if (r() < .35) return; const k = Math.floor(r() * SHOPS.length), len = Math.min(nx ? d : w, 8) * 0.8, sc = len / 6;
+    const px = x + nx * ((nx ? w : 0) / 2 + 0.07), pz = z + nz * ((nz ? d : 0) / 2 + 0.07), ry = nx ? (nx > 0 ? Math.PI / 2 : -Math.PI / 2) : (nz > 0 ? 0 : Math.PI);
+    addGeo(SHOP_M, SHOP_G[k], px, base + 4.25, pz, ry, sc, sc * 1.1, 1); });
+}
 function buildingDetail(x0, z0, w, d, h, base, r) {
   const D = districtMats(), floors = Math.floor((h - 4) / 3.3);
   // pilastres d'angle (relief), bandeaux d'étage, acrotère sur le toit
@@ -1719,6 +1735,7 @@ function buildDistrictBlock(i, j, cx, cz, F, dist, r, M) {
       buildingDetail(x0, z0, w, d, h, base, r);
       addGeo(DM.glassShop, new THREE.BoxGeometry(w + 0.08, 3.2, d + 0.08), x0, base + 1.6, z0);
       addGeo(pick(awnMats), new THREE.BoxGeometry(w + 1.6, 0.18, d + 1.6), x0, base + 3.5, z0);
+      { const fc = []; if (x0 + w / 2 > cx + F / 2 - 3) fc.push([1, 0]); if (x0 - w / 2 < cx - F / 2 + 3) fc.push([-1, 0]); if (z0 + d / 2 > cz + F / 2 - 3) fc.push([0, 1]); if (z0 - d / 2 < cz - F / 2 + 3) fc.push([0, -1]); addShopSign(x0, z0, w, d, base, fc, r); }
       addGeo(M.roofM, new THREE.BoxGeometry(w + .4, .5, d + .4), x0, h + base + .25, z0); boxes[boxes.length - 1][4] = h + base + 4;
       if (r() < .5) { const tx = x0 + (r() - .5) * w * .5, tz = z0 + (r() - .5) * d * .5; addGeo(DM.tank, new THREE.CylinderGeometry(1.3, 1.3, 2.4, 10), tx, h + base + 2.6, tz); for (let l = 0; l < 4; l++) addGeo(M_POLE, new THREE.BoxGeometry(.15, 1.4, .15), tx + (l % 2 ? 1 : -1), h + base + 1, tz + (l < 2 ? 1 : -1)); }
       if (r() < .7) addGeo(M.acM, new THREE.BoxGeometry(2, 1.2, 2), x0 + (r() - .5) * w * .5, h + base + 1.1, z0 + (r() - .5) * d * .5);
@@ -2846,8 +2863,21 @@ function updatePigeons(dt) {
   });
   PIG.body.instanceMatrix.needsUpdate = PIG.wl.instanceMatrix.needsUpdate = PIG.wr.instanceMatrix.needsUpdate = true;
 }
+const BIRDS = { n: 36, inst: null, list: [], m: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(0, 0, 0, "YXZ"), v: new THREE.Vector3(), s: new THREE.Vector3() };
+function updateBirds(dt) {
+  if (!BIRDS.inst) { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0.25, -0.9, 0.35, -0.1, 0, 0, -0.1, 0, 0, 0.25, 0.9, 0.35, -0.1, 0, 0, -0.1], 3)); g.computeVertexNormals();
+    BIRDS.inst = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({ color: 0x1c1d22, side: THREE.DoubleSide }), BIRDS.n); BIRDS.inst.frustumCulled = false; scene.add(BIRDS.inst);
+    for (let k = 0; k < BIRDS.n; k++) BIRDS.list.push({ f: k % 3, ox: (Math.random() - .5) * 26, oz: (Math.random() - .5) * 26, oy: (Math.random() - .5) * 6, ph: Math.random() * 9 }); }
+  const T = performance.now() / 1000, o = target(), night = nightK > 0.6;
+  BIRDS.list.forEach((b, k) => {
+    const a = T * 0.045 * (b.f % 2 ? 1 : -1) + b.f * 2.1, R = 160 + b.f * 70, cx = o.x * 0.6 + Math.cos(a) * R, cz = o.z * 0.6 + Math.sin(a) * R, y = 48 + b.f * 12 + b.oy + Math.sin(T * 0.3 + b.ph) * 3;
+    const wob = Math.sin(T * 0.7 + b.ph) * 3, h = Math.atan2(-Math.sin(a) * (b.f % 2 ? 1 : -1), Math.cos(a) * (b.f % 2 ? 1 : -1)), flap = 0.35 + 0.65 * Math.abs(Math.sin(T * 7 + b.ph));
+    BIRDS.v.set(cx + b.ox + wob, night ? -100 : y, cz + b.oz); BIRDS.e.set(0, h, 0); BIRDS.q.setFromEuler(BIRDS.e); BIRDS.s.set(1.6, 1.6 * flap, 1.6); BIRDS.m.compose(BIRDS.v, BIRDS.q, BIRDS.s); BIRDS.inst.setMatrixAt(k, BIRDS.m);
+  });
+  BIRDS.inst.instanceMatrix.needsUpdate = true;
+}
 function updateLife(dt) {
-  if (G.mode === "play") updatePigeons(dt);
+  if (G.mode === "play") { updatePigeons(dt); updateBirds(dt); }
   planes.forEach(p => { p.a += p.s * dt; p.mesh.position.set(Math.cos(p.a) * p.r, p.y, Math.sin(p.a) * p.r); p.mesh.rotation.set(0, -p.a + (p.s < 0 ? Math.PI : 0), p.s < 0 ? 0.25 : -0.25, "YXZ"); });
   const T = performance.now() / 1000;
   if (life.heli) { const h = life.heli; h.a += 0.09 * dt; h.mesh.position.set(Math.cos(h.a) * h.r, h.y + Math.sin(T * 0.5) * 3, Math.sin(h.a) * h.r); h.mesh.rotation.set(0, -h.a, -0.12, "YXZ"); }
@@ -3952,8 +3982,8 @@ function installGuide(back) {
   } else if (E.browser === "safari") {
     title = `Sur ton écran d'accueil,<br><em>comme une vraie appli.</em>`;
     steps = E.safari26
-      ? [`Touche les <span class="kbd">•••</span> en bas à droite, à côté de l'adresse.`, `Touche <b>Partager</b> <span class="kbd">⬆</span>.`, `Fais défiler et touche <b>« Sur l'écran d'accueil »</b>.`, `Touche <b>Ajouter</b> en haut à droite. C'est fait !`]
-      : [`Touche le bouton <b>Partager</b> <span class="kbd">⬆</span> en bas de l'écran (le carré avec une flèche). Si la barre n'apparaît pas, touche une fois le bas de l'écran.`, `Fais défiler et touche <b>« Sur l'écran d'accueil »</b>.`, `Touche <b>Ajouter</b> en haut à droite. C'est fait !`];
+      ? [`Touche les <span class="kbd">•••</span> en bas à droite, à côté de l'adresse.`, `Touche <b>Partager</b> <span class="kbd">⬆</span>.`, `Dans le menu qui s'ouvre, touche <b>« En voir plus »</b> <span class="kbd">⌄</span>, tout en bas à droite.`, `Touche <b>« Sur l'écran d'accueil »</b>, puis <b>Ajouter</b>. C'est fait !`]
+      : [`Touche le bouton <b>Partager</b> <span class="kbd">⬆</span> en bas de l'écran (le carré avec une flèche). Si la barre n'apparaît pas, touche une fois le bas de l'écran.`, `Fais défiler le menu vers le bas (ou touche <b>« En voir plus »</b> <span class="kbd">⌄</span>) et touche <b>« Sur l'écran d'accueil »</b>.`, `Touche <b>Ajouter</b> en haut à droite. C'est fait !`];
     ptr = E.safari26 ? "br" : "bc";
   } else if (E.browser === "chrome-ios" || E.browser === "edge-ios" || E.browser === "firefox-ios") {
     title = `Sur ton écran d'accueil,<br><em>comme une vraie appli.</em>`;

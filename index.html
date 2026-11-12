@@ -2664,11 +2664,14 @@ const nb = ([i, j]) => [[i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]].filter((
 const nearestNode = (x, z) => [clamp(Math.round((x - rc(0)) / STEP), 0, NB), clamp(Math.round((z - rc(0)) / STEP), 0, NB)];
 function agent(mesh, speed, node, lane = 0) { return { mesh, speed, base: speed, from: node, to: null, prev: null, t: 0, x: rc(node[0]), z: rc(node[1]), h: 0, lane }; }
 function stepAgent(a, dt, choose) {
-  if (!a.to) { a.to = choose(a); a.t = 0; }
+  if (!a.to) { a.to = a.nextTo && choose === chooseRandom ? a.nextTo : choose(a); a.nextTo = null; a.t = 0; }
   const fx = rc(a.from[0]), fz = rc(a.from[1]), tx = rc(a.to[0]), tz = rc(a.to[1]);
   const nd = Math.min(a.t, 1 - a.t) * STEP, slow = nd < 10 ? 0.5 + 0.5 * nd / 10 : 1; a.vEff = a.speed * slow;
   a.t += a.vEff * dt / STEP;
-  if (a.t >= 1) { a.prev = a.from; a.from = a.to; a.to = null; a.t = 0; }
+  if (choose === chooseRandom && a.t > 0.5 && !a.nextTo) { // le prochain virage est décidé à l'avance : le clignotant s'allume avant le carrefour
+    a.nextTo = choose({ from: a.to, prev: a.from }); const d1x = a.to[0] - a.from[0], d1z = a.to[1] - a.from[1], d2x = a.nextTo[0] - a.to[0], d2z = a.nextTo[1] - a.to[1]; a.sig = Math.sign(d1x * d2z - d1z * d2x); }
+  if (a.t >= 1) { a.prev = a.from; a.from = a.to; a.to = null; a.t = 0; a.sigOut = a.sig || 0; a.sig = 0; }
+  if (a.sigOut && a.t > 0.22) a.sigOut = 0;
   const k = Math.min(a.t, 1), dx = tx - fx, dz = tz - fz, L = Math.hypot(dx, dz) || 1;
   const px = fx + dx * k + (-dz / L) * a.lane, pz = fz + dz * k + (dx / L) * a.lane;
   const s = 1 - Math.exp(-dt * 10); a.x += (px - a.x) * s; a.z += (pz - a.z) * s;
@@ -2728,6 +2731,7 @@ function buildTraffic() {
     if (MODELS[model] && model !== "bus" && model !== "firetruck") { const hgt = MODELS[model].size.y, dr = makeDriver(); dr.position.set(0.44, Math.max(0.05, hgt - 1.32), -0.1); mesh.add(dr); }
     const a = agent(mesh, special === "bus" ? rand(9, 11) : rand(12, 18), [Math.floor(rand(0, NB + 1)), Math.floor(rand(0, NB + 1))], special === "bus" || special === "firetruck" ? 6 : 3.6);
     a.x = rc(a.from[0]); a.z = rc(a.from[1]); traffic.push(a);
+    if (MODELS[model] && MODELS[model].size) { const S = MODELS[model].size, L = Math.max(S.x, S.z), W = Math.min(S.x, S.z); if (L > 2.5 && L < 15) { a.hl = L / 2 - 0.1; a.hw = clamp(W / 2 - 0.25, 0.55, 1.2); } }
   }
 }
 const SKINS = [0xf2cfb3, 0xd9a47e, 0xa86b45, 0x6e4a33, 0xf0c8a8], SHIRTS = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0xffffff, 0x1a535c, 0xff9f1c, 0x9b5de5, 0x2ec4b6, 0xf15bb5, 0x00bbf9], PANTS = [0x1d3557, 0x2b2d42, 0xe0d8c3, 0x3d405b, 0x111111], HAIRS = [0x111111, 0x3b2314, 0x8a5a2b, 0xd9b77a, 0x222222];
@@ -3065,16 +3069,22 @@ function dailyCard() {
     <div class="note" style="margin:6px 0 0">${S.done ? "✓ Fait aujourd'hui" : D.k === "pied" ? Math.round(S.prog) + " m sur " + D.n : S.prog + " sur " + D.n} · ${P.dailyDone || 0} défi${(P.dailyDone || 0) > 1 ? "s" : ""} réussi${(P.dailyDone || 0) > 1 ? "s" : ""} au total</div></div>`;
 }
 // ---------- phares et feux arrière de la circulation la nuit (visibles de loin, au-delà du brouillard)
-const CARL = { head: null, tail: null };
+const CARL = { head: null, tail: null }, _cb = new THREE.Box3();
+function carDims(a) { if (a.hl == null) { a.hl = 2.15; a.hw = 0.72; } return a; }
 function updateCarLights() {
   if (!CARL.head) { const mk = (c, sz) => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(traffic.length * 6 + 6), 3)); const m = new THREE.PointsMaterial({ map: glowTexture(), color: c, size: sz, sizeAttenuation: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, opacity: 0 }); const pts = new THREE.Points(g, m); pts.frustumCulled = false; scene.add(pts); return pts; };
-    CARL.head = mk(0xfffaf0, 2.6); CARL.tail = mk(0xff2418, 1.4); }
+    CARL.head = mk(0xfffaf0, 2.6); CARL.tail = mk(0xff2418, 1.4); CARL.blink = mk(0xffa21a, 1.1); CARL.blink.material.opacity = 0.95; }
+  { const B = CARL.blink.geometry.attributes.position, on = Math.floor(performance.now() / 380) % 2 === 0, o = target(); let n = 0;
+    if (on && !G.inside) traffic.forEach(a => { const sg = a.sig || a.sigOut; if (!sg || a.gone || !a.mesh || !a.mesh.visible || n + 2 > B.count) return; if (Math.abs(a.x - o.x) > 190 || Math.abs(a.z - o.z) > 190) return;
+      carDims(a); const fx = Math.sin(a.h), fz = Math.cos(a.h), k = (sg < 0 ? 1 : -1) * (a.hw + 0.02), sx = fz * k, sz = -fx * k, L = a.hl;
+      B.setXYZ(n++, a.x + fx * L + sx, 0.85, a.z + fz * L + sz); B.setXYZ(n++, a.x - fx * L + sx, 1.05, a.z - fz * L + sz); });
+    CARL.blink.geometry.setDrawRange(0, n); B.needsUpdate = true; CARL.blink.visible = n > 0; }
   const k = clamp((nightK - 0.25) / 0.45, 0, 1); CARL.head.material.opacity = k; CARL.tail.material.opacity = k * 0.85; CARL.head.visible = CARL.tail.visible = k > 0.01 && !G.inside; if (!CARL.head.visible) return;
   const H = CARL.head.geometry.attributes.position, T = CARL.tail.geometry.attributes.position, o = target(); let n = 0;
   traffic.forEach(a => { if (a.gone || !a.mesh || n + 2 > H.count) return; const d = Math.hypot(a.x - o.x, a.z - o.z); if (d > 900) return;
-    const fx = Math.sin(a.h), fz = Math.cos(a.h), sx = fz * 0.72, sz = -fx * 0.72;
-    H.setXYZ(n, a.x + fx * 2.15 + sx, 0.72, a.z + fz * 2.15 + sz); T.setXYZ(n, a.x - fx * 2.2 + sx, 0.85, a.z - fz * 2.2 + sz); n++;
-    H.setXYZ(n, a.x + fx * 2.15 - sx, 0.72, a.z + fz * 2.15 - sz); T.setXYZ(n, a.x - fx * 2.2 - sx, 0.85, a.z - fz * 2.2 - sz); n++; });
+    if (a.mesh.visible) carDims(a); const fx = Math.sin(a.h), fz = Math.cos(a.h), w = a.hw || 0.72, L = (a.hl || 2.15) + 0.05, sx = fz * w, sz = -fx * w;
+    H.setXYZ(n, a.x + fx * L + sx, 0.72, a.z + fz * L + sz); T.setXYZ(n, a.x - fx * L + sx, 0.85, a.z - fz * L + sz); n++;
+    H.setXYZ(n, a.x + fx * L - sx, 0.72, a.z + fz * L - sz); T.setXYZ(n, a.x - fx * L - sx, 0.85, a.z - fz * L - sz); n++; });
   CARL.head.geometry.setDrawRange(0, n); CARL.tail.geometry.setDrawRange(0, n); H.needsUpdate = T.needsUpdate = true;
 }
 function updateWorldLife(dt) {

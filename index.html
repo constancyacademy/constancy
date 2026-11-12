@@ -679,15 +679,22 @@ function addGeo(mat, geo, x, y, z, ry = 0, sx = 1, sy = 1, sz = 1, rx = 0, rz = 
   _e.set(rx, ry, rz); _q.setFromEuler(_e); _p.set(x, y, z); _s.set(sx, sy, sz); _m.compose(_p, _q, _s);
   const g = geo.clone(); g.applyMatrix4(_m);
   // regroupement par zone de 400 m : le téléphone ne dessine que ce qui est dans le champ de la caméra
-  const ck = mat.uuid + "|" + Math.floor((x + 3000) / 400) + "," + Math.floor((z + 3000) / 400);
+  const ck = mat.uuid + "|" + Math.floor((x + 3000) / 200) + "," + Math.floor((z + 3000) / 200);
   let B = batches.get(ck); if (!B) { B = { mat, list: [] }; batches.set(ck, B); }
   B.list.push(g);
+}
+const CHUNKS = [];
+function cullChunks() { // au-delà du brouillard, on ne dessine plus rien : plus fluide sur téléphone
+  const cp = camera.position, far = (scene.fog ? scene.fog.far : 700) * 1.06 + 20, hiAlt = cp.y > 60;
+  if (!cullChunks.big) { cullChunks.big = []; const cs = new Set(CHUNKS); scene.children.forEach(o => { if (o.isMesh && !o.isSkinnedMesh && !cs.has(o) && o !== sea && o !== sky && o.geometry && o.geometry.attributes.position && o.geometry.attributes.position.count > 60000) { o.geometry.computeBoundingSphere(); cullChunks.big.push(o); } }); }
+  const test = m => { const bs = m.geometry.boundingSphere; if (!bs) return; const c = bs.center, wx = c.x + m.position.x, wz = m.rotation.x ? c.x * 0 + m.position.z - c.y : c.z + m.position.z; const d = Math.hypot(wx - cp.x, wz - cp.z) - bs.radius; m.visible = hiAlt || d < far; };
+  for (let i = 0; i < CHUNKS.length; i++) test(CHUNKS[i]); cullChunks.big.forEach(test);
 }
 function flushBatches() {
   batches.forEach(({ mat, list }) => {
     for (let i = 0; i < list.length; i += 400) {
       const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(list.slice(i, i + 400));
-      if (merged) { merged.computeBoundingSphere(); scene.add(new THREE.Mesh(merged, mat)); }
+      if (merged) { merged.computeBoundingSphere(); const me = new THREE.Mesh(merged, mat); scene.add(me); CHUNKS.push(me); }
     }
   });
   batches.clear();
@@ -1056,7 +1063,8 @@ function loadHumans() {
       }));
     }
     HQ.darkM = res[keys.length]; HQ.darkF = res[keys.length + 1];
-    [HQ.m, HQ.f].forEach(g => g.scene.traverse(o => { if (o.isMesh) { o.frustumCulled = false; const m = o.material; if (m.map) m.map.encoding = THREE.LinearEncoding; } }));
+    [HQ.m, HQ.f].forEach(g => g.scene.traverse(o => { if (o.isMesh) { o.frustumCulled = true; o.geometry.computeBoundingSphere(); o.geometry.boundingSphere.radius *= 2.2; // hors du champ : pas dessiné (gros gain de fluidité)
+ const m = o.material; if (m.map) m.map.encoding = THREE.LinearEncoding; } }));
     Object.values(HQ.hair).forEach(h => h.traverse(o => { if (o.isMesh && o.material.map) o.material.map.encoding = THREE.LinearEncoding; }));
     HQ.ready = true; return true;
   }).then(ok => !ok || !HQ.clips ? ok : fetch("assets/anims_mixamo.json").then(r => r.ok ? r.json() : null).then(J => {
@@ -2694,9 +2702,12 @@ function buildTraffic() {
   }
 }
 const SKINS = [0xf2cfb3, 0xd9a47e, 0xa86b45, 0x6e4a33, 0xf0c8a8], SHIRTS = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0xffffff, 0x1a535c, 0xff9f1c, 0x9b5de5, 0x2ec4b6, 0xf15bb5, 0x00bbf9], PANTS = [0x1d3557, 0x2b2d42, 0xe0d8c3, 0x3d405b, 0x111111], HAIRS = [0x111111, 0x3b2314, 0x8a5a2b, 0xd9b77a, 0x222222];
+// niveau de détail : au-delà de 30 m, un passant est dessiné en version légère (bien plus fluide, invisible à l'œil à cette distance)
+function lodFor(h, opt) { const l = makeHumanLegacy(Object.assign({}, opt, { lite: true })); l.visible = false; scene.add(l); h.userData.lod = l; return l; }
+function lodSync(h, d, speed, dt) { const l = h.userData.lod; if (!l) return; if (d > 30 && h.visible) { h.visible = false; l.visible = true; l.position.copy(h.position); l.rotation.y = h.rotation.y; animHuman(l, speed, dt); } else l.visible = false; }
 function buildPeds() {
   for (let k = 0; k < 36; k++) {
-    const h = makeHuman({ skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }); scene.add(h);
+    const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = makeHuman(opt); scene.add(h); lodFor(h, opt);
     const i = Math.floor(rand(0, NB)); let j = Math.floor(rand(0, NB)); if (j === RIVER_J) j = RIVER_J - 1;
     peds.push({ mesh: h, i, j, t: rand(0, 144), speed: rand(1.3, 2.2) * (Math.random() < .5 ? 1 : -1), dodge: 0 });
   }
@@ -2822,7 +2833,7 @@ function buildLife() {
   // les bateaux tournent au large : leur cercle passe au-delà des coins de l'île
   for (let k = 0; k < 6; k++) { const b = makeBoat(); scene.add(b); boats.push({ mesh: b, a: k * Math.PI / 3 + rand(0, .5), r: SHORE * 1.45 + 25 + rand(0, 80), s: rand(0.008, 0.015) * (k % 2 ? 1 : -1) }); }
   for (let k = 0; k < 10; k++) {
-    const h = makeHuman({ skin: pick(SKINS), shirt: pick([0xff2d55, 0x111114, 0x34e0ff, 0xffffff]), pants: 0x111114, hair: pick(HAIRS), lite: true, female: k % 2 === 0 }); scene.add(h);
+    const opt = { skin: pick(SKINS), shirt: pick([0xff2d55, 0x111114, 0x34e0ff, 0xffffff]), pants: 0x111114, hair: pick(HAIRS), lite: true, female: k % 2 === 0 }, h = makeHuman(opt); scene.add(h); lodFor(h, opt);
     joggers.push({ mesh: h, t: rand(0, 4), r: HALF + 9 + (k % 2) * 4, s: rand(0.0055, 0.0075) * 241 / (HALF + 9) * (k % 3 ? 1 : -1) }); // environ 3 m/s
   }
   const s = label("Street Workout", COL.physique); s.position.set(-HALF - 22, 6, bC(3)); scene.add(s);
@@ -2900,7 +2911,7 @@ function updateLife(dt) {
   life.dolphins.forEach(d => { seaStep(d, dt); const j = Math.sin(T * 1.6 + d.ph); d.mesh.position.set(Math.cos(d.a) * d.r, -0.9 + Math.max(0, j) * 3.2, Math.sin(d.a) * d.r); d.mesh.rotation.set(-Math.cos(T * 1.6 + d.ph) * 0.7, -d.a, 0, "YXZ"); });
   life.dogs.forEach(dg => { const pm = dg.ped.mesh; dg.mesh.visible = pm.visible; if (!pm.visible) return; const h = pm.rotation.y; dg.mesh.position.set(pm.position.x - Math.sin(h) * 1.6 + Math.cos(h) * 0.7, pm.position.y, pm.position.z - Math.cos(h) * 1.6 - Math.sin(h) * 0.7); dg.mesh.rotation.y = h; });
   boats.forEach(b => { seaStep(b, dt); b.mesh.position.set(Math.cos(b.a) * b.r, -0.2 + Math.sin(performance.now() / 700 + b.r) * 0.15, Math.sin(b.a) * b.r); b.mesh.rotation.y = -b.a + (b.s > 0 ? 0 : Math.PI); });
-  joggers.forEach(j => { j.t += j.s * dt; const [x, z, h] = squarePath(j.t, j.r); j.mesh.position.set(x, 0, z); j.mesh.rotation.y = h + (j.s < 0 ? Math.PI : 0); animHuman(j.mesh, 3.2, dt); });
+  joggers.forEach(j => { j.t += j.s * dt; const [x, z, h] = squarePath(j.t, j.r); j.mesh.position.set(x, 0, z); j.mesh.rotation.y = h + (j.s < 0 ? Math.PI : 0); animHuman(j.mesh, 3.2, dt); const o = target(); lodSync(j.mesh, Math.hypot(x - o.x, z - o.z), 3.2, dt); });
 }
 function pushRect(o, x, z, h, hw, hl, rad) { // repousse o hors d'un rectangle orienté (voiture), arrondi de rad
   const s = Math.sin(h), c = Math.cos(h), dx = o.x - x, dz = o.z - z, lx = dx * c - dz * s, lz = dx * s + dz * c;
@@ -2973,8 +2984,8 @@ function updateWorldLife(dt) {
   const me = target();
   updateLife(dt);
   traffic.forEach(a => { a.mesh.visible = Math.hypot(a.x - me.x, a.z - me.z) < 190; });
-  peds.forEach(p => { p.mesh.visible = Math.hypot(p.mesh.position.x - me.x, p.mesh.position.z - me.z) < 150; });
-  joggers.forEach(j => { j.mesh.visible = Math.hypot(j.mesh.position.x - me.x, j.mesh.position.z - me.z) < 160; });
+  peds.forEach(p => { p.mesh.visible = Math.hypot(p.mesh.position.x - me.x, p.mesh.position.z - me.z) < 95; });
+  joggers.forEach(j => { j.mesh.visible = Math.hypot(j.mesh.position.x - me.x, j.mesh.position.z - me.z) < 110; });
   traffic.forEach(a => {
     // s'arrête si le joueur est juste devant
     const fx = Math.sin(a.h), fz = Math.cos(a.h), dx = me.x - a.x, dz = me.z - a.z, d = Math.hypot(dx, dz);
@@ -3022,7 +3033,7 @@ function updateWorldLife(dt) {
     const cx = bC(p.i), cz = bC(p.j), ox = cx - q.x, oz = cz - q.z, on = Math.hypot(ox, oz) || 1;
     p.mesh.position.set(q.x + ox / on * p.dodge * 1.6, 0.25 + p.dodge * Math.abs(Math.sin(performance.now() / 90)) * 0.35, q.z + oz / on * p.dodge * 1.6);
     p.mesh.rotation.y = q.h;
-    animHuman(p.mesh, Math.abs(p.speed), dt);
+    animHuman(p.mesh, Math.abs(p.speed), dt); lodSync(p.mesh, d, Math.abs(p.speed), dt);
   });
 }
 
@@ -4613,7 +4624,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
@@ -4648,7 +4659,7 @@ function loop(now) {
   updateSound();
   for (let i = 0; i < ANIMATED.length; i++) { const g = ANIMATED[i]; if (!g.visible || !g.parent) continue; const gp = g.parent.isScene ? g.position : g.parent.position; if (gp.distanceToSquared(camera.position) < 160000 && (g.parent.isScene || g.parent.visible)) g.userData.mixer.update(dt); }
   if (mamieMesh && mamieMesh.userData.q && G.started) setClip(mamieMesh, G.alerts.mamieActive && !G.mission ? "Waving" : "Idle_Talking_Loop");
-  updateGlare(dt); updateDinos(dt); updateWild(dt); updateSpin(dt); updateFx(dt); updateWeather(dt); updateFireworks(dt); updateUfo(dt); sea.material.uniforms.time.value = now / 1000; sea.position.y = -0.62 + Math.sin(now / 1000 * 0.6) * 0.1; syncAllRigs(dt); renderer.render(scene, camera);
+  updateGlare(dt); if ((loop.cf = (loop.cf || 0) + 1) % 15 === 0) cullChunks(); updateDinos(dt); updateWild(dt); updateSpin(dt); updateFx(dt); updateWeather(dt); updateFireworks(dt); updateUfo(dt); sea.material.uniforms.time.value = now / 1000; sea.position.y = -0.62 + Math.sin(now / 1000 * 0.6) * 0.1; syncAllRigs(dt); renderer.render(scene, camera);
 }
 
 /* ============ Commandes ============ */

@@ -203,6 +203,16 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 .menu-btn.ico svg{width:22px;height:22px}
 .menu-btn.ico:active{transform:scale(.93)}
 .menu-btn.ico.on{background:linear-gradient(180deg,#f2f0ec,#c9c5bd);color:#111}
+.menu-btn.ico{position:relative}
+#feedBtn{position:absolute;left:0;top:52px}
+.menu-btn .dot{position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 2px rgba(0,0,0,.6)}
+.feed{display:flex;flex-direction:column;gap:10px;text-align:left;max-height:62vh;overflow-y:auto;margin:10px 0 14px;padding-right:4px}
+.post{display:flex;gap:10px;padding:11px 12px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
+.post .av{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;color:#111}
+.post .who{font-size:13px;font-weight:700}.post .who span{font-weight:400;color:var(--muted)}
+.post .txt{font-size:14.5px;line-height:1.38;margin-top:2px}
+.post .meta2{font-size:12px;color:var(--muted);margin-top:5px}
+.post.me{border-color:rgba(255,45,85,.5)}
 .tr{gap:6px}
 .money{font-family:var(--font-ui);font-weight:600;font-size:clamp(20px,5vw,26px);letter-spacing:-.01em;padding:7px 14px 8px;border-radius:999px;background:var(--glass2);border:1px solid var(--edge);box-shadow:var(--hi),var(--drop);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);text-shadow:none}
 .money .d{color:#c9b98a;margin-right:2px;font-weight:400}
@@ -250,7 +260,7 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 
 <div id="hud" class="hidden">
   <div class="tl">
-    <div class="row"><button class="menu-btn ico" id="menuBtn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button><button class="menu-btn ico" id="viewBtn" type="button" aria-label="Vue à la première personne"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="2.8" fill="currentColor"/></svg></button><button class="menu-btn hidden" id="soundBtn" type="button">SON</button></div>
+    <div class="row" style="position:relative"><button class="menu-btn ico" id="menuBtn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button><button class="menu-btn ico" id="viewBtn" type="button" aria-label="Vue à la première personne"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="2.8" fill="currentColor"/></svg></button><button class="menu-btn ico" id="feedBtn" type="button" aria-label="Fil d'actu de la ville"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.8" width="10" height="18.4" rx="2.4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M10.5 18h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="dot hidden" id="feedDot"></span></button><button class="menu-btn hidden" id="soundBtn" type="button">SON</button></div>
     <div class="help" id="help"></div>
   <div id="notes"></div>
   <div id="scopeV"></div>
@@ -3766,6 +3776,40 @@ function startKebab(courses) {
   help(courses ? "Les sacs de courses sont dans le coffre. Mamie habite au point <b>violet</b>." : "Le kebab est sur le siège passager, encore chaud. Livre-le au point <b>violet</b>. Prends ton temps : pas de chrono.", 7);
 }
 // bandeaux en haut : doré = constance, bleu = astuces / missions
+const FOLK = { mamie: ["Mamie Rosa", "mamie_rosa", "#f6c3d5"], coach: ["Coach Karim", "coach.karim", "#9be38f"], lea: ["Léa", "lea.run", "#9fd4ff"], kebab: ["Kebab du Port", "kebabduport", "#ffcf7a"],
+  meteo: ["Météo Constancy", "meteo_constancy", "#c8d2ff"], mentor: ["Le Mentor", "le.mentor", "#d9b8ff"], tom: ["Tom", "tom.velo", "#ffd2b0"], pig: ["Pigeon officiel", "pigeon_officiel", "#cfd2d8"], marina: ["Marina Events", "marina.events", "#ffb3b3"], ville: ["Mairie de Constancy City", "ville_constancy", "#f2f0ec"] };
+const COACH_TIPS = ["Les jours sans, baisse le volume. Pas l'action.", "Le résultat est toujours en retard sur l'effort.", "Mets des œillères. Bon jour, mauvais jour : Tu fais ce que tu avais décidé.", "Le minimum d'hier ne doit pas devenir ton plafond.", "La motivation arrive après le premier pas. Jamais avant.", "Ce qui casse une série, ce n'est pas le petit effort. C'est le zéro.", "Regarde ta série. Pas ton reflet."];
+function hhmm() { const h = hourNow(); return String(Math.floor(h) % 24).padStart(2, "0") + ":" + String(Math.floor((h % 1) * 60)).padStart(2, "0"); }
+function feedPost(who, text, opt = {}) {
+  if (!G.feed) G.feed = []; G.feed.unshift({ who, text, t: "Jour " + (P ? P.day : 1) + " · " + hhmm(), likes: opt.likes || Math.floor(8 + Math.random() * 240), me: !!opt.me });
+  G.feed.length = Math.min(G.feed.length, 40); const d = $("feedDot"); if (d) d.classList.remove("hidden");
+  if (opt.toast && G.mode === "play") notify("info", `<b>@${FOLK[who][1]}</b> : ${text.length > 70 ? text.slice(0, 68) + "…" : text}`, 5);
+}
+function feedAuto() { // un post de temps en temps, selon ce qui se passe dans ta vie de jeu
+  if (!P) return; const st = glowStage ? glowStage() : 0, car = (CARS.find(c => c.id === P.car) || CARS[0]).name, r = Math.random();
+  const pool = [
+    () => ["coach", pick(COACH_TIPS)],
+    () => P.streakDays > 1 ? ["lea", `Ça fait ${P.streakDays} jours que je croise le même gars dans le quartier, à la même heure. Respect. 👏`] : ["lea", "Nouveau dans le quartier : un livreur qui part de zéro. On verra s'il tient la semaine."],
+    () => ["tom", P.car === "citadine" ? "Vu une citadine tenue avec du scotch qui fait des livraisons. Le gars lâche rien." : `Le livreur du quartier roule en ${car} maintenant. Il a commencé avec une citadine scotchée…`],
+    () => WX.rain > 0.3 ? ["meteo", "Il pleut. Les constants sortent quand même. ☔️ Bonus pluie sur les livraisons."] : ["meteo", hourNow() < 12 ? "Grand soleil ce matin sur Constancy City. Parfait pour une séance dehors." : "Coucher de soleil prévu vers 19 h sur la plage. Ça vaut le détour."],
+    () => ["pig", "Encore une supercar qui nous a fait décoller sur la 7e avenue. On était bien, là. 🐦"],
+    () => ["ville", "Rappel : les feux du centre-ville sont neufs. Le rouge, c'est pour tout le monde. 🚦"],
+    () => ["kebab", "Merci au livreur qui nous livre toujours chaud. Les clients le réclament. 🌯"],
+    () => st >= 2 ? ["coach", `Avant / après du gars de la salle. Jour 1 → Jour ${P.day}. La Constancy, ça se voit.`] : ["coach", "Un nouveau à la salle ce matin. Pas le plus fort. Mais il est revenu. C'est tout ce qui compte."],
+    () => P.objective === "famille" ? ["mamie", "Mon petit-fils passe me voir tous les jours. Ça n'a pas de prix. ❤️"] : ["mamie", "Un jeune homme m'a porté mes courses aujourd'hui. Il y a encore des gens bien."],
+    () => ["mentor", "Tout le monde veut le résultat. Personne ne veut la période où rien ne se voit."],
+    () => hourNow() >= 19 ? ["marina", "Feu d'artifice possible ce soir sur la marina, entre 21 h et 1 h. Ouvrez l'œil. 🎆"] : ["marina", "Les bateaux de location sont dispos au port. Premier arrivé, premier servi. ⛵"]
+  ];
+  const [w, tx] = pick(pool)(); feedPost(w, tx, { toast: r < 0.5 });
+}
+function openFeed() {
+  setMode("menu"); const d = $("feedDot"); if (d) d.classList.add("hidden"); if (!G.feed || !G.feed.length) feedAuto();
+  const av = w => `<div class="av" style="background:${FOLK[w][2]}">${FOLK[w][0][0]}</div>`;
+  show(`<div class="panel"><div class="kicker">Fil d'actu · Constancy City</div><h2>Ce que dit la ville</h2>
+    <div class="feed">${G.feed.map(q => `<div class="post${q.me ? " me" : ""}">${av(q.who)}<div><div class="who">${FOLK[q.who][0]} <span>@${FOLK[q.who][1]}</span></div><div class="txt">${q.text}</div><div class="meta2">${q.t} · ♥ ${q.likes}</div></div></div>`).join("")}</div>
+    <button class="btn" id="back" data-focus type="button">Retour au jeu</button></div>`);
+  on("back", resume);
+}
 function notify(kind, html, secs = 7) {
   const box = $("notes"); if (!box) return; const el = document.createElement("div"); el.className = "note-bar " + kind;
   el.innerHTML = `<span class="ic">${kind === "gold" ? "Constancy" : "Info"}</span><span>${html}</span>`; box.appendChild(el);
@@ -3810,6 +3854,7 @@ function startMamie() {
 }
 function endMission(ok) {
   const M = G.mission; if (!M) return;
+  if (ok) setTimeout(() => feedPost(pick(["kebab", "lea", "tom", "mamie"]), pick(["Le livreur du quartier vient encore de frapper. Toujours à l'heure. 🔥", "Je l'ai vu passer, il ne s'arrête jamais celui-là.", "Livré chaud, livré à l'heure. Qui est ce gars ?", "Un jour de plus pour le nouveau. Il tient. 👀"]), { toast: true }), 2500);
   if (M.type === "livraison" && (M.kebab || M.courses) && ok) {
     destBeacon.visible = false; const tip = M.kebab ? 2600 : 1800; addCash(tip); P.deliveries++; P.counts.livraison = (P.counts.livraison || 0) + 1; addXP(120); sfx.win();
     help(M.kebab ? `Le client ouvre la porte : « Un kebab encore chaud ? T'es un bon, toi. » Il te glisse un énorme pourboire : <b style="color:var(--cash)">+$${fmt(tip)}</b>` : `Mamie t'embrasse : « Tu es toujours là pour moi. » Elle te donne une enveloppe et un gâteau : <b style="color:var(--cash)">+$${fmt(tip)}</b>`, 8);
@@ -4118,6 +4163,7 @@ function dailyReturn() {
 function startPlay() {
   if (!G.statDay || G.statDay !== P.day) { G.statDay = P.day; stat(P.day === 1 ? "partie-lancee" : "retour-jour-" + Math.min(P.day, 30)); }
   if (CREATOR) creatorBoost(); setTimeout(updateLevelBadge, 0);
+  if (!G.feed) { G.feed = []; feedPost("ville", "Bienvenue à Constancy City. Ici, on ne juge pas d'où tu pars. On regarde si tu reviens demain."); feedAuto(); G.feedT = 0; }
   G.started = true; hideScreen(); normalizeRide(); G.energy = 100; G.inside = false; G.snapCam = true; if (gymLight) gymLight.intensity = 0; if (homeLight) homeLight.intensity = 0;
   if (P.carPos) { G.car.x = P.carPos.x; G.car.z = P.carPos.z; G.car.h = P.carPos.h; } else { G.car.x = LM.home.x; G.car.z = LM.home.z; G.car.h = Math.PI / 2; }
   setCar(P.car);
@@ -4462,6 +4508,7 @@ function loop(now) {
     if (beam && (G.onFoot || !carMesh || (G.ride && (G.ride.kind === "avion" || G.ride.kind === "bateau")))) beam.visible = false;
     if (G.wantExit && !G.onFoot && !G.entering) { G.car.v *= Math.pow(0.004, dt); if (Math.abs(G.car.v) < 4) { G.car.v = 0; G.wantExit = false; toggleCar(); } } else if (G.onFoot) G.wantExit = false;
     updateReminders(dt);
+    G.feedT = (G.feedT || 0) + dt; if (G.feedT > 125) { G.feedT = 0; feedAuto(); }
     updateDoorClose(dt);
     if (G.inside) checkInterior(); else { checkZones(); updatePolice(dt); }
     updateMission(dt); if (G.mode === "play") checkGoal();
@@ -4506,6 +4553,7 @@ $("scopeBtn").addEventListener("click", toggleScope);
 $("jokerBtn").addEventListener("click", useJoker);
 $("quitBtn").addEventListener("click", () => { if (G.mode === "play" && G.mission) confirmQuit(); });
 $("mult").addEventListener("click", () => { if (G.mode === "play") help(`<b>Constancy ${multTxt(P.mult)}</b> : ton multiplicateur de gains. Chaque journée réussie d'affilée le fait monter de 0,25 (jusqu'à x2). Une journée ratée le remet à x1.`, 8); });
+$("feedBtn").addEventListener("click", () => { if (G.mode === "play") openFeed(); });
 $("viewBtn").addEventListener("click", () => { G.fpv = !G.fpv; $("viewBtn").classList.toggle("on", !!G.fpv); });
 $("minimap").addEventListener("click", () => { if (G.mode === "play") openBigMap(); });
 $("soundBtn").addEventListener("click", () => { audioInit(); SND.on = !SND.on; $("soundBtn").textContent = SND.on ? "SON" : "MUET"; if (SND.on) sfx.ping(); });

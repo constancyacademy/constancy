@@ -206,6 +206,15 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 .menu-btn.ico:active{transform:scale(.93)}
 .menu-btn.ico.on{background:linear-gradient(180deg,#f2f0ec,#c9c5bd);color:#111}
 .menu-btn.ico{position:relative}
+body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.photo #joyHint,body.photo #joy{display:none!important}
+#photoUI{position:fixed;inset:0;z-index:40;touch-action:none}
+#photoUI .pdrag{position:absolute;inset:0}
+#photoUI .ptop{position:absolute;top:calc(env(safe-area-inset-top) + 14px);left:50%;transform:translateX(-50%);font:600 13px Inter,system-ui,sans-serif;color:#fff;background:rgba(0,0,0,.45);padding:8px 14px;border-radius:999px;white-space:nowrap;pointer-events:none}
+#photoUI .pbar{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 26px);display:flex;justify-content:center;align-items:center;gap:38px}
+#photoUI .pbtn{width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.45);color:#fff;font-size:20px}
+#photoUI .pshot{width:78px;height:78px;border-radius:50%;border:5px solid #fff;background:rgba(255,255,255,.25);box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+#photoUI .pshot:active{background:#fff}
+#pFlash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:41;transition:opacity .35s}
 #feedBtn{align-self:flex-start;margin-bottom:4px}
 .menu-btn .dot{position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 2px rgba(0,0,0,.6)}
 .feed{display:flex;flex-direction:column;gap:10px;text-align:left;max-height:62vh;overflow-y:auto;margin:10px 0 14px;padding-right:4px}
@@ -265,7 +274,7 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 <div id="glare" aria-hidden="true"></div><div id="adapt" aria-hidden="true"></div>
 <div id="hud" class="hidden">
   <div class="tl">
-    <div class="row" style="position:relative"><button class="menu-btn ico" id="menuBtn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button><button class="menu-btn ico" id="viewBtn" type="button" aria-label="Vue à la première personne"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="2.8" fill="currentColor"/></svg></button><button class="menu-btn hidden" id="soundBtn" type="button">SON</button></div>
+    <div class="row" style="position:relative"><button class="menu-btn ico" id="menuBtn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button><button class="menu-btn ico" id="photoBtn" type="button" aria-label="Mode photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3l1.6-2.3h6.8L17 8.5h3v10H4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="none"/><circle cx="12" cy="13.3" r="3.2" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button><button class="menu-btn ico" id="viewBtn" type="button" aria-label="Vue à la première personne"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="2.8" fill="currentColor"/></svg></button><button class="menu-btn hidden" id="soundBtn" type="button">SON</button></div>
     <div class="help" id="help"></div>
   <div id="notes"></div>
   <div id="scopeV"></div>
@@ -307,6 +316,9 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 <div id="joyHint" class="hidden"><span>Glisse ici</span></div>
 <div id="joy" class="hidden"><i></i></div>
 
+<div id="photoUI" class="hidden"><div class="pdrag" id="pDrag"></div><div class="ptop">Glisse pour tourner · Pince pour zoomer</div>
+  <div class="pbar"><button type="button" class="pbtn" id="pExit" aria-label="Quitter le mode photo">✕</button><button type="button" class="pshot" id="pShot" aria-label="Prendre la photo"></button><button type="button" class="pbtn" id="pTime" aria-label="Changer l'heure">☀︎</button></div></div>
+<div id="pFlash"></div>
 <div id="screen"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -4040,6 +4052,26 @@ function openFeed() {
     <button class="btn" id="back" data-focus type="button">Retour au jeu</button></div>`);
   on("back", resume);
 }
+// ---------- mode photo : cadre ton perso ou ta voiture, prends la photo, partage-la (signée Constancy)
+const PHOTO = { on: false, yaw: 0, pitch: 0.22, dist: 7, pts: new Map(), pinch: 0 };
+function photoTarget() { const o = target(); return [o.x, G.onFoot ? 1.05 : 0.95, o.z]; }
+function openPhoto() {
+  if (G.mode !== "play" || G.inside || PHOTO.on) return; PHOTO.on = true; G.car.v = 0; PHOTO.prev = window.__camK;
+  PHOTO.yaw = (G.onFoot ? G.me.h : G.car.h) + 2.4; PHOTO.pitch = 0.2; PHOTO.dist = G.onFoot ? 4.6 : 9.5;
+  document.body.classList.add("photo"); $("photoUI").classList.remove("hidden"); stat("mode-photo");
+  window.__camK = () => { if (!PHOTO.on) return null; const t = photoTarget(), cp = Math.cos(PHOTO.pitch); return { p: [t[0] + Math.sin(PHOTO.yaw) * cp * PHOTO.dist, Math.max(0.35, t[1] + Math.sin(PHOTO.pitch) * PHOTO.dist), t[2] + Math.cos(PHOTO.yaw) * cp * PHOTO.dist], t, fov: 50 }; };
+}
+function closePhoto() { PHOTO.on = false; window.__camK = PHOTO.prev; document.body.classList.remove("photo"); $("photoUI").classList.add("hidden"); G.snapCam = true; camera.fov = 70; camera.updateProjectionMatrix(); }
+function snapPhoto() {
+  if (!renderer) return; renderer.render(scene, camera); const src = renderer.domElement, W = src.width, H = src.height, c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d"); x.drawImage(src, 0, 0);
+  const s = Math.min(W, H) / 390, gr = x.createLinearGradient(0, H - 120 * s, 0, H); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,.55)"); x.fillStyle = gr; x.fillRect(0, H - 120 * s, W, 120 * s);
+  x.fillStyle = "#fff"; x.font = `italic ${Math.round(34 * s)}px "EB Garamond", Georgia, serif`; x.fillText("Constancy", 20 * s, H - 44 * s);
+  x.fillStyle = "rgba(255,255,255,.82)"; x.font = `600 ${Math.round(12.5 * s)}px Inter, system-ui, sans-serif`; x.fillText(`Jour ${P.streakDays || 1} d'affilée · constancyacademy.netlify.app`, 20 * s, H - 22 * s);
+  const fl = $("pFlash"); fl.style.transition = "none"; fl.style.opacity = 0.9; requestAnimationFrame(() => { fl.style.transition = "opacity .45s"; fl.style.opacity = 0; }); sfx.ping(); stat("photo-prise");
+  c.toBlob(async b => { if (!b) return; const f = new File([b], "constancy-photo.png", { type: "image/png" });
+    try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: "Constancy", text: "Pris dans Constancy, le jeu où ta régularité fait le score." }); stat("photo-partagee"); return; } } catch (e) { return; }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "constancy-photo.png"; document.body.appendChild(a); a.click(); a.remove(); help("Photo enregistrée.", 2.5); }, "image/png");
+}
 function notify(kind, html, secs = 7) {
   const box = $("notes"); if (!box) return; const el = document.createElement("div"); el.className = "note-bar " + kind;
   el.innerHTML = `<span class="ic">${kind === "gold" ? "Constancy" : "Info"}</span><span>${html}</span>`; box.appendChild(el);
@@ -4866,6 +4898,15 @@ $("jokerBtn").addEventListener("click", useJoker);
 $("quitBtn").addEventListener("click", () => { if (G.mode === "play" && G.mission) confirmQuit(); });
 $("mult").addEventListener("click", () => { if (G.mode === "play") help(`<b>Constancy ${multTxt(P.mult)}</b> : ton multiplicateur de gains. Chaque journée réussie d'affilée le fait monter de 0,25 (jusqu'à x2). Une journée ratée le remet à x1.`, 8); });
 $("feedBtn").addEventListener("click", () => { if (G.mode === "play") openFeed(); });
+$("photoBtn").addEventListener("click", openPhoto); $("pExit").addEventListener("click", closePhoto); $("pShot").addEventListener("click", snapPhoto);
+$("pTime").addEventListener("click", () => { P.dayT = (P.dayT + DAY_SECONDS / 8) % DAY_SECONDS; });
+{ const d = $("pDrag"), last = PHOTO.pts;
+  d.addEventListener("pointerdown", e => { d.setPointerCapture(e.pointerId); last.set(e.pointerId, [e.clientX, e.clientY]); PHOTO.pinch = 0; });
+  d.addEventListener("pointermove", e => { if (!last.has(e.pointerId)) return; const [px, py] = last.get(e.pointerId); last.set(e.pointerId, [e.clientX, e.clientY]);
+    if (last.size >= 2) { const [a, b] = [...last.values()], dd = Math.hypot(a[0] - b[0], a[1] - b[1]); if (PHOTO.pinch) PHOTO.dist = clamp(PHOTO.dist * PHOTO.pinch / dd, 2.2, 28); PHOTO.pinch = dd; return; }
+    PHOTO.yaw -= (e.clientX - px) * 0.009; PHOTO.pitch = clamp(PHOTO.pitch + (e.clientY - py) * 0.006, -0.05, 1.25); });
+  const up = e => { last.delete(e.pointerId); PHOTO.pinch = 0; }; d.addEventListener("pointerup", up); d.addEventListener("pointercancel", up);
+  d.addEventListener("wheel", e => { e.preventDefault(); PHOTO.dist = clamp(PHOTO.dist * (1 + e.deltaY * 0.001), 2.2, 28); }, { passive: false }); }
 $("viewBtn").addEventListener("click", () => { G.fpv = !G.fpv; $("viewBtn").classList.toggle("on", !!G.fpv); });
 $("minimap").addEventListener("click", () => { if (G.mode === "play") openBigMap(); });
 $("soundBtn").addEventListener("click", () => { audioInit(); SND.on = !SND.on; $("soundBtn").textContent = SND.on ? "SON" : "MUET"; if (SND.on) sfx.ping(); });

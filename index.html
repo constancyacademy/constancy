@@ -2697,6 +2697,19 @@ function updateTrafficLights(force) {
   if (!TL.inst) return; const t = tlNow(), ph = tlState("x", t) + tlState("z", t); if (ph === TL.phase && !force) return; TL.phase = ph;
   TL.list.forEach((l, k) => TL.inst.setColorAt(k, tlState(l.axis, t) === l.c ? TL_ON[l.c] : TL_OFF)); TL.inst.instanceColor.needsUpdate = true;
 }
+// conducteurs de la circulation : silhouette simple (une seule pièce), visible à travers les vitres
+let DRIVER_M = null;
+function makeDriver() {
+  if (!DRIVER_M) DRIVER_M = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const parts = [], col = (g, c) => { const n = g.attributes.position.count, cc = new THREE.Color(c), a = new Float32Array(n * 3); for (let i = 0; i < n; i++) { a[i * 3] = cc.r; a[i * 3 + 1] = cc.g; a[i * 3 + 2] = cc.b; } g.setAttribute("color", new THREE.BufferAttribute(a, 3)); return g.index ? g.toNonIndexed() : g; };
+  const skin = pick(SKINS), shirt = pick(SHIRTS), hair = pick(HAIRS);
+  const t = new THREE.BoxGeometry(0.46, 0.6, 0.28); t.translate(0, 0.55, -0.05); parts.push(col(t, shirt));
+  const h = new THREE.SphereGeometry(0.14, 10, 8); h.translate(0, 1.0, 0); parts.push(col(h, skin));
+  const hr = new THREE.SphereGeometry(0.15, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2); hr.translate(0, 1.03, -0.01); parts.push(col(hr, hair));
+  [-1, 1].forEach(sd => { const a = new THREE.BoxGeometry(0.1, 0.1, 0.42); a.translate(sd * 0.2, 0.72, 0.2); a.rotateX(0); parts.push(col(a, shirt)); });
+  parts.forEach(g => { ["uv"].forEach(k => g.deleteAttribute(k)); });
+  return new THREE.Mesh(THREE.BufferGeometryUtils.mergeBufferGeometries(parts), DRIVER_M);
+}
 function buildTraffic() {
   // trafic varié : voitures de toutes sortes, taxis, pick-up, bus, et des patrouilles de police et ambulances qui passent
   const mix = ["car_city", "car_city", "car_suv", "car_taxi", "car_pickup", "car_sport", "car_city", "car_suv"];
@@ -2705,6 +2718,7 @@ function buildTraffic() {
     const paintable = /car_city|car_suv|car_sport/.test(model);
     const mesh = makeCar({ id: "trafic", color: TRAFFIC_COLORS[k % TRAFFIC_COLORS.length] }, { model, keepPaint: !paintable }); scene.add(mesh);
     if (special === "car_police" || special === "ambulance") mesh.userData.patrol = special;
+    if (MODELS[model] && model !== "bus" && model !== "firetruck") { const hgt = MODELS[model].size.y, dr = makeDriver(); dr.position.set(0.44, Math.max(0.05, hgt - 1.32), -0.1); mesh.add(dr); }
     const a = agent(mesh, special === "bus" ? rand(9, 11) : rand(12, 18), [Math.floor(rand(0, NB + 1)), Math.floor(rand(0, NB + 1))], special === "bus" || special === "firetruck" ? 6 : 3.6);
     a.x = rc(a.from[0]); a.z = rc(a.from[1]); traffic.push(a);
   }
@@ -3814,7 +3828,7 @@ function finishEnter(n) {
   if (n.own) { carMesh = G.parked.mesh; G.car.x = G.parked.x; G.car.z = G.parked.z; G.car.h = G.parked.h; G.parked = null; G.ride = { kind: "own" }; meMesh.visible = false; }
   else {
     const list = n.traffic ? traffic : rentals, i = list.indexOf(n.r); if (i >= 0) list.splice(i, 1);
-    carMesh = n.r.mesh; carMesh.visible = true; G.car.x = n.r.x; G.car.z = n.r.z; G.car.h = n.r.h; G.ride = { kind: n.kind, offroad: !!n.r.offroad };
+    carMesh = n.r.mesh; carMesh.visible = true; [...carMesh.children].forEach(ch => { if (ch.material === DRIVER_M) carMesh.remove(ch); }); // le conducteur descend G.car.x = n.r.x; G.car.z = n.r.z; G.car.h = n.r.h; G.ride = { kind: n.kind, offroad: !!n.r.offroad };
     meMesh.visible = !RIDES[n.kind].car;
     help(n.traffic ? "Le conducteur te laisse le volant. Bonne route !" : `${RIDES[n.kind].name} : elle est à toi. Descends quand tu veux, elle reste là.`);
   }

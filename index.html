@@ -812,7 +812,7 @@ const CAR_MODEL = { citadine: "car_city", coupe: "car_sport", suv: "car_suv", gt
 /* Supercar dessinée sur mesure (GT Sunset, Hyper Gold) : profil en coin, habitacle vitré, jantes, feux LED, aileron */
 function makeSupercar(def) {
   const g = new THREE.Group(), hyper = def.id === "hyper";
-  const paint = new THREE.MeshPhongMaterial({ color: def.color, shininess: 110, specular: 0xffffff }), dark = new THREE.MeshLambertMaterial({ color: 0x16161a }), glass = new THREE.MeshPhongMaterial({ color: 0x0d1418, shininess: 140, specular: 0x8899aa });
+  const paint = new THREE.MeshPhongMaterial({ color: def.color, shininess: 110, specular: 0xffffff }), dark = new THREE.MeshLambertMaterial({ color: 0x16161a }), glass = new THREE.MeshPhongMaterial({ color: 0x0d1418, shininess: 140, specular: 0x8899aa, transparent: true, opacity: 0.6, depthWrite: false });
   const prof = (pts, w, bev) => { const s = new THREE.Shape(); pts.forEach(([z, y], i) => i ? s.lineTo(z, y) : s.moveTo(z, y)); const geo = new THREE.ExtrudeGeometry(s, { depth: w, bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 2 }); geo.translate(0, 0, -w / 2); geo.rotateY(-Math.PI / 2); return geo; };
   const body = new THREE.Mesh(prof([[-2.28, 0.3], [-2.3, 0.84], [-1.75, 0.95], [-0.85, 0.92], [1.0, 0.86], [1.95, 0.64], [2.36, 0.42], [2.3, 0.26], [1.85, 0.22], [-1.9, 0.22]], 1.86, 0.09), paint); g.add(body);
   const cab = new THREE.Mesh(prof([[-1.62, 0.9], [-0.75, 1.17], [0.18, 1.19], [1.06, 0.87]], 1.42, 0.06), glass); g.add(cab);
@@ -839,6 +839,7 @@ function makeSupercar(def) {
   const bodyG = new THREE.Group(); bodyG.name = "carBody"; [...g.children].forEach(ch => { if (!/^wheel/.test(ch.name)) bodyG.add(ch); }); g.add(bodyG);
   addBlob(g, 3.0, 5.6); g.userData.len = 4.8; g.userData.wheelR = 0.37; return g;
 }
+const SEAT_Y = { std: 0.18, low: -0.02 };
 function carParts(mesh) {
   const u = mesh.userData; if (u.parts) return u.parts;
   const p = { w: [], body: null, r: u.wheelR || 0 };
@@ -1263,7 +1264,7 @@ function prepModel(key, gltf) {
     by.forEach((list, m) => { const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(list); if (merged) { const o0 = { color: def.col && def.col[m.name] != null ? new THREE.Color(def.col[m.name]) : m.color, map: m.map || null, transparent: m.transparent, opacity: m.opacity, side: m.side, emissive: /light/i.test(m.name) ? m.color : 0x000000 };
         // voitures : peinture vernie et vitres qui brillent au soleil (reflets), pneus mats
         const glossy = WHEELED.test(key) && !/light/i.test(m.name) && !/black|tire|rubber/i.test(m.name), win = /window|glass/i.test(m.name);
-        const lm = glossy ? new THREE.MeshPhongMaterial(Object.assign(o0, { shininess: win ? 160 : /grey|gray|chrome|metal/i.test(m.name) ? 70 : 95, specular: win ? 0xaabbcc : 0x8a8a8a })) : new THREE.MeshLambertMaterial(o0); lm.name = m.name; bodyG.add(new THREE.Mesh(merged, lm)); } });
+        const lm = glossy ? new THREE.MeshPhongMaterial(Object.assign(o0, { shininess: win ? 160 : /grey|gray|chrome|metal/i.test(m.name) ? 70 : 95, specular: win ? 0xaabbcc : 0x8a8a8a }, win ? { transparent: true, opacity: 0.62, depthWrite: false } : {})) : new THREE.MeshLambertMaterial(o0); lm.name = m.name; bodyG.add(new THREE.Mesh(merged, lm)); } });
     if (by.wr) wrap.userData.wr = by.wr;
   }
   wrap.updateMatrixWorld(true);
@@ -3530,6 +3531,13 @@ function updateCar(dt) {
     const parts = carParts(carMesh);
     if (parts.body) { carMesh.rotation.z = 0; parts.body.rotation.x = clamp(-c.acc * 0.0022, -0.04, 0.035); parts.body.rotation.z = -c.s * clamp(sp / def.max, 0, 1) * 0.055 + (offRoad ? Math.sin(performance.now() / 55) * 0.006 * clamp(sp / 10, 0, 1) : 0); }
     spinWheels(carMesh, c.v, -c.s * 0.5, dt);
+    // le conducteur est visible derrière le volant (vue extérieure)
+    if (meMesh && meMesh.userData.mixer && !(G.ride && RIDES[G.ride.kind] && (RIDES[G.ride.kind].plane || RIDES[G.ride.kind].boat))) {
+      const low = carMesh.userData.wheelR === 0.37, sx = low ? 0.38 : 0.44, sz = low ? -0.42 : -0.1, ch = Math.cos(c.h), sh = Math.sin(c.h);
+      meMesh.visible = !G.fpv; const pr = carParts(carMesh); if (pr.seatY == null) { let hgt = low ? 1.24 : 1.6; carMesh.traverse(o => { if (o.userData && o.userData.key && MODELS[o.userData.key]) hgt = MODELS[o.userData.key].size.y; }); pr.seatY = clamp(hgt - 1.97, low ? -0.74 : -0.55, 0.1); }
+      meMesh.position.set(c.x + ch * sx + sh * sz, gh + pr.seatY, c.z - sh * sx + ch * sz); meMesh.rotation.set(carMesh.rotation.x, c.h, 0, "YXZ");
+      if (meMesh.userData.clip !== "Driving_Loop") setClip(meMesh, "Driving_Loop", 1, 0.05);
+    }
     brakeLights(carMesh, !!(inp.brake || G.wantExit || (inp.fwd < 0 && c.v > 0.5) || (c.acc < -14 && sp > 1)));
     const hb = headBeam(), nk = nightK > 0.25 ? Math.min(1, (nightK - 0.25) * 2) : 0;
     beamM.opacity = nk * 0.5; hb.visible = nk > 0; if (nk > 0) { hb.position.set(c.x + Math.sin(c.h) * 9.5, gh + 0.08, c.z + Math.cos(c.h) * 9.5); hb.rotation.y = c.h; }
@@ -4665,7 +4673,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

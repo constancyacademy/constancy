@@ -570,7 +570,7 @@ const sfx = {
   cash: () => beep([[1318, .08], [1760, .14]], "triangle", .05),
   fail: () => beep([[330, .2], [247, .35]], "sawtooth", .05),
   tap: () => beep([[200, .05]], "square", .03),
-  bump: () => crash(Math.min(1, Math.abs(G.car.v) / 28)),
+  bump: () => { G.bumps = (G.bumps || 0) + 1; crash(Math.min(1, Math.abs(G.car.v) / 28)); },
   door: () => playBuf("door", 0.5) || beep([[440, .06], [660, .08]], "triangle", .04),
   ui: () => playBuf("ui", 0.35) || beep([[660, .05]], "triangle", .03)
 };
@@ -3182,10 +3182,11 @@ function updateHud(dt) {
   $("quitBtn").classList.toggle("hidden", !M);
   if (M) {
     box.classList.remove("hidden");
-    const mk = M.type + Math.ceil(M.time) + Math.round(M.catch || 0) + "|" + (M.i || 0) + "|" + Math.round(M.prog || 0);
+    const mk = M.type + Math.ceil(M.time) + Math.round(M.catch || 0) + "|" + (M.i || 0) + "|" + Math.round(M.prog || 0) + "|" + (M.stage || 0);
     if (mk !== lastMissionKey) {
       lastMissionKey = mk;
-      box.innerHTML = M.type === "run" ? `<div class="k">Mission · routine du matin</div><div class="t">à ton rythme</div><div class="s">Point ${Math.min(M.i + 1, M.pts.length)} sur ${M.pts.length} · à pied</div>`
+      box.innerHTML = M.type === "vtc" ? `<div class="k">Mission · course VTC</div><div class="t">${M.stage ? "vers la destination" : "récupère le client"}</div><div class="s">${M.stage ? "En douceur : chaque choc coûte une étoile" : "Arrête-toi au point blanc"}</div>`
+        : M.type === "run" ? `<div class="k">Mission · routine du matin</div><div class="t">à ton rythme</div><div class="s">Point ${Math.min(M.i + 1, M.pts.length)} sur ${M.pts.length} · à pied</div>`
         : M.type === "club" ? `<div class="k">Mission · club de course</div><div class="t">cours avec eux</div><div class="s">Reste près du groupe</div><div class="catch"><i style="width:${clamp(M.prog / 40 * 100, 0, 100)}%"></i></div>`
         : M.type === "livraison"
         ? `<div class="k">Mission · ${M.kebab ? "livraison du kebab" : M.courses ? "courses de Mamie" : "livraison"}</div><div class="t">${M.time > 0 ? "bonus " + Math.ceil(M.time) + " s" : "à ton rythme"}</div><div class="s">Livre le colis au point violet</div>`
@@ -3196,6 +3197,7 @@ function updateHud(dt) {
   let sub;
   if (M && M.type === "livraison") sub = `Suis le point <b style="color:${COL.business}">violet</b> sur la carte.`;
   else if (M && M.type === "mamie") sub = `Rattrape le voleur en <b style="color:${COL.env}">vert</b> et reste collé à lui.`;
+  else if (M && M.type === "vtc") sub = M.stage ? `Dépose le client au point <b>blanc</b>.` : `Récupère le client au point <b>blanc</b>.`;
   else if (M && M.type === "run") sub = G.onFoot ? `Cours jusqu'au point <b>blanc</b>.` : `Gare-toi près du point <b>blanc</b> et descends.`;
   else if (M && M.type === "club") sub = G.onFoot ? `Reste près du groupe de coureurs.` : `Descends et rejoins le groupe à pied.`;
   else if (G.stars) sub = G.stars >= 3 ? `<b style="color:var(--danger)">${G.stars} étoiles.</b> Bouge ou prends un joker, sinon menottes.` : `La police de l'inertie te cherche. <b style="color:var(--danger)">Bouge</b> pour faire baisser les étoiles.`;
@@ -4003,6 +4005,13 @@ function endMission(ok) {
     if (ok) { const gain = Math.round((140 + lvl(P.biz) * 30) * P.mult * (M.time > 0 ? 1.25 : 1) * (WX.rain > 0.3 ? 1.2 : 1)); addCash(gain); P.biz += Math.round(6 * P.mult); P.deliveries++; P.counts.livraison = (P.counts.livraison || 0) + 1; sfx.win(); storyCheck(); help(`Livraison réussie${WX.rain > 0.3 ? " sous la pluie" : ""}. <b style="color:var(--cash)">+$${fmt(gain)}</b>`); }
     else { sfx.fail(); help("Trop tard. Le client a annulé. Retente au Dépôt."); }
   }
+  if (M.type === "vtc") {
+    destBeacon.visible = false;
+    if (ok && M.stage === 1) { const hits = (G.bumps || 0) - (M.b0 || 0), stars = Math.max(1, 5 - hits), pay = Math.round((90 + stars * 25) * P.mult); addCash(pay); P.biz += Math.round(4 * P.mult); P.counts.vtc = (P.counts.vtc || 0) + 1; addXP(50 + stars * 8); sfx.win();
+      help(`Course terminée : <b>${"★".repeat(stars)}${"☆".repeat(5 - stars)}</b> ${stars === 5 ? "Conduite parfaite. " : hits ? hits + " choc" + (hits > 1 ? "s" : "") + ". " : ""}<b style="color:var(--cash)">+$${pay}</b>`, 6);
+      if (stars === 5) setTimeout(() => feedPost(pick(["lea", "tom"]), "Pris un VTC ce soir : conduite tellement douce que j'ai failli m'endormir. 5 étoiles. 🚗", { toast: false }), 3000); }
+    G.mission = null; saveNow(); return;
+  }
   if (M.type === "run" || M.type === "club") {
     destBeacon.visible = false;
     if (ok) { const run = M.type === "run"; P.runK = (P.runK || 0) + (run ? 2 : 1.5); P.counts[M.type] = (P.counts[M.type] || 0) + 1; addXP(run ? 90 : 70); P.mindset += Math.round(4 * P.mult); sfx.win();
@@ -4021,6 +4030,13 @@ function endMission(ok) {
 const RING = HALF + 9; // boucle du front de mer (celle des joggeurs)
 function ringT(x, z) { // position (0..4) la plus proche sur la boucle
   let best = 0, bd = 1e9; for (let k = 0; k < 400; k++) { const t = k / 100, [px, pz] = squarePath(t, RING), d = Math.hypot(px - x, pz - z); if (d < bd) { bd = d; best = t; } } return best;
+}
+function offerVtc() {
+  if (!P || G.mission || G.inside || G.onFoot || !carMesh || G.mode !== "play" || !G.started || storyStep()) return;
+  if ((G.vtcT || 0) > 0) return; G.vtcT = 150 + Math.random() * 120;
+  let x, z, k = 0; do { x = rc(Math.floor(rand(1, NB))); z = rc(Math.floor(rand(1, NB))); k++; } while ((Math.hypot(x - G.car.x, z - G.car.z) < 90 || Math.hypot(x - G.car.x, z - G.car.z) > 260) && k < 50);
+  G.mission = { type: "vtc", px: x, pz: z, stage: 0, time: 9999 }; destBeacon.position.set(x, 0, z); destBeacon.visible = true; sfx.ping();
+  notify("blue", `<b>Course VTC.</b> Un client t'attend au point blanc. Conduis en douceur : <b>la régularité fait les 5 étoiles</b>.`, 7);
 }
 function offerDaily() {
   if (!P || G.mission || G.inside || G.mode !== "play" || !G.started) return; const h = hourNow();
@@ -4049,6 +4065,14 @@ function updateMission(dt) {
     if (G.onFoot && Math.hypot(o.x - p0[0], o.z - p0[1]) < 5) { M.i++; sfx.ping();
       if (M.i >= M.pts.length) { endMission(true); return; }
       const q = M.pts[M.i]; destBeacon.position.set(q[0], 0, q[1]); help(`Point ${M.i} sur ${M.pts.length - 1}. Continue, à ton rythme.`, 2.5); }
+    return;
+  }
+  if (M.type === "vtc") {
+    destBeacon.userData.ring.rotation.z += dt; const c = G.car;
+    if (M.stage === 0 && !G.onFoot && Math.hypot(c.x - M.px, c.z - M.pz) < 9) { if (Math.abs(c.v) < 2.5) { M.stage = 1; let x, z, k = 0; do { x = rc(Math.floor(rand(1, NB))); z = rc(Math.floor(rand(1, NB))); k++; } while ((Math.hypot(x - c.x, z - c.z) < 220 || Math.hypot(x - c.x, z - c.z) > 480) && k < 60);
+        M.dx = x; M.dz = z; M.b0 = G.bumps || 0; M.t0 = 0; destBeacon.position.set(x, 0, z); sfx.door(); help(`Le client monte : « ${pick(["Bonjour ! Pas trop vite, s'il vous plaît.", "Salut ! Je suis un peu en avance, prends ton temps.", "Bonsoir. J'ai eu une longue journée…"])} »`, 4); }
+      else if (!M.hint) { M.hint = true; help("Arrête-toi à côté du client pour qu'il monte.", 3); } }
+    else if (M.stage === 1) { M.t0 += dt; if (!G.onFoot && Math.hypot(c.x - M.dx, c.z - M.dz) < 9 && Math.abs(c.v) < 3) endMission(true); }
     return;
   }
   if (M.type === "club") {
@@ -4687,7 +4711,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ offerVtc, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
@@ -4704,7 +4728,7 @@ function loop(now) {
     if (G.wantExit && !G.onFoot && !G.entering) { G.car.v *= Math.pow(0.004, dt); if (Math.abs(G.car.v) < 4) { G.car.v = 0; G.wantExit = false; toggleCar(); } } else if (G.onFoot) G.wantExit = false;
     updateReminders(dt);
     G.feedT = (G.feedT || 0) + dt; if (G.feedT > 125) { G.feedT = 0; feedAuto(); }
-    G.offerT = (G.offerT || 0) + dt; if (G.offerT > 5) { G.offerT = 0; if (!storyStep() || P.day > 1) offerDaily(); }
+    G.offerT = (G.offerT || 0) + dt; G.vtcT = (G.vtcT == null ? 90 : G.vtcT) - dt; if (G.offerT > 5) { G.offerT = 0; if (!storyStep() || P.day > 1) offerDaily(); offerVtc(); }
     updateDoorClose(dt);
     if (G.inside) checkInterior(); else { checkZones(); updatePolice(dt); }
     updateMission(dt); if (G.mode === "play") checkGoal();

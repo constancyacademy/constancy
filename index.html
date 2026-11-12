@@ -3087,8 +3087,30 @@ function updateCarLights() {
     H.setXYZ(n, a.x + fx * L - sx, 0.72, a.z + fz * L - sz); T.setXYZ(n, a.x - fx * L - sx, 0.85, a.z - fz * L - sz); n++; });
   CARL.head.geometry.setDrawRange(0, n); CARL.tail.geometry.setDrawRange(0, n); H.needsUpdate = T.needsUpdate = true;
 }
+// ---------- entretien : ta voiture se salit en roulant (plus vite sur le sable, la campagne et sous la pluie) ; gare-toi devant chez toi pour la laver
+const DIRT_C = new THREE.Color(0x5e4a33);
+function applyDirt(mesh, d) {
+  if (!mesh) return; if (!mesh.userData.dirtInit) { mesh.userData.dirtInit = true; mesh.traverse(m => { if (!m.isMesh || !m.material || m.userData.noDirt || m.material === DRIVER_M || /tail|brake|headl|lamp/i.test(m.material.name || "")) return;
+    m.material = Array.isArray(m.material) ? m.material.map(x => x.clone()) : m.material.clone(); (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => { if (x.color) { x.userData.c0 = x.color.clone(); x.userData.s0 = x.shininess; if (x.emissive) x.userData.e0 = x.emissive.clone(); if (x.specular) x.userData.p0 = x.specular.clone(); } }); }); }
+  mesh.traverse(m => { if (!m.isMesh || !m.material) return; (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => { if (!x.userData || !x.userData.c0) return; const k = d * (x.transparent ? 0.35 : 0.6);
+    x.color.copy(x.userData.c0).lerp(DIRT_C, k); if (x.userData.s0 != null) x.shininess = x.userData.s0 * (1 - d * 0.85);
+    if (x.userData.e0) x.emissive.copy(x.userData.e0).multiplyScalar(1 - d * 0.75); if (x.userData.p0) x.specular.copy(x.userData.p0).multiplyScalar(1 - d * 0.8); }); });
+}
+function updateDirt(dt) {
+  if (!P || !G.started || G.mode !== "play") return; if (P.dirt == null) P.dirt = 0.05; const own = !G.onFoot && carMesh && G.ride && G.ride.kind === "own";
+  if (own) { const c = G.car, sp = Math.abs(c.v), rough = onSand(c.x, c.z) || Math.abs(c.x) > HALF + 60 || Math.abs(c.z) > HALF + 60 ? 3.5 : 1; P.dirt = Math.min(1, P.dirt + sp * dt / 7000 * rough * (WX.rain > 0.3 ? 1.6 : 1));
+    if (P.dirt > 0.5 && !P.dirtWarned) { P.dirtWarned = true; help("<b>Ta voiture est sale.</b> Les clients le remarquent. Gare-toi devant chez toi (repère A) pour la laver.", 6); }
+    const home = LM.home, dh = Math.hypot(c.x - home.x, c.z - home.z);
+    if (dh < 10 && sp < 0.5 && P.dirt > 0.08) { G.washT = (G.washT || 0) + dt; FX.mat.uniforms.col.value.setHex(0xdcefff);
+      for (let q = 0; q < 3; q++) { const a = Math.random() * 6.28; emitDust(c.x + Math.cos(a) * 1.4, 0.6 + Math.random() * 1.2, c.z + Math.sin(a) * 2.2, Math.cos(a) * 1.5, Math.sin(a) * 1.5, 0.7); }
+      if (!G.washMsg) { G.washMsg = true; help("Lavage en cours… Ne bouge pas.", 3); }
+      if (G.washT > 4) { G.washT = 0; G.washMsg = false; P.dirt = 0; P.dirtWarned = false; P.washes = (P.washes || 0) + 1; sfx.win(); stat("lavage-voiture"); help(`<b>Voiture propre.</b> ${P.washes > 1 ? `${P.washes}e lavage. ` : ""}Prendre soin de ses affaires, c'est aussi de la régularité.`, 5);
+        if (P.washes === 3 || P.washes % 10 === 0) setTimeout(() => feedPost("tom", "La voiture du livreur brille toujours. Le gars entretient tout, même ce qui ne se voit pas. ✨"), 2500); saveNow(); } }
+    else { G.washT = 0; G.washMsg = false; if (dh < 35 && P.dirt > 0.3 && sp < 6 && (!G.washHintT || performance.now() - G.washHintT > 90000)) { G.washHintT = performance.now(); help("Arrête-toi juste devant chez toi pour laver ta voiture.", 4); } } }
+  if (carMesh && (G.dirtMesh !== carMesh || Math.abs((G.dirtShown || 0) - P.dirt) > 0.02)) { G.dirtMesh = carMesh; G.dirtShown = P.dirt; applyDirt(carMesh, G.ride && G.ride.kind === "own" ? P.dirt : 0); }
+}
 function updateWorldLife(dt) {
-  updateDaily(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
+  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
   const cxp = camera.position.x, czp = camera.position.z;
   for (let i = 0; i < rentals.length; i++) { const r = rentals[i]; r.mesh.visible = (r.x - cxp) ** 2 + (r.z - czp) ** 2 < 52900; }
   const me = target();
@@ -4076,8 +4098,8 @@ function endMission(ok) {
   }
   if (M.type === "vtc") {
     destBeacon.visible = false;
-    if (ok && M.stage === 1) { const hits = (G.bumps || 0) - (M.b0 || 0), stars = Math.max(1, 5 - hits), pay = Math.round((90 + stars * 25) * P.mult); addCash(pay); P.biz += Math.round(4 * P.mult); P.counts.vtc = (P.counts.vtc || 0) + 1; addXP(50 + stars * 8); sfx.win();
-      help(`Course terminée : <b>${"★".repeat(stars)}${"☆".repeat(5 - stars)}</b> ${stars === 5 ? "Conduite parfaite. " : hits ? hits + " choc" + (hits > 1 ? "s" : "") + ". " : ""}<b style="color:var(--cash)">+$${pay}</b>`, 6);
+    if (ok && M.stage === 1) { const hits = (G.bumps || 0) - (M.b0 || 0), stars = Math.max(1, 5 - hits - ((P.dirt || 0) > 0.6 ? 1 : 0)), pay = Math.round((90 + stars * 25) * P.mult); addCash(pay); P.biz += Math.round(4 * P.mult); P.counts.vtc = (P.counts.vtc || 0) + 1; addXP(50 + stars * 8); sfx.win();
+      help(`Course terminée : <b>${"★".repeat(stars)}${"☆".repeat(5 - stars)}</b> ${stars === 5 ? "Conduite parfaite. " : hits ? hits + " choc" + (hits > 1 ? "s" : "") + ". " : ""}${(P.dirt || 0) > 0.6 ? "Le client a trouvé la voiture sale. " : ""}<b style="color:var(--cash)">+$${pay}</b>`, 6);
       if (stars === 5) setTimeout(() => feedPost(pick(["lea", "tom"]), "Pris un VTC ce soir : conduite tellement douce que j'ai failli m'endormir. 5 étoiles. 🚗", { toast: false }), 3000); }
     G.mission = null; saveNow(); return;
   }
@@ -4703,7 +4725,7 @@ function openMenu() {
     <div class="card avatar">${avatarSvg()}<div class="statline">
       <span>Niveau</span><span style="color:var(--gold)">${playerLevel().lvl} · ${playerLevel().pct}%</span><span>Compte</span><span style="color:var(--cash)">$${fmt(P.cash)}</span><span>${m.label}</span><span>${P.cm.toFixed(1).replace(".", ",")} cm</span>
       <span>Business</span><span>niv. ${lvl(P.biz)}</span><span>Statut</span><span>niv. ${lvl(P.statut)}</span><span>Mindset</span><span>niv. ${lvl(P.mindset)}</span>
-      <span>Santé</span><span>${Math.round(santeVal())}%</span><span>Constancy</span><span>${multTxt(P.mult)}</span><span>Jokers</span><span>${P.jokers}</span><span>Jours d'affilée (vraie vie)</span><span>${P.streakDays || 1}</span></div></div>
+      <span>Santé</span><span>${Math.round(santeVal())}%</span><span>Constancy</span><span>${multTxt(P.mult)}</span><span>Jokers</span><span>${P.jokers}</span><span>Voiture</span><span>${Math.round((1 - (P.dirt || 0)) * 100)}% propre</span><span>Jours d'affilée (vraie vie)</span><span>${P.streakDays || 1}</span></div></div>
     ${streakCard()}
     ${dailyCard()}
     <div class="card goals-card">${$("goals").innerHTML}</div>
@@ -4781,7 +4803,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

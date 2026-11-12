@@ -2979,8 +2979,29 @@ function updatePhotoPeds(dt) {
         if (!G.photoT || performance.now() - G.photoT > 45000) { G.photoT = performance.now(); help("Un passant prend ta voiture en photo. 📸", 3); feedPost("lea", `Vu la ${(CARS.find(c => c.id === P.car) || CARS[0]).name} du livreur en bas de chez moi. Il a fait du chemin depuis la citadine. 📸`); } }
       if (p.photo > 2.4) { p.photoDone = true; } } else if (d > 25) { p.photoDone = false; p.flashed = false; p.photo = 0; } });
 }
+// ---------- scènes de rue : des gens qui discutent sur le trottoir, d'autres qui s'étirent près des parcs
+const STREET = { list: [] };
+function streetSpot(o) {
+  for (let t = 0; t < 12; t++) { const a = Math.random() * 6.28, d = 25 + Math.random() * 55, x = o.x + Math.cos(a) * d, z = o.z + Math.sin(a) * d, i = clamp(Math.round((x + HALF - ROAD / 2) / STEP), 0, NB), j = clamp(Math.round((z + HALF - ROAD / 2) / STEP), 0, NB);
+    const alongX = Math.random() < .5, side = Math.random() < .5 ? 1 : -1, off = ROAD / 2 + 2.3, px = alongX ? x : rc(i) + side * off, pz = alongX ? rc(j) + side * off : z;
+    const bi = Math.floor((px + HALF) / STEP), bj = Math.floor((pz + HALF) / STEP); if (bj === RIVER_J || Math.abs(px) > HALF - 4 || Math.abs(pz) > HALF - 4) continue; return [px, pz, alongX ? 0 : Math.PI / 2]; }
+  return null;
+}
+function updateStreetScenes(dt) {
+  if (!HQ.ready) return; const o = target(), inCity = Math.abs(o.x) < HALF && Math.abs(o.z) < HALF && !G.inside;
+  if (!STREET.list.length) for (let k = 0; k < 6; k++) { const pair = [0, 1].map(q => { const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = makeHuman(opt); scene.add(h); lodFor(h, opt); h.visible = false; return h; }); STREET.list.push({ pair, x: 1e5, z: 1e5 }); }
+  STREET.list.forEach((sc, k) => {
+    const d = Math.hypot(sc.x - o.x, sc.z - o.z);
+    if (d > 120 && inCity) { const sp = streetSpot(o); if (sp) { sc.x = sp[0]; sc.z = sp[1]; const a = sp[2] + (Math.random() - .5) * 0.6, talk = Math.random() < 0.75;
+        sc.pair.forEach((h, q) => { const sx = Math.cos(a) * 0.62 * (q ? 1 : -1), sz = -Math.sin(a) * 0.62 * (q ? 1 : -1); h.position.set(sc.x + sx, 0.25, sc.z + sz); h.rotation.y = Math.atan2(-sx, -sz) + (Math.random() - .5) * 0.4;
+          if (!setClip(h, talk ? (q === 0 ? "Idle_Talking_Loop" : (Math.random() < .5 ? "Idle_Talking_Loop" : "Idle_Loop")) : (q === 0 ? "Arm_Stretching" : "Idle_Loop"), 0.85 + Math.random() * 0.3)) setClip(h, "Idle_Loop"); }); } }
+    sc.pair.forEach(h => { const dd = Math.hypot(h.position.x - o.x, h.position.z - o.z); h.visible = inCity && dd < 95; lodSync(h, dd, 0, dt);
+      if (!G.onFoot && carMesh && h.visible) { const dx = G.car.x - h.position.x, dz = G.car.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 2.4) { const n = dc || 1; G.car.x += dx / n * (2.4 - dc); G.car.z += dz / n * (2.4 - dc); G.car.v = 0; } }
+      else if (G.onFoot && h.visible) { const dx = G.me.x - h.position.x, dz = G.me.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 0.75) { const n = dc || 1; G.me.x += dx / n * (0.75 - dc); G.me.z += dz / n * (0.75 - dc); } } });
+  });
+}
 function updateWorldLife(dt) {
-  updateTrafficLights(); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
+  updateTrafficLights(); updateStreetScenes(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
   const cxp = camera.position.x, czp = camera.position.z;
   for (let i = 0; i < rentals.length; i++) { const r = rentals[i]; r.mesh.visible = (r.x - cxp) ** 2 + (r.z - czp) ** 2 < 52900; }
   const me = target();
@@ -4639,7 +4660,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

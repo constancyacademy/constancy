@@ -2906,8 +2906,64 @@ function pushRect(o, x, z, h, hw, hl, rad) { // repousse o hors d'un rectangle o
   o.x = x + nx * c + nz * s; o.z = z - nx * s + nz * c; return true;
 }
 function carHalf(mesh) { const L = (mesh && mesh.userData.len) || 4.6; return [Math.min(1.25, 0.24 * L + 0.05), L / 2]; }
+// ---------- course improvisée au feu : arrêté à côté d'une voiture, un coup de TURBO et c'est parti
+const chooseStraight = a => { if (a.prev) { const n = [a.from[0] * 2 - a.prev[0], a.from[1] * 2 - a.prev[1]]; if (n[0] >= 0 && n[0] <= NB && n[1] >= 0 && n[1] <= NB) return n; } return pick(notBack(a)); };
+function updateRace(dt) {
+  const R = G.race;
+  if (!R) {
+    if (G.onFoot || !carMesh || G.mission || G.inside || (G.ride && RIDES[G.ride.kind] && !RIDES[G.ride.kind].car) || Math.abs(G.car.v) > 2) { G.raceCand = null; return; }
+    let cand = null; traffic.forEach(a => { if (cand || !a.mesh.visible || a.frozen || a.mesh.userData.patrol) return; const d = Math.hypot(a.x - G.car.x, a.z - G.car.z); let dh = a.h - G.car.h; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; if (d < 8 && Math.abs(dh) < 0.45 && (a.vEff == null ? a.speed : a.vEff) < 1.5) cand = a; });
+    if (cand && G.raceCand !== cand) { G.raceCand = cand; if (!G.raceHintT || performance.now() - G.raceHintT > 60000) { G.raceHintT = performance.now(); help("Une voiture s'arrête à côté de toi. Le conducteur te regarde… Touche <b>TURBO</b> pour le défier jusqu'au point blanc.", 5); } }
+    if (cand && G.turbo) startRace(cand);
+    return;
+  }
+  R.t += dt; const a = R.a, dP = Math.hypot(G.car.x - R.x, G.car.z - R.z), dA = Math.hypot(a.x - R.x, a.z - R.z);
+  if (dP < 12) endRace(true); else if (dA < 10 || R.t > 45) endRace(false);
+}
+function startRace(a) {
+  const fx = Math.round(Math.sin(G.car.h)), fz = Math.round(Math.cos(G.car.h)), n0 = [Math.round((G.car.x + HALF - ROAD / 2) / STEP), Math.round((G.car.z + HALF - ROAD / 2) / STEP)];
+  let n = [n0[0] + fx * 3, n0[1] + fz * 3]; n = [clamp(n[0], 0, NB), clamp(n[1], 0, NB)]; const x = rc(n[0]), z = rc(n[1]); if (Math.hypot(x - G.car.x, z - G.car.z) < 60) return;
+  G.race = { a, x, z, t: 0, base: a.base }; a.racer = true; a.base = 30; a.speed = 4; G.raceCand = null;
+  destBeacon.position.set(x, 0, z); destBeacon.visible = true; sfx.ping(); help("<b>3… 2… 1… Partez !</b> Premier au point blanc.", 3); stat("course-au-feu");
+}
+function endRace(win) {
+  const R = G.race; if (!R) return; R.a.racer = false; R.a.base = R.base; destBeacon.visible = false; G.race = null;
+  if (win) { addCash(300); addXP(60); sfx.win(); help(`<b>Gagné !</b> Le conducteur lève le pouce. <b style="color:var(--cash)">+$300</b>`, 5); feedPost("tom", "Course improvisée au feu rouge avec le livreur du quartier. Il m'a mis une leçon. 😅", { toast: false }); }
+  else help("Il t'a eu cette fois. Prochain feu, prochaine chance.", 4);
+}
+// ---------- papiers qui s'envolent au passage des voitures
+const LITTER = { n: 34, inst: null, list: [], m: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(), v: new THREE.Vector3(), s: new THREE.Vector3(1, 1, 1) };
+function litterSpot(o) { const a = Math.random() * 6.28, d = 12 + Math.random() * 45, x = o.x + Math.cos(a) * d, z = o.z + Math.sin(a) * d, i = Math.round((x + HALF - ROAD / 2) / STEP), j = Math.round((z + HALF - ROAD / 2) / STEP);
+  return Math.random() < 0.5 ? [rc(clamp(i, 0, NB)) + (Math.random() - .5) * 13, z] : [x, rc(clamp(j, 0, NB)) + (Math.random() - .5) * 13]; }
+function updateLitter(dt) {
+  const o = target(), inCity = Math.abs(o.x) < HALF && Math.abs(o.z) < HALF && !G.inside;
+  if (!LITTER.inst) { const g = new THREE.PlaneGeometry(0.28, 0.21); g.rotateX(-Math.PI / 2); LITTER.inst = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ color: 0xe9e4d8, side: THREE.DoubleSide }), LITTER.n); LITTER.inst.frustumCulled = false; scene.add(LITTER.inst);
+    for (let k = 0; k < LITTER.n; k++) { const [x, z] = litterSpot(o); LITTER.list.push({ x, z, y: 0.03, vx: 0, vy: 0, vz: 0, rx: 0, rz: 0, ry: Math.random() * 6, sp: 0 }); } }
+  const movers = []; if (!G.onFoot && carMesh && Math.abs(G.car.v) > 7) movers.push([G.car.x, G.car.z, G.car.v, G.car.h]);
+  traffic.forEach(a => { const ve = a.vEff == null ? a.speed : a.vEff; if (a.mesh.visible && ve > 7 && Math.abs(a.x - o.x) < 60 && Math.abs(a.z - o.z) < 60) movers.push([a.x, a.z, ve, a.h]); });
+  LITTER.list.forEach((l, k) => {
+    if (Math.hypot(l.x - o.x, l.z - o.z) > 70 && inCity) { const [x, z] = litterSpot(o); l.x = x; l.z = z; l.y = 0.03; l.vx = l.vy = l.vz = 0; }
+    if (l.y <= 0.031) for (const [mx, mz, mv, mh] of movers) { const d = Math.hypot(l.x - mx, l.z - mz); if (d < 3.2) { const f = Math.min(1, mv / 25); l.vx = Math.sin(mh) * mv * 0.45 * f + (Math.random() - .5) * 3; l.vz = Math.cos(mh) * mv * 0.45 * f + (Math.random() - .5) * 3; l.vy = 2 + Math.random() * 3 * f; l.sp = 6 + Math.random() * 8; break; } }
+    if (l.y > 0.031 || l.vy > 0) { l.x += l.vx * dt; l.z += l.vz * dt; l.y += l.vy * dt; l.vy -= 4.5 * dt; l.vx *= Math.pow(0.35, dt); l.vz *= Math.pow(0.35, dt); l.rx += l.sp * dt; l.rz += l.sp * 0.7 * dt; l.ry += l.sp * 0.3 * dt; if (l.y < 0.03) { l.y = 0.03; l.vy = 0; l.vx = l.vz = 0; l.rx = l.rz = 0; } }
+    LITTER.e.set(l.rx, l.ry, l.rz); LITTER.q.setFromEuler(LITTER.e); LITTER.v.set(l.x, inCity ? l.y : -50, l.z); LITTER.m.compose(LITTER.v, LITTER.q, LITTER.s); LITTER.inst.setMatrixAt(k, LITTER.m);
+  });
+  LITTER.inst.instanceMatrix.needsUpdate = true;
+}
+// ---------- les passants photographient ta voiture quand elle en jette
+let FLASH = null;
+function updatePhotoPeds(dt) {
+  const sport = !G.onFoot && carMesh && G.ride && G.ride.kind === "own" && /gt|hyper|coupe|suv/.test(P.car);
+  if (!FLASH) { FLASH = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); FLASH.scale.setScalar(0.01); scene.add(FLASH); FLASH.userData.t = 0; }
+  if (FLASH.userData.t > 0) { FLASH.userData.t -= dt; FLASH.scale.setScalar(1.6 * Math.max(0, FLASH.userData.t) / 0.15); }
+  if (!sport || Math.abs(G.car.v) > 5) { peds.forEach(p => { p.photo = 0; }); return; }
+  peds.forEach(p => { if (!p.mesh.visible) return; const d = Math.hypot(p.mesh.position.x - G.car.x, p.mesh.position.z - G.car.z);
+    if (d < 11 && !p.photoDone) { p.photo = (p.photo || 0) + dt; p.mesh.rotation.y = Math.atan2(G.car.x - p.mesh.position.x, G.car.z - p.mesh.position.z);
+      if (p.photo > 0.8 && !p.flashed) { p.flashed = true; FLASH.position.set(p.mesh.position.x, 1.75, p.mesh.position.z); FLASH.userData.t = 0.15;
+        if (!G.photoT || performance.now() - G.photoT > 45000) { G.photoT = performance.now(); help("Un passant prend ta voiture en photo. 📸", 3); feedPost("lea", `Vu la ${(CARS.find(c => c.id === P.car) || CARS[0]).name} du livreur en bas de chez moi. Il a fait du chemin depuis la citadine. 📸`); } }
+      if (p.photo > 2.4) { p.photoDone = true; } } else if (d > 25) { p.photoDone = false; p.flashed = false; p.photo = 0; } });
+}
 function updateWorldLife(dt) {
-  updateTrafficLights();
+  updateTrafficLights(); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
   const cxp = camera.position.x, czp = camera.position.z;
   for (let i = 0; i < rentals.length; i++) { const r = rentals[i]; r.mesh.visible = (r.x - cxp) ** 2 + (r.z - czp) ** 2 < 52900; }
   const me = target();
@@ -2921,6 +2977,7 @@ function updateWorldLife(dt) {
     const ahead = (dx * fx + dz * fz) > 0 && d < 11 && Math.abs(dx * fz - dz * fx) < 3.5;
     if (a.frozen) return;
     a.speed += ((ahead ? 0 : a.base) - a.speed) * Math.min(1, dt * 3);
+    if (a.racer) { a.speed += (a.base - a.speed) * Math.min(1, dt * 1.2); stepAgent(a, dt, chooseStraight); if (a.mesh.visible) spinWheels(a.mesh, a.speed, 0, dt); return; }
     if (a.to && a.to[0] > 0 && a.to[0] < NB && a.to[1] > 0 && a.to[1] < NB && a.base > 0) { // feu rouge ou orange devant : on s'arrête à la ligne
       const dist = (1 - a.t) * STEP, axis = a.to[0] !== a.from[0] ? "x" : "z";
       if (dist > 9 && dist < 26 && tlState(axis, tlNow()) !== "g") a.speed = Math.min(a.speed, Math.max(0, (dist - 9.6) * 1.6));
@@ -2952,6 +3009,7 @@ function updateWorldLife(dt) {
   peds.forEach(p => { if (p.mesh.visible) blockBy(p.mesh.position.x, p.mesh.position.z); });
   joggers.forEach(j => { if (j.mesh.visible) blockBy(j.mesh.position.x, j.mesh.position.z); });
   peds.forEach(p => {
+    if (p.photo > 0 && !p.photoDone) { animHuman(p.mesh, 0, dt); return; }
     p.t += p.speed * dt;
     const q = pedPos(p), dx = q.x - me.x, dz = q.z - me.z, d = Math.hypot(dx, dz);
     const danger = !G.onFoot && d < 7 && Math.abs(G.car.v) > 3;
@@ -4492,7 +4550,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL });
+window.__X = () => ({ ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

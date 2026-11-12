@@ -215,6 +215,8 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 .post .txt{font-size:14.5px;line-height:1.38;margin-top:2px}
 .post .meta2{font-size:12px;color:var(--muted);margin-top:5px}
 .post.me{border-color:rgba(255,45,85,.5)}
+.streak{text-align:left}.sk-h{font-size:15px}.sk-h b{font-family:var(--font-display);font-size:28px;color:var(--danger);margin-right:4px}.sk-h span{color:var(--muted);font-size:12px}
+.sk-g{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;margin-top:8px}.sk-g i{aspect-ratio:1;border-radius:4px;background:rgba(255,255,255,.08)}.sk-g i.on{background:linear-gradient(135deg,#ff2d55,#ff7a45)}.sk-g i.today{outline:2px solid rgba(255,255,255,.6);outline-offset:1px}
 .tr{gap:6px}
 .money{font-family:var(--font-ui);font-weight:600;font-size:clamp(20px,5vw,26px);letter-spacing:-.01em;padding:7px 14px 8px;border-radius:999px;background:var(--glass2);border:1px solid var(--edge);box-shadow:var(--hi),var(--drop);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);text-shadow:none}
 .money .d{color:#c9b98a;margin-right:2px;font-weight:400}
@@ -4295,6 +4297,7 @@ function dailyReturn() {
 function startPlay() {
   if (!G.statDay || G.statDay !== P.day) { G.statDay = P.day; stat(P.day === 1 ? "partie-lancee" : "retour-jour-" + Math.min(P.day, 30)); }
   if (CREATOR) creatorBoost(); setTimeout(updateLevelBadge, 0);
+  { const t = todayStr(); if (!P.playDates) { P.playDates = []; for (let k = Math.min(60, (P.streakDays || 1)) - 1; k >= 1; k--) P.playDates.push(dstr(new Date(Date.now() - k * 864e5))); } if (!P.playDates.includes(t)) { P.playDates.push(t); if (P.playDates.length > 120) P.playDates.shift(); } }
   if (!G.feed) { G.feed = []; feedPost("ville", "Bienvenue à Constancy City. Ici, on ne juge pas d'où tu pars. On regarde si tu reviens demain."); feedAuto(); G.feedT = 0; }
   G.started = true; hideScreen(); normalizeRide(); G.energy = 100; G.inside = false; G.snapCam = true; if (gymLight) gymLight.intensity = 0; if (homeLight) homeLight.intensity = 0;
   if (P.carPos) { G.car.x = P.carPos.x; G.car.z = P.carPos.z; G.car.h = P.carPos.h; } else { G.car.x = LM.home.x; G.car.z = LM.home.z; G.car.h = Math.PI / 2; }
@@ -4542,6 +4545,17 @@ function openMarket() {
   render();
 }
 /* Menu */
+function streakCard() {
+  const set = new Set(P.playDates || []), cells = [];
+  for (let k = 27; k >= 0; k--) { const d = dstr(new Date(Date.now() - k * 864e5)); cells.push(`<i class="${set.has(d) ? "on" : ""}${k === 0 ? " today" : ""}"></i>`); }
+  return `<div class="card streak"><div class="sk-h"><b>${P.streakDays || 1}</b> jour${(P.streakDays || 1) > 1 ? "s" : ""} d'affilée <span>· vraie vie</span></div><div class="sk-g">${cells.join("")}</div>
+    <p class="note" style="margin:8px 0 0">Chaque jour où tu ouvres le jeu, une case s'allume. Ne casse pas la chaîne.</p><button class="btn alt" id="shareS" type="button" style="margin-top:10px">Partager ma série</button></div>`;
+}
+async function shareStreak() {
+  const n = P.streakDays || 1, url = SITE_URL(), text = `Jour ${n} d'affilée sur Constancy. Le jeu où ta régularité fait le score. Tu tiens combien de jours ?`; stat("partage-serie");
+  try { if (navigator.share) { await navigator.share({ title: "Constancy", text, url }); return; } } catch (e) { return; }
+  try { await navigator.clipboard.writeText(text + " " + url); help("Texte et lien copiés. Colle-les où tu veux.", 3); } catch (e) { help(url, 4); }
+}
 function openMenu() {
   setMode("menu"); const m = MUSCLES[P.muscle];
   show(`<div class="panel"><div class="kicker">${careerName()} · jour ${P.day}</div><h2>Ton perso</h2>
@@ -4549,6 +4563,7 @@ function openMenu() {
       <span>Niveau</span><span style="color:var(--gold)">${playerLevel().lvl} · ${playerLevel().pct}%</span><span>Compte</span><span style="color:var(--cash)">$${fmt(P.cash)}</span><span>${m.label}</span><span>${P.cm.toFixed(1).replace(".", ",")} cm</span>
       <span>Business</span><span>niv. ${lvl(P.biz)}</span><span>Statut</span><span>niv. ${lvl(P.statut)}</span><span>Mindset</span><span>niv. ${lvl(P.mindset)}</span>
       <span>Santé</span><span>${Math.round(santeVal())}%</span><span>Constancy</span><span>${multTxt(P.mult)}</span><span>Jokers</span><span>${P.jokers}</span><span>Jours d'affilée (vraie vie)</span><span>${P.streakDays || 1}</span></div></div>
+    ${streakCard()}
     <div class="card goals-card">${$("goals").innerHTML}</div>
     ${timelineHtml()}
     <p class="note">Objectif : ${OBJ[P.objective].label}. Ta progression est sauvegardée sur cet appareil.</p>
@@ -4558,7 +4573,7 @@ function openMenu() {
     <button class="btn alt" id="transf" type="button">Transférer ma partie</button>
     <button class="btn alt" id="credits" type="button">Crédits</button>
     <button class="btn alt" id="stopG" type="button">Arrêter la partie</button><button id="quitHidden" type="button" hidden></button></div>`);
-  on("res", resume); on("stopG", stopMenu);
+  on("res", resume); on("stopG", stopMenu); on("shareS", shareStreak);
   on("sndT", () => { $("soundBtn").click(); const b = $("sndT"); if (b) b.textContent = SND.on ? "Son : activé" : "Son : coupé"; });
   on("guideT", () => { resume(); startGuide(true); });
   on("transf", () => openTransfer(false));

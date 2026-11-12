@@ -670,6 +670,7 @@ function updateSound() {
 
 /* ============ 3D ============ */
 const cv = $("game");
+let lampPoolMat = null;
 let renderer = null, scene, camera, hemi, sun, skyMat, sky, sea, carMesh, meMesh, lampGlowMat, bulbMat, winMats = [], NFAC = 6, beacons = {}, destBeacon;
 const traffic = [], peds = []; window.__dbg = () => renderer.info.render; window.__snd = () => ({ ctx: SND.ctx && SND.ctx.state, on: SND.on, bufs: SND.buf ? Object.keys(SND.buf) : null, raw: Object.keys(SNDRAW), engKey: SND.engKey, engGain: SND.engSG ? SND.engSG.gain.value : null, synth: SND.engGain ? SND.engGain.gain.value : null, loops: Object.keys(SND.loops || {}), ride: G.ride, car: P && P.car, mode: G.mode }); window.__gym = () => { G.onFoot = true; carMesh.visible = true; meMesh.visible = true; enterGym(); }; window.__pos = () => ({ inside: G.inside, me: [G.me.x, G.me.z], cam: camera.position.toArray().map(v => +v.toFixed(1)), foot: G.onFoot, mode: G.mode }); window.__tp = (x, z, h, hr) => { G.snapCam = true; G.car.x = x; G.car.z = z; G.car.h = h; G.car.v = 0; if (hr != null) P.dayT = (hr - 8) * DAY_SECONDS / 24; };
 try { renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, powerPreference: "high-performance" }); } catch (e) { renderer = null; }
@@ -2630,6 +2631,10 @@ function buildWorld() {
   // halos des lampadaires : un seul nuage de points (un seul appel de dessin, même avec des centaines de lampadaires)
   lampGlowMat = new THREE.PointsMaterial({ map: glowTexture(), size: 7, sizeAttenuation: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 });
   const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(lampPos.flat(), 3)); scene.add(new THREE.Points(lg, lampGlowMat));
+  // flaques de lumière orangée au sol sous chaque lampadaire (la nuit)
+  lampPoolMat = new THREE.MeshBasicMaterial({ map: glowTexture(), color: 0xffc98a, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -4 });
+  { const pg = new THREE.PlaneGeometry(13, 13); pg.rotateX(-Math.PI / 2); const pools = new THREE.InstancedMesh(pg, lampPoolMat, lampPos.length), m4 = new THREE.Matrix4();
+    lampPos.forEach(([x, y, z], k) => { m4.makeTranslation(x - 0.6, Math.max(0.27, y - 6.7 + 0.27), z); pools.setMatrixAt(k, m4); }); pools.renderOrder = 1; scene.add(pools); }
 
   // repères
   Object.entries(LM).forEach(([k, l]) => { const b = makeBeacon(new THREE.Color(l.color)); b.position.set(l.x, 0, l.z); scene.add(b); beacons[k] = b; });
@@ -3082,7 +3087,7 @@ function applySky(h) {
   winMats.forEach(m => m.emissiveIntensity = 0.06 + nightK * 0.9);
   if (DM.hw) { DM.hw[0].emissiveIntensity = nightK * 1.3; DM.hw[1].emissiveIntensity = nightK * 1.1; }
   if (FX.towerLed) FX.towerLed.emissiveIntensity = 0.05 + nightK * 1.6;
-  lampGlowMat.opacity = nightK * 0.95; bulbMat.color.setRGB(0.47 + nightK * 0.53, 0.44 + nightK * 0.5, 0.4 + nightK * 0.3);
+  lampGlowMat.opacity = nightK * 0.95; if (lampPoolMat) lampPoolMat.opacity = nightK * 0.42 * (1 + WX.wet * 0.5); bulbMat.color.setRGB(0.47 + nightK * 0.53, 0.44 + nightK * 0.5, 0.4 + nightK * 0.3);
   const su = sea.material.uniforms; su.sunDir.value.copy(sd); su.sunCol.value.copy(skyMat.uniforms.sunCol.value); su.skyCol.value.copy(skyMat.uniforms.top.value).lerp(skyMat.uniforms.bottom.value, 0.5);
   if (FX.cloudMat) { FX.cloudMat.color.setRGB(0.35 + day * 0.65, 0.33 + day * 0.62, 0.38 + day * 0.6).lerp(new THREE.Color(1, 0.62, 0.45), Math.max(0, 0.45 - day) * (1 - nightK) * 1.4); FX.cloudMat.opacity = 0.45 + day * 0.4; }
   { const cy = camera ? camera.position.y : 0, away = camera && camera.position.z < -HALF - 120 ? 1.7 : 1, fk = Math.max(away, 1 + Math.min(3.2, Math.max(0, cy - 8) / 40)); scene.fog.near = 160 * fk; scene.fog.far = 620 * fk; }

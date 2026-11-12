@@ -204,7 +204,7 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 .menu-btn.ico:active{transform:scale(.93)}
 .menu-btn.ico.on{background:linear-gradient(180deg,#f2f0ec,#c9c5bd);color:#111}
 .menu-btn.ico{position:relative}
-#feedBtn{position:absolute;left:0;top:52px}
+#feedBtn{align-self:flex-start;margin-bottom:4px}
 .menu-btn .dot{position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 2px rgba(0,0,0,.6)}
 .feed{display:flex;flex-direction:column;gap:10px;text-align:left;max-height:62vh;overflow-y:auto;margin:10px 0 14px;padding-right:4px}
 .post{display:flex;gap:10px;padding:11px 12px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
@@ -260,7 +260,7 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 
 <div id="hud" class="hidden">
   <div class="tl">
-    <div class="row" style="position:relative"><button class="menu-btn ico" id="menuBtn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button><button class="menu-btn ico" id="viewBtn" type="button" aria-label="Vue à la première personne"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="2.8" fill="currentColor"/></svg></button><button class="menu-btn ico" id="feedBtn" type="button" aria-label="Fil d'actu de la ville"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.8" width="10" height="18.4" rx="2.4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M10.5 18h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="dot hidden" id="feedDot"></span></button><button class="menu-btn hidden" id="soundBtn" type="button">SON</button></div>
+    <div class="row" style="position:relative"><button class="menu-btn ico" id="menuBtn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button><button class="menu-btn ico" id="viewBtn" type="button" aria-label="Vue à la première personne"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="2.8" fill="currentColor"/></svg></button><button class="menu-btn hidden" id="soundBtn" type="button">SON</button></div>
     <div class="help" id="help"></div>
   <div id="notes"></div>
   <div id="scopeV"></div>
@@ -278,6 +278,7 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
   </div>
   <div class="sub" id="sub"></div>
   <div class="bl">
+    <button class="menu-btn ico" id="feedBtn" type="button" aria-label="Fil d'actu de la ville"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.8" width="10" height="18.4" rx="2.4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M10.5 18h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="dot hidden" id="feedDot"></span></button>
     <canvas id="minimap" width="300" height="300"></canvas>
     <div class="stats">
       <div class="st"><span>Muscle <b id="vMuscle"></b></span><div class="gauge"><i id="gMuscle" style="background:linear-gradient(90deg,#8d8d98,#ffffff)"></i></div></div>
@@ -3124,10 +3125,12 @@ function updateHud(dt) {
   $("quitBtn").classList.toggle("hidden", !M);
   if (M) {
     box.classList.remove("hidden");
-    const mk = M.type + Math.ceil(M.time) + Math.round(M.catch || 0);
+    const mk = M.type + Math.ceil(M.time) + Math.round(M.catch || 0) + "|" + (M.i || 0) + "|" + Math.round(M.prog || 0);
     if (mk !== lastMissionKey) {
       lastMissionKey = mk;
-      box.innerHTML = M.type === "livraison"
+      box.innerHTML = M.type === "run" ? `<div class="k">Mission · routine du matin</div><div class="t">à ton rythme</div><div class="s">Point ${Math.min(M.i + 1, M.pts.length)} sur ${M.pts.length} · à pied</div>`
+        : M.type === "club" ? `<div class="k">Mission · club de course</div><div class="t">cours avec eux</div><div class="s">Reste près du groupe</div><div class="catch"><i style="width:${clamp(M.prog / 40 * 100, 0, 100)}%"></i></div>`
+        : M.type === "livraison"
         ? `<div class="k">Mission · ${M.kebab ? "livraison du kebab" : M.courses ? "courses de Mamie" : "livraison"}</div><div class="t">${M.time > 0 ? "bonus " + Math.ceil(M.time) + " s" : "à ton rythme"}</div><div class="s">Livre le colis au point violet</div>`
         : `<div class="k">Mission · Mamie en danger</div><div class="t">colle-le</div><div class="s">Colle le voleur pour récupérer le sac</div><div class="catch"><i style="width:${clamp(M.catch / 2.5 * 100, 0, 100)}%"></i></div>`;
     }
@@ -3136,6 +3139,8 @@ function updateHud(dt) {
   let sub;
   if (M && M.type === "livraison") sub = `Suis le point <b style="color:${COL.business}">violet</b> sur la carte.`;
   else if (M && M.type === "mamie") sub = `Rattrape le voleur en <b style="color:${COL.env}">vert</b> et reste collé à lui.`;
+  else if (M && M.type === "run") sub = G.onFoot ? `Cours jusqu'au point <b>blanc</b>.` : `Gare-toi près du point <b>blanc</b> et descends.`;
+  else if (M && M.type === "club") sub = G.onFoot ? `Reste près du groupe de coureurs.` : `Descends et rejoins le groupe à pied.`;
   else if (G.stars) sub = G.stars >= 3 ? `<b style="color:var(--danger)">${G.stars} étoiles.</b> Bouge ou prends un joker, sinon menottes.` : `La police de l'inertie te cherche. <b style="color:var(--danger)">Bouge</b> pour faire baisser les étoiles.`;
   else sub = ""; // écran épuré : le conseil reste accessible en touchant l'objectif (en haut à droite)
   if ($("sub").innerHTML !== sub) $("sub").innerHTML = sub;
@@ -3923,6 +3928,14 @@ function endMission(ok) {
     if (ok) { const gain = Math.round((140 + lvl(P.biz) * 30) * P.mult * (M.time > 0 ? 1.25 : 1) * (WX.rain > 0.3 ? 1.2 : 1)); addCash(gain); P.biz += Math.round(6 * P.mult); P.deliveries++; P.counts.livraison = (P.counts.livraison || 0) + 1; sfx.win(); storyCheck(); help(`Livraison réussie${WX.rain > 0.3 ? " sous la pluie" : ""}. <b style="color:var(--cash)">+$${fmt(gain)}</b>`); }
     else { sfx.fail(); help("Trop tard. Le client a annulé. Retente au Dépôt."); }
   }
+  if (M.type === "run" || M.type === "club") {
+    destBeacon.visible = false;
+    if (ok) { const run = M.type === "run"; P.runK = (P.runK || 0) + (run ? 2 : 1.5); P.counts[M.type] = (P.counts[M.type] || 0) + 1; addXP(run ? 90 : 70); P.mindset += Math.round(4 * P.mult); sfx.win();
+      if (run) { P.morningStreak = P.morningLast === P.day - 1 ? (P.morningStreak || 1) + 1 : 1; P.morningLast = P.day; }
+      help(run ? `<b>Routine faite.</b> ${P.morningStreak > 1 ? `${P.morningStreak} matins d'affilée. ` : ""}Le reste de la journée sera plus facile : tu as déjà gagné la première bataille.` : `<b>Séance avec le club validée.</b> Le groupe t'attend demain, même heure.`, 7);
+      setTimeout(() => feedPost(run ? "lea" : "coach", run ? (P.morningStreak > 1 ? `${P.morningStreak} matins d'affilée que je le croise en train de courir sur le front de mer. Ça force le respect. 🌅` : "Croisé un gars en train de courir sur le front de mer à l'aube. Pas le plus rapide. Mais il était là. 🌅") : "Le livreur a couru avec le club ce soir. Bienvenue dans la famille. 🏃", { toast: true }), 2500); }
+    G.mission = null; saveNow(); return;
+  }
   if (M.type === "mamie") {
     scene.remove(M.agent.mesh);
     if (ok) { const gain = Math.round(100 * P.mult); addCash(gain); P.statut += Math.round(12 * P.mult); P.counts.mamie = (P.counts.mamie || 0) + 1; P.mamieDone = (P.mamieDone || 0) + 1; sfx.win(); storyCheck(); help(`Sac récupéré. Mamie est fière de toi. <b style="color:${COL.env}">+ statut</b>`); }
@@ -3930,9 +3943,45 @@ function endMission(ok) {
   }
   G.mission = null; saveNow();
 }
+const RING = HALF + 9; // boucle du front de mer (celle des joggeurs)
+function ringT(x, z) { // position (0..4) la plus proche sur la boucle
+  let best = 0, bd = 1e9; for (let k = 0; k < 400; k++) { const t = k / 100, [px, pz] = squarePath(t, RING), d = Math.hypot(px - x, pz - z); if (d < bd) { bd = d; best = t; } } return best;
+}
+function offerDaily() {
+  if (!P || G.mission || G.inside || G.mode !== "play" || !G.started) return; const h = hourNow();
+  if (h >= 6 && h < 10.5 && P.morningOffer !== P.day) { P.morningOffer = P.day; startRun(); return; }
+  if (h >= 17.5 && h < 20 && P.clubOffer !== P.day && joggers.length) { P.clubOffer = P.day; startClub(); }
+}
+function startRun() {
+  const o = target(), t0 = ringT(o.x, o.z), dir = Math.random() < .5 ? 1 : -1, pts = [];
+  for (let k = 0; k < 5; k++) { const [x, z] = squarePath(t0 + dir * k * 0.11, RING); pts.push([x, z]); }
+  G.mission = { type: "run", pts, i: 0, time: 9999, started: false };
+  destBeacon.position.set(pts[0][0], 0, pts[0][1]); destBeacon.visible = true; sfx.ping(); G.gpsDest = null;
+  notify("gold", `<b>Routine du matin.</b> Rejoins le front de mer et cours de point blanc en point blanc, à pied. Pas besoin d'aller vite. Il faut juste y aller.`, 9);
+}
+function startClub() {
+  const o = target(); let best = null, bd = 1e9; joggers.forEach(j => { const d = Math.hypot(j.mesh.position.x - o.x, j.mesh.position.z - o.z); if (d < bd) { bd = d; best = j; } });
+  if (!best) return; G.mission = { type: "club", j: best, prog: 0, time: 9999 };
+  destBeacon.visible = true; sfx.ping();
+  notify("gold", `<b>Club de course du soir.</b> Le groupe passe sur le front de mer. Rejoins-le à pied et cours avec eux 40 secondes. Seul, on va vite. Ensemble, on va loin.`, 9);
+}
 function updateMission(dt) {
   const M = G.mission; if (!M) return;
   M.time -= dt;
+  if (M.type === "run") {
+    destBeacon.userData.ring.rotation.z += dt; const o = G.me, p0 = M.pts[M.i];
+    if (!G.onFoot && Math.hypot(G.car.x - p0[0], G.car.z - p0[1]) < 40 && (!M.hintT || performance.now() - M.hintT > 12000)) { M.hintT = performance.now(); help("La routine se fait <b>à pied</b> : gare-toi et descends (bouton SORTIR).", 4); }
+    if (G.onFoot && Math.hypot(o.x - p0[0], o.z - p0[1]) < 5) { M.i++; sfx.ping();
+      if (M.i >= M.pts.length) { endMission(true); return; }
+      const q = M.pts[M.i]; destBeacon.position.set(q[0], 0, q[1]); help(`Point ${M.i} sur ${M.pts.length - 1}. Continue, à ton rythme.`, 2.5); }
+    return;
+  }
+  if (M.type === "club") {
+    const jp = M.j.mesh.position; destBeacon.position.set(jp.x, 0, jp.z); destBeacon.userData.ring.rotation.z += dt;
+    const d = Math.hypot(G.me.x - jp.x, G.me.z - jp.z); if (G.onFoot && d < 14) M.prog += dt; else M.prog = Math.max(0, M.prog - dt * 0.3);
+    if (M.prog >= 40) endMission(true);
+    return;
+  }
   if (M.type === "livraison") {
     destBeacon.userData.ring.rotation.z += dt;
     const o = target();
@@ -4550,7 +4599,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
@@ -4567,6 +4616,7 @@ function loop(now) {
     if (G.wantExit && !G.onFoot && !G.entering) { G.car.v *= Math.pow(0.004, dt); if (Math.abs(G.car.v) < 4) { G.car.v = 0; G.wantExit = false; toggleCar(); } } else if (G.onFoot) G.wantExit = false;
     updateReminders(dt);
     G.feedT = (G.feedT || 0) + dt; if (G.feedT > 125) { G.feedT = 0; feedAuto(); }
+    G.offerT = (G.offerT || 0) + dt; if (G.offerT > 5) { G.offerT = 0; if (!storyStep() || P.day > 1) offerDaily(); }
     updateDoorClose(dt);
     if (G.inside) checkInterior(); else { checkZones(); updatePolice(dt); }
     updateMission(dt); if (G.mode === "play") checkGoal();

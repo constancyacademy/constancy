@@ -1816,8 +1816,21 @@ function wxTarget() {
   const r = mulberry(seg * 7919 + 13)(), r2 = mulberry(seg * 104729 + 7)();
   return r < 0.27 ? 0.55 + r2 * 0.45 : 0;
 }
+// ---------- arc-en-ciel après la pluie, à l'opposé du soleil (seuls ceux qui sont sortis sous la pluie le voient)
+const RB = { mesh: null, t: 0, peak: 0, D: 900 };
+function updateRainbow(dt) {
+  if (!RB.mesh) { const R = RB.D * Math.tan(42 * Math.PI / 180), g = new THREE.RingGeometry(R * 0.93, R, 160, 1, 0, Math.PI * 2);
+    const m = new THREE.ShaderMaterial({ uniforms: { k: { value: 0 }, R: { value: R } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide,
+      vertexShader: "varying vec2 vp; void main(){ vp = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+      fragmentShader: "uniform float k; uniform float R; varying vec2 vp; vec3 hue(float h){ return clamp(abs(mod(h*6.0+vec3(0.,4.,2.),6.)-3.)-1.,0.,1.); } void main(){ float t = (length(vp)/R - 0.93)/0.07; float a = sin(3.14159*clamp(t,0.,1.)); vec3 c = hue(0.78*(1.0-t)); gl_FragColor = vec4(c*a*k*0.42, 1.0); }" });
+    RB.mesh = new THREE.Mesh(g, m); RB.mesh.frustumCulled = false; RB.mesh.renderOrder = -1; scene.add(RB.mesh); }
+  const h = hourNow(), day = nightK < 0.3 && h > 7.5 && h < 18.8;
+  if (WX.rain > 0.35) RB.peak = 1; if (RB.peak && WX.rain < 0.08) { RB.peak = 0; if (day && !G.inside) { RB.t = 110; if (G.mode === "play") { notify("gold", "<b>Un arc-en-ciel.</b> Regarde dos au soleil. Ceux qui sont sortis sous la pluie ont droit à ça.", 7); stat("arc-en-ciel"); setTimeout(() => feedPost("meteo", "Arc-en-ciel au-dessus de Constancy City. Après la pluie, toujours. 🌈"), 4000); } } }
+  if (RB.t > 0) RB.t -= dt; const kk = RB.t > 0 && day && !G.inside ? Math.min(1, (110 - RB.t) / 8, RB.t / 15) : 0; RB.mesh.material.uniforms.k.value = kk; RB.mesh.visible = kk > 0.01; if (!RB.mesh.visible) return;
+  const sd = sea.material.uniforms.sunDir.value, cp = camera.position; RB.mesh.position.set(cp.x - sd.x * RB.D, cp.y - sd.y * RB.D, cp.z - sd.z * RB.D); RB.mesh.lookAt(cp);
+}
 function updateWeather(dt) {
-  if (!WX.lines) return;
+  if (!WX.lines) return; updateRainbow(dt);
   WX.target = wxTarget(); WX.rain += (WX.target - WX.rain) * Math.min(1, dt * 0.09);
   WX.wet += ((WX.rain > 0.15 ? 1 : 0) - WX.wet) * Math.min(1, dt * (WX.rain > 0.15 ? 0.12 : 0.025));
   if (FX.asphalt) FX.asphalt.color.setScalar(1 - 0.38 * WX.wet);
@@ -4835,7 +4848,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

@@ -3660,6 +3660,26 @@ function buildAirports(r) {
   { const mesh = makeRide("avion"); mesh.position.set(px, PAD.h, PAD.z1 - 14); mesh.rotation.y = Math.PI; scene.add(mesh); rentals.push({ kind: "avion", mesh, x: px, z: PAD.z1 - 14, h: Math.PI, plane: true }); }
 }
 function roofCap() { return new THREE.MeshLambertMaterial({ color: 0x2a2a30 }); }
+// ---------- traces de pneus sur le bitume (freinage fort, virage serré, démarrage en trombe) et crissement des pneus
+const SKID = { inst: null, n: 700, i: 0, last: null, m: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(), v: new THREE.Vector3(), s: new THREE.Vector3(1, 1, 1), snd: null, k: 0 };
+function skidSound(k) {
+  const c = SND.ctx; if (!c) return;
+  if (!SND.skid) { const n = c.sampleRate * 2, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource(); src.buffer = b; src.loop = true; const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1900; bp.Q.value = 7; const g = c.createGain(); g.gain.value = 0; src.connect(bp); bp.connect(g); g.connect(c.destination); src.start(); SND.skid = { g, bp }; }
+  SND.skid.g.gain.setTargetAtTime(SND.on && G.mode === "play" ? k * 0.22 : 0, c.currentTime, 0.06); SND.skid.bp.frequency.setTargetAtTime(1700 + k * 500, c.currentTime, 0.1);
+}
+function updateSkid(dt, c, inp, sp, yaw, tb, onRoad) {
+  const lat = sp * Math.abs(yaw), k = !onRoad || WX.wet > 0.6 ? 0 : clamp(Math.max(inp.brake && sp > 11 ? (sp - 11) / 12 : 0, lat > 13 ? (lat - 13) / 10 : 0, tb && sp < 12 && c.v > 1 ? 0.8 : 0), 0, 1);
+  SKID.k += (k - SKID.k) * Math.min(1, dt * 10); skidSound(SKID.k);
+  if (!SKID.inst) { const g = new THREE.PlaneGeometry(0.26, 1); g.rotateX(-Math.PI / 2); SKID.inst = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({ color: 0x0c0c0c, transparent: true, opacity: 0.5, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), SKID.n);
+    SKID.inst.frustumCulled = false; SKID.v.set(0, -99, 0); SKID.m.compose(SKID.v, SKID.q, SKID.s); for (let i = 0; i < SKID.n; i++) SKID.inst.setMatrixAt(i, SKID.m); scene.add(SKID.inst); }
+  if (SKID.k < 0.25) { SKID.last = null; return; }
+  const fx = Math.sin(c.h), fz = Math.cos(c.h), bx = c.x - fx * 1.45, bz = c.z - fz * 1.45;
+  if (!SKID.last) { SKID.last = [bx, bz]; return; } const dx = bx - SKID.last[0], dz = bz - SKID.last[1], L = Math.hypot(dx, dz); if (L < 0.45) return;
+  const a = Math.atan2(dx, dz), mx = (bx + SKID.last[0]) / 2, mz = (bz + SKID.last[1]) / 2; SKID.e.set(0, a, 0); SKID.q.setFromEuler(SKID.e); SKID.s.set(1, 1, L + 0.05);
+  [-0.78, 0.78].forEach(o => { SKID.v.set(mx + fz * o, 0.04, mz - fx * o); SKID.m.compose(SKID.v, SKID.q, SKID.s); SKID.inst.setMatrixAt(SKID.i, SKID.m); SKID.i = (SKID.i + 1) % SKID.n; });
+  SKID.s.set(1, 1, 1); SKID.inst.instanceMatrix.needsUpdate = true; SKID.last = [bx, bz];
+}
 function updateCar(dt) {
   if (!carMesh) return;
   if (G.ride && G.ride.kind === "avion") return updatePlane(dt);
@@ -3684,6 +3704,7 @@ function updateCar(dt) {
   c.h -= c.s * grip * dt * clamp(c.v / 7, -1, 1);
   c.x += Math.sin(c.h) * c.v * dt; c.z += Math.cos(c.h) * c.v * dt;
   const two = RIDES[G.ride.kind] && !RIDES[G.ride.kind].car;
+  if (!two) updateSkid(dt, c, inp, sp, c.s * grip * clamp(c.v / 7, -1, 1), tb, onRoadC); else skidSound(0);
   if (two ? collide(c, def.rad || 1.2) : collideCar(c, def.rad || 2.1)) { if (Math.abs(c.v) > 10) sfx.bump(); c.v *= Math.pow(0.02, dt); }
   const gh = GH(c.x, c.z), ghF = GH(c.x + Math.sin(c.h) * 2.2, c.z + Math.cos(c.h) * 2.2), ghB = GH(c.x - Math.sin(c.h) * 2.2, c.z - Math.cos(c.h) * 2.2);
   carMesh.rotation.order = "YXZ"; carMesh.position.set(c.x, (two ? 0.05 : 0) + gh, c.z); carMesh.rotation.y = c.h; carMesh.rotation.x = -Math.atan2(ghF - ghB, 4.4);
@@ -4164,6 +4185,7 @@ function updateRadio() {
   const b = $("radioBtn"); if (!b) return; const inCar = G.mode === "play" && G.started && !G.onFoot && !!carMesh && !G.inside && !!G.ride && (G.ride.kind === "own" || !!(RIDES[G.ride.kind] && RIDES[G.ride.kind].car));
   if (b.classList.contains("hidden") === inCar) b.classList.toggle("hidden", !inCar);
   if (inCar && !G.radioInit && P && P.radio && SND.ctx && SND.on) { G.radioInit = true; RADIO.i = P.radio % RADIO.list.length; radioPlay(); b.classList.add("on"); }
+  if (SND.skid && (G.onFoot || G.mode !== "play" || !carMesh || (G.ride && /avion|bateau/.test(G.ride.kind)))) skidSound(0);
   if (RADIO.g && SND.ctx) { const t = SND.ctx.currentTime, on = inCar && SND.on && !!RADIO.list[RADIO.i]; RADIO.g.gain.setTargetAtTime(on ? (G.fpv ? 0.5 : 0.34) : 0, t, 0.25); RADIO.f.frequency.setTargetAtTime(G.fpv ? 15000 : 7000, t, 0.3); }
 }
 function notify(kind, html, secs = 7) {
@@ -4930,7 +4952,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

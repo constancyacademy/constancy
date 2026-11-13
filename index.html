@@ -4687,8 +4687,8 @@ function kitFlush() { const q = kitQueue(); if (!q.length || !(KIT_FORM || GFORM
 const EMAIL_BONUS = 500, EMAIL_MAX_ASK = 3, EMAIL_SNOOZE_S = 420;
 function emailMoment(dt) { // le bon moment : juste après une mission, ou quand le joueur souffle (arrêté), sinon au plus tard à 4 min
   if (P.email || CREATOR || G.emailGate || G.mode !== "play" || G.entering || G.inside) return;
-  if ((P.emailAsks || 0) >= EMAIL_MAX_ASK) return;
   P.playS = (P.playS || 0) + dt; const t = P.playS;
+  if (P.emailAsks && t > 30) { openEmailGate(); return; }
   if (t < (P.emailNext || 150)) return;
   const still = G.onFoot ? (G.me.speed || G.me.v || 0) < 0.6 : Math.abs((G.car && G.car.v) || 0) < 1;
   G.emailStill = still ? (G.emailStill || 0) + dt : 0;
@@ -4698,8 +4698,9 @@ function emailMoment(dt) { // le bon moment : juste après une mission, ou quand
 function openEmailGate() {
   if (G.emailGate) return; G.emailGate = true; P.emailAsks = (P.emailAsks || 0) + 1; setMode("email"); stat("ecran-email-" + P.emailAsks);
   const perk = (ic, b, t) => `<div style="display:flex;gap:12px;align-items:flex-start"><span style="flex:0 0 34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:rgba(255,63,164,.16);border:1px solid rgba(255,63,164,.4);font-size:17px">${ic}</span><span style="font-size:14px;line-height:1.4;color:#dcd8e2"><b style="color:#fff">${b}</b><br>${t}</span></div>`;
-  show(`<div class="panel" style="gap:16px"><div class="kicker" style="color:#ff6fbf">Accès anticipé · Bêta</div>
-    <h2>Joue les prochaines versions avant tout le monde.</h2>
+  show(`<div class="panel" style="gap:16px"><div class="kicker" style="color:#ff6fbf">Sauvegarde · Accès anticipé</div>
+    <h2>Pour continuer, crée ta sauvegarde.</h2>
+    <p class="lead" style="margin:-4px 0 0">Ta ville, ton perso, ton cash, ta série : Tout est lié à ton adresse. Un e-mail, et tu reprends là où tu en es.</p>
     <div class="card" style="gap:14px;background:linear-gradient(160deg,rgba(255,63,164,.10),rgba(120,70,255,.08) 60%,rgba(14,13,18,.92));border-color:rgba(255,63,164,.35)">
       ${perk("🎮", "Les nouvelles bêtas en avant-première", "Nouveaux quartiers, véhicules et missions : Tu les testes avant leur sortie.")}
       ${perk("💾", "Ta progression gardée", "Ton perso, ton cash et ta série restent liés à ton adresse.")}
@@ -4707,15 +4708,13 @@ function openEmailGate() {
     </div>
     <input id="em" class="linkbox" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="ton@email.com" data-focus style="-webkit-user-select:text;user-select:text;text-align:left;margin:0;font-size:16px;padding:14px">
     <div id="emErr" class="note" style="color:#ff6b8a;min-height:16px;margin-top:-8px"></div>
-    <button class="btn pink" id="emGo" type="button" style="margin-top:-6px">Je veux l'accès anticipé</button>
-    <button class="btn alt" id="emLater" type="button" style="font-size:15px;padding:11px">Plus tard</button>
+    <button class="btn pink" id="emGo" type="button" style="margin-top:-6px">Sauvegarder et continuer</button>
     <p class="note" style="opacity:.75;margin:0;text-align:center">Un e-mail seulement quand une nouvelle version sort. Jamais de spam · Désinscription en 1 clic.</p></div>`, "mail");
   const inp = $("em"), go = () => { const v = (inp.value || "").trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(v)) { $("emErr").textContent = "Vérifie ton adresse e-mail."; return; }
     P.email = v; addCash(EMAIL_BONUS); saveNow(); stat("email-ok"); const q = kitQueue(); q.push(v); kitSave(q); kitFlush();
     G.emailGate = false; resume(); celebrate(4); notify("gold", "<b>Tu es sur la liste.</b> Tu recevras la prochaine bêta avant tout le monde. <b style=\"color:var(--cash)\">+$" + fmt(EMAIL_BONUS) + "</b> versés.", 6); };
   on("emGo", go); inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
-  on("emLater", () => { stat("email-plus-tard"); P.emailNext = (P.playS || 0) + EMAIL_SNOOZE_S; saveNow(); G.emailGate = false; resume(); });
 }
 function setMode(m) {
   G.mode = m; const play = m === "play";

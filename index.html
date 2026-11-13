@@ -3068,6 +3068,29 @@ function updateStreetScenes(dt) {
       else if (G.onFoot && h.visible) { const dx = G.me.x - h.position.x, dz = G.me.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 0.75) { const n = dc || 1; G.me.x += dx / n * (0.75 - dc); G.me.z += dz / n * (0.75 - dc); } } });
   });
 }
+// ---------- food truck sur la plage ouest : un vendeur fidèle au poste, une petite file d'attente
+const FT = { g: null, x: -HALF - 21, z: 0, people: [] };
+function buildFoodTruck() {
+  FT.z = bC(3) + 22; const g = new THREE.Group(); g.position.set(FT.x, 0, FT.z); scene.add(g); FT.g = g;
+  const white = new THREE.MeshPhongMaterial({ color: 0xf4f1ea, shininess: 60 }), teal = new THREE.MeshPhongMaterial({ color: 0x2bb3a3, shininess: 60 }), dark = new THREE.MeshLambertMaterial({ color: 0x1a1b20 }), glass = new THREE.MeshPhongMaterial({ color: 0x14202a, shininess: 120 });
+  const box = (w, h, d, m, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); g.add(b); return b; };
+  box(2.3, 2.3, 4.6, white, 0, 1.75, -0.5); box(2.32, 0.45, 4.62, teal, 0, 0.95, -0.5); box(2.2, 1.5, 1.6, teal, 0, 1.35, 2.5); box(2.0, 0.7, 0.05, glass, 0, 1.75, 3.31);
+  box(0.05, 0.95, 2.6, dark, 1.16, 2.0, -0.6); box(0.5, 0.08, 2.7, white, 1.4, 1.5, -0.6); // fenêtre de service et comptoir
+  [[-1, -2.2], [1, -2.2], [-1, 2.3], [1, 2.3]].forEach(([x, z]) => { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.28, 14), dark); w.rotation.z = Math.PI / 2; w.position.set(x * 0.98, 0.4, z); g.add(w); });
+  const c = document.createElement("canvas"); c.width = 256; c.height = 64; const x2 = c.getContext("2d"); for (let k = 0; k < 8; k++) { x2.fillStyle = k % 2 ? "#f4f1ea" : "#ff4d5e"; x2.fillRect(k * 32, 0, 32, 64); }
+  const aw = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 2.9), new THREE.MeshLambertMaterial({ map: new THREE.CanvasTexture(c), side: THREE.DoubleSide })); aw.rotation.set(-Math.PI / 2, 0, 0); aw.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), -0.35); aw.position.set(1.75, 2.62, -0.6); g.add(aw);
+  const sg = label("Tacos", "#2bb3a3"); sg.position.set(0, 3.7, -0.5); sg.scale.set(4.4, 1.1, 1); g.add(sg);
+  const mk = (opt, x, z, ry, clip) => { const h = makeHuman(Object.assign({ skin: pick(SKINS), hair: pick(HAIRS), lite: true }, opt)); h.position.set(FT.x + x, 0.05, FT.z + z); h.rotation.y = ry; scene.add(h); setClip(h, clip, 0.9 + Math.random() * 0.2); FT.people.push(h); return h; };
+  mk({ shirt: 0xffffff, pants: 0x222222 }, 1.32, -0.6, Math.PI / 2, "Idle_Talking_Loop"); mk({ shirt: pick(SHIRTS), pants: pick(PANTS), female: true }, 2.4, -0.4, -Math.PI / 2, "Idle_Talking_Loop"); mk({ shirt: pick(SHIRTS), pants: pick(PANTS) }, 3.6, 0.6, -Math.PI / 2 - 0.3, "Idle_Loop");
+}
+function updateFoodTruck() {
+  if (!HQ.ready) return; if (!FT.g) buildFoodTruck(); const o = target(), d = Math.hypot(o.x - FT.x, o.z - FT.z), vis = d < 160 && !G.inside; FT.g.visible = vis; FT.people.forEach(h => { h.visible = vis && d < 80; });
+  if (!vis) return;
+  [[0, -2.2], [0, 0.2], [0, 2.4]].forEach(([dx, dz]) => { const cx = FT.x + dx, cz = FT.z + dz; if (!G.onFoot && carMesh) { const ex = G.car.x - cx, ez = G.car.z - cz, dc = Math.hypot(ex, ez); if (dc < 2.8) { const n = dc || 1; G.car.x += ex / n * (2.8 - dc); G.car.z += ez / n * (2.8 - dc); if (Math.abs(G.car.v) > 6) sfx.bump(); G.car.v *= 0.3; } }
+    else if (G.onFoot) { const ex = G.me.x - cx, ez = G.me.z - cz, dc = Math.hypot(ex, ez); if (dc < 1.6) { const n = dc || 1; G.me.x += ex / n * (1.6 - dc); G.me.z += ez / n * (1.6 - dc); } } });
+  if (G.onFoot && Math.hypot(G.me.x - (FT.x + 2), G.me.z - FT.z) < 3 && (!G.ftT || performance.now() - G.ftT > 60000)) { G.ftT = performance.now(); stat("food-truck");
+    help(pick(["<b>Le vendeur :</b> « 9 ans au même endroit, tous les jours, même quand il pleut. Les clients reviennent pour ça. »", "<b>Le vendeur :</b> « Le secret de ma sauce ? La même recette, tous les jours. Pas d'improvisation. »", "<b>Le vendeur :</b> « Les gens pensent que j'ai eu de la chance. J'ai juste ouvert tous les matins. »"]), 7); }
+}
 // ---------- un mécanicien à genoux qui répare une voiture garée au bord de la route
 const MECH = { list: [], fr: new THREE.Frustum(), pm: new THREE.Matrix4(), v: new THREE.Vector3() };
 function mechSpot(o, m) {
@@ -3148,6 +3171,7 @@ const DAILY = [
   { k: "propre", n: 2, t: "Conduite propre", d: "Réussis 2 missions sans un seul choc.", w: "Deux missions, zéro choc. La régularité, c'est aussi faire les choses proprement." },
   { k: "pied", n: 800, t: "Marche quotidienne", d: "Fais 800 mètres à pied.", w: "800 mètres à pied. Petit effort, mais fait aujourd'hui. Demain, on remet ça." },
   { k: "routine", n: 1, t: "Routine du matin", d: "Fais la routine du matin : Entre 6 h et 10 h 30 (heure du jeu), à pied sur le front de mer.", w: "Routine faite. Le reste de la journée sera plus facile : Tu as déjà gagné la première bataille." },
+  { k: "voisin", n: 1, t: "Rends service", d: "Aide un voisin à porter ses cartons (la mission arrive quand tu es à pied).", w: "Un service rendu, sans rien attendre. C'est aussi ça, être constant : Le faire même quand personne ne compte." },
   { k: "lavage", n: 1, t: "Prends soin de tes affaires", d: "Roule un peu, puis lave ta voiture devant chez toi (repère A).", w: "Voiture propre. Ce qui est entretenu tous les jours ne casse pas." }
 ];
 function dailyDef() { const d = new Date(); return DAILY[(d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) % DAILY.length]; }
@@ -3228,7 +3252,7 @@ function updateDirt(dt) {
   if (carMesh && (G.dirtMesh !== carMesh || Math.abs((G.dirtShown || 0) - P.dirt) > 0.02)) { G.dirtMesh = carMesh; G.dirtShown = P.dirt; applyDirt(carMesh, G.ride && G.ride.kind === "own" ? P.dirt : 0); }
 }
 function updateWorldLife(dt) {
-  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateCrossers(dt); updateSitters(dt); updateMechanics(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
+  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateCrossers(dt); updateSitters(dt); updateMechanics(dt); updateFoodTruck(); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
   const cxp = camera.position.x, czp = camera.position.z;
   for (let i = 0; i < rentals.length; i++) { const r = rentals[i]; r.mesh.visible = (r.x - cxp) ** 2 + (r.z - czp) ** 2 < 52900; }
   const me = target();
@@ -4310,7 +4334,7 @@ function endMission(ok) {
   if (M.type === "voisin") {
     destBeacon.visible = false; if (VOIS.carry) { VOIS.carry.visible = false; VOIS.carry = null; }
     setTimeout(() => { if (G.mission && G.mission.type === "voisin") return; VOIS.man.visible = false; VOIS.boxes.forEach(b => { b.visible = false; }); }, ok ? 25000 : 500);
-    if (ok) { P.mindset += Math.round(5 * P.mult); P.statut += Math.round(3 * P.mult); addXP(90); P.counts.voisin = (P.counts.voisin || 0) + 1; P.helped = (P.helped || 0) + 1; sfx.win(); stat("aide-voisin");
+    if (ok) { setTimeout(() => dailyAdd("voisin", 1), 1500); P.mindset += Math.round(5 * P.mult); P.statut += Math.round(3 * P.mult); addXP(90); P.counts.voisin = (P.counts.voisin || 0) + 1; P.helped = (P.helped || 0) + 1; sfx.win(); stat("aide-voisin");
       if (VOIS.man) setClip(VOIS.man, "Idle_Talking_Loop");
       help(`<b>Cartons livrés.</b> Le voisin te serre la main. Il ne t'a rien donné : C'est justement pour ça que ça compte. <b style="color:var(--gold)">+Mindset · +Statut</b>`, 7);
       setTimeout(() => feedPost(P.helped > 1 ? "ville" : "mamie", P.helped > 1 ? `${P.helped}e voisin aidé par le livreur du quartier. Les petits gestes réguliers font les bonnes villes. 🤝` : "Un jeune a porté les cartons de mon voisin jusqu'à chez lui. Sans rien demander. Ça existe encore. ❤️", { toast: true }), 3000); }
@@ -5050,7 +5074,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

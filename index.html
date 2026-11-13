@@ -1610,7 +1610,7 @@ function collideProps(o, rad) {
   return hit;
 }
 function palm(x, z, r, y0 = 0) {
-  addProp(x, z, 0.35);
+  addProp(x, z, 0.35); if (PALM_SPOTS.length < 900) PALM_SPOTS.push([x, z, y0]);
   const h = 8 + r() * 7, segs = 4, bend = (r() - .5) * 0.5, dir = r() * Math.PI * 2, seg = h / segs;
   let px = x, py = y0, pz = z;
   for (let k = 0; k < segs; k++) {
@@ -2833,18 +2833,20 @@ const chooseFlee = a => { const o = notBack(a).sort((p, q) => Math.hypot(rc(q[0]
 const chooseChase = a => { const t = target(); return nb(a.from).sort((p, q) => Math.hypot(rc(p[0]) - t.x, rc(p[1]) - t.z) - Math.hypot(rc(q[0]) - t.x, rc(q[1]) - t.z))[0]; };
 const TRAFFIC_COLORS = [0xe8e4dc, 0x2d5aa8, 0xb83a3a, 0x3a3a40, 0xf0f0f0, 0x6fa86a, 0xd9b44a, 0x8a5cc2, 0x222222, 0xc0c4cc, 0x3fb5c9, 0xe07a3a];
 const NEON = { mats: [] };
-function buildRoofNeons() {
-  const edges = []; let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  BLOCK_BOXES.forEach(L => L.forEach(b => { if (b.length < 5 || !(b[4] > 11)) return; const [x0, z0, x1, z1, h] = b, y = h + 0.35, c = rnd() < 0.62 ? 0 : 1;
-    if (rnd() < 0.25) return; edges.push([x0, z0, x1, z0, y, c], [x1, z0, x1, z1, y, c], [x1, z1, x0, z1, y, c], [x0, z1, x0, z0, y, c]);
-    if (h > 34 && rnd() < 0.7) edges.push([x0, z1, x0, z1, -h, c]); }));
-  const geo = new THREE.BoxGeometry(1, 0.28, 0.28), cols = [0xff3fb4, 0x3fe6ff];
+function buildRoofNeons() { // bandeaux néon au niveau des vitrines (rose, cyan, violet), sur les façades qui donnent sur la rue
+  const edges = []; let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  BLOCK_BOXES.forEach(L => L.forEach(b => { if (b.length < 5 || !(b[4] > 7)) return; const o = 0.18, [x0, z0, x1, z1] = [b[0] - o, b[1] - o, b[2] + o, b[3] + o], c = Math.floor(rnd() * 3), y = 3.3 + Math.floor(rnd() * 2) * 0.5;
+    if (rnd() < 0.15) return; edges.push([x0, z0, x1, z0, y, c], [x1, z0, x1, z1, y, c], [x1, z1, x0, z1, y, c], [x0, z1, x0, z0, y, c]); }));
+  const geo = new THREE.BoxGeometry(1, 0.16, 0.16), cols = [0xff3fb4, 0x3fe6ff, 0xa45bff];
   cols.forEach((col, ci) => { const list = edges.filter(e => e[5] === ci); if (!list.length) return; const mat = new THREE.MeshBasicMaterial({ color: col }); mat.userData.base = new THREE.Color(col); NEON.mats.push(mat);
     const im = new THREE.InstancedMesh(geo, mat, list.length), m = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
-    list.forEach((e, k) => { if (e[4] < 0) { const H = -e[4]; v.set(e[0] + 0.15, 0.25 + H / 2, e[1] - 0.15); q.identity(); sc.set(0.28, H / 0.28, 1); m.compose(v, q, sc); im.setMatrixAt(k, m); return; }
-      const dx = e[2] - e[0], dz = e[3] - e[1], L = Math.hypot(dx, dz); v.set((e[0] + e[2]) / 2, e[4], (e[1] + e[3]) / 2); q.setFromAxisAngle(Y, -Math.atan2(dz, dx)); sc.set(L, 1, 1); m.compose(v, q, sc); im.setMatrixAt(k, m); });
-    im.frustumCulled = false; scene.add(im); });
+    list.forEach((e, k) => { const dx = e[2] - e[0], dz = e[3] - e[1], L = Math.hypot(dx, dz); v.set((e[0] + e[2]) / 2, e[4], (e[1] + e[3]) / 2); q.setFromAxisAngle(Y, -Math.atan2(dz, dx)); sc.set(L, 1, 1); m.compose(v, q, sc); im.setMatrixAt(k, m); });
+    scene.add(im); });
+  // palmiers éclairés en rose par le bas
+  if (PALM_SPOTS.length) { const g = new THREE.BufferGeometry(), pos = new Float32Array(PALM_SPOTS.length * 3); PALM_SPOTS.forEach((p, k) => { pos[k * 3] = p[0]; pos[k * 3 + 1] = p[2] + 1.4; pos[k * 3 + 2] = p[1]; }); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const pm = new THREE.PointsMaterial({ size: 12, map: glowTexture(), color: 0xff4fc8, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true }); pm.userData.base = new THREE.Color(0xff4fc8); NEON.mats.push(pm); scene.add(new THREE.Points(g, pm)); }
 }
+const PALM_SPOTS = [];
 const TL = { per: 18, inst: null, list: [], phase: -1 };
 function tlState(axis, t) { // "g" vert, "a" orange, "r" rouge pour l'axe x ou z
   const k = ((t % TL.per) + TL.per) % TL.per, x = k < 7.5 ? "g" : k < 9 ? "a" : "r", z = k >= 9 && k < 16.5 ? "g" : k >= 16.5 ? "a" : "r";
@@ -3511,8 +3513,8 @@ function updateWorldLife(dt) {
 }
 
 /* ============ Ciel et heure ============ */
-const SKY_TOP = [[0, "#08041c"], [5, "#160c3a"], [6.5, "#4a4a9e"], [9, "#2f7fd8"], [16, "#2f7fd8"], [18.5, "#5a3a96"], [20, "#2a1050"], [22, "#0e0628"], [24, "#08041c"]];
-const SKY_BOT = [[0, "#1d0a33"], [5, "#3a1a55"], [6.5, "#ff8fa8"], [9, "#cfe8ff"], [16, "#cfe8ff"], [18.5, "#ff7a8a"], [20, "#c2368f"], [22, "#3a1050"], [24, "#1d0a33"]];
+const SKY_TOP = [[0, "#0a0424"], [5, "#160c3a"], [6.5, "#4a4a9e"], [9, "#2f7fd8"], [16, "#2f7fd8"], [18.5, "#5a3a96"], [20, "#2a1050"], [22, "#120634"], [24, "#0a0424"]];
+const SKY_BOT = [[0, "#4a1460"], [5, "#3a1a55"], [6.5, "#ff8fa8"], [9, "#cfe8ff"], [16, "#cfe8ff"], [18.5, "#ff7a8a"], [20, "#c2368f"], [22, "#6a1a7a"], [24, "#4a1460"]];
 const _c1 = new THREE.Color(), _c2 = new THREE.Color();
 function lerpKeys(keys, h, out) {
   for (let i = 0; i < keys.length - 1; i++) if (h >= keys[i][0] && h <= keys[i + 1][0]) { const k = (h - keys[i][0]) / (keys[i + 1][0] - keys[i][0]); _c1.set(keys[i][1]); _c2.set(keys[i + 1][1]); return out.copy(_c1).lerp(_c2, k); }

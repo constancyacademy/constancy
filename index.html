@@ -4184,8 +4184,8 @@ function updateCamera(dt, follow) {
     sky.position.copy(camera.position); sun.position.set(c.x - 160, c.alt + 220, c.z + 100); sun.target.position.set(c.x, c.alt, c.z);
     return;
   }
-  // 3 vues : proche et basse (derrière la voiture, légère contre-plongée), moyenne, lointaine ; la 4e est la vue intérieure (cockpit)
-  const cv = G.camView || 0, sv = Math.abs(G.car.v), VC = [[7.2 + sv * 0.05, 1.85 + sv * 0.012, 1.25, 10], [10 + sv * 0.07, 3.0 + sv * 0.02, 1.45, 8], [15 + sv * 0.09, 6.6 + sv * 0.03, 1.6, 6]][Math.min(cv, 2)], VF = [[4.6, 2.2, 1.55], [6.4, 2.9, 1.7], [9, 4.2, 1.8]][Math.min(cv, 2)];
+  // 3 vues : proche et basse (caméra à hauteur de coffre, qui regarde légèrement vers le haut = contre-plongée), moyenne, lointaine ; à pied aussi un chouïa en contre-plongée ; la 4e est la vue intérieure (cockpit)
+  const cv = G.camView || 0, sv = Math.abs(G.car.v), VC = [[6.9 + sv * 0.045, 1.6 + sv * 0.004, 2.2, 16], [9.2 + sv * 0.06, 2.05 + sv * 0.01, 2.1, 13], [13.5 + sv * 0.08, 3.4 + sv * 0.02, 1.9, 10]][Math.min(cv, 2)], VF = [[4.3, 1.62, 1.82, 4], [6.2, 2.0, 1.85, 5], [9, 3.0, 1.8, 4]][Math.min(cv, 2)];
   const h = foot ? o.h : G.car.h, back = G.inside ? 4.6 : foot ? VF[0] : VC[0], up = G.inside ? 3 : foot ? VF[1] : VC[1];
   let tx = o.x - Math.sin(h) * back, tz = o.z - Math.cos(h) * back;
   const gy = G.inside ? 0 : GH(o.x, o.z); let cy = up + Math.max(gy, G.inside ? 0 : GH(tx, tz));
@@ -4193,7 +4193,7 @@ function updateCamera(dt, follow) {
   if (G.camF < 0.999) { tx = o.x + (tx - o.x) * G.camF; tz = o.z + (tz - o.z) * G.camF; cy = gy + 1.6 + (cy - gy - 1.6) * Math.max(G.camF, 0.55); }
   const k = G.snapCam ? 1 : 1 - Math.exp(-dt * (foot ? 4 : 4.5) * (G.camF < 0.9 ? 2.5 : 1)); G.snapCam = false; // téléportation (porte, appart) : caméra posée directement
   camera.position.x += (tx - camera.position.x) * k; camera.position.y += (cy - camera.position.y) * k; camera.position.z += (tz - camera.position.z) * k;
-  camera.lookAt(o.x + Math.sin(h) * (foot ? 2 : VC[3]), (foot ? VF[2] : VC[2]) + gy, o.z + Math.cos(h) * (foot ? 2 : VC[3]));
+  camera.lookAt(o.x + Math.sin(h) * (foot ? VF[3] : VC[3]), (foot ? VF[2] : VC[2]) + gy, o.z + Math.cos(h) * (foot ? VF[3] : VC[3]));
   G.camYaw = Math.atan2(o.x - camera.position.x, o.z - camera.position.z);
   sky.position.copy(camera.position);
   sun.position.set(o.x - 160, 220, o.z + 100); sun.target.position.set(o.x, 0, o.z);

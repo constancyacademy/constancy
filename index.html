@@ -1703,7 +1703,8 @@ function billboardTexture() {
 const ZONES = new Map(), PARKED = []; // voitures garées sur les parkings : on peut monter dedans (location)
 function setBoxes(i, j, list) { BLOCK_BOXES.set(i + "," + j, list); }
 function zoneOf(i, j, dist, r) {
-  if ((i === 10 && j === 3) || (i === 2 && j === 5)) return "construction";
+  if (i === 2 && j === 5) return "hospital";
+  if (i === 10 && j === 3) return "construction";
   if (i <= 5 && j >= 10) return r() < .22 ? "park" : "houses";
   if (i >= 9 && j >= 10 && r() < .5) return "houses";
   const h = r();
@@ -1712,7 +1713,7 @@ function zoneOf(i, j, dist, r) {
   return "mixed";
 }
 const SHOPS = [["CAFÉ", "#f4e9d8", "#2a1d16"], ["PHARMACIE", "#ffffff", "#0f6b3a"], ["BOULANGERIE", "#3a2414", "#f3d9a4"], ["BARBER SHOP", "#ffffff", "#141414"], ["TACOS 24/7", "#ffd23f", "#b3122e"], ["LAVERIE", "#0f2c4f", "#e9f3ff"], ["FLEURISTE", "#ffffff", "#c2457a"], ["PIZZERIA", "#ffffff", "#1d5e2f"]];
-let SHOP_M = null, SHOP_G = null, VIT_M = null, VIT_G = null;
+let SHOP_M = null, SHOP_G = null, VIT_M = null, VIT_G = null, SIGN_BOX = null, SIGN_BOXG = null;
 const SHOP_W = [3, 2.2, 3, 1.6, 1.8, 0.35, 1.8, 2], SHOP_WT = SHOP_W.reduce((a, b) => a + b, 0);
 function shopPick(u) { let t = u * SHOP_WT; for (let k = 0; k < SHOP_W.length; k++) { t -= SHOP_W[k]; if (t < 0) return k; } return 0; }
 function vitrines() {
@@ -1728,12 +1729,16 @@ function vitrines() {
       for (let i = 0; i < 10; i++) { const x = 58 + i * 42, yy = y + 112; g.fillStyle = "#e3a14b"; g.beginPath(); g.arc(x, yy, 14, Math.PI, 0); g.fill(); g.fillStyle = "#c27a2c"; g.fillRect(x - 15, yy - 2, 30, 3); }
       for (let i = 0; i < 6; i++) { const x = 70 + i * 72, yy = y + 162; g.fillStyle = ["#f7e1c4", "#6b2c1d", "#f29fb8", "#fff2d6"][i % 4]; g.fillRect(x - 24, yy - 22, 48, 22); g.fillStyle = "#c0122c"; g.beginPath(); g.arc(x, yy - 26, 5, 0, 6.28); g.fill(); } }
     else if (t === "PHARMACIE") { for (let r2 = 0; r2 < 3; r2++) { shelf(y + 58 + r2 * 46, "#c9d6d0"); for (let i = 0; i < 18; i++) { g.fillStyle = ["#3dbb6b", "#2f7bd9", "#f2f2f2", "#e94e5b", "#f6c945"][(i + r2 * 3) % 5]; g.fillRect(44 + i * 24, y + 22 + r2 * 46, 18, 36); } }
+      g.fillStyle = "#e9eef0"; g.fillRect(20, y + 150, 472, 42);
+      [[120, "#d9a47e"], [390, "#8a5a3a"]].forEach(([x, sk]) => { g.fillStyle = "#ffffff"; g.beginPath(); g.ellipse(x, y + 132, 30, 40, 0, 0, 6.28); g.fill(); g.strokeStyle = "#c9d3d8"; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y + 100); g.lineTo(x, y + 165); g.stroke(); g.fillStyle = sk; g.beginPath(); g.arc(x, y + 80, 16, 0, 6.28); g.fill(); g.fillStyle = "#2a1d16"; g.beginPath(); g.arc(x, y + 75, 15, Math.PI, 0); g.fill(); });
       g.fillStyle = "#18c45a"; g.fillRect(232, y + 150, 48, 16); g.fillRect(248, y + 134, 16, 48); }
     else if (t === "CAFÉ") { g.fillStyle = "#2a1d16"; g.fillRect(300, y + 26, 170, 74); g.fillStyle = "#f4e9d8"; g.font = "bold 18px Inter, Arial"; ["ESPRESSO 2", "CAPPUCCINO 3", "CROISSANT 1,5"].forEach((m, i) => g.fillText(m, 312, y + 50 + i * 22));
       g.fillStyle = "#5a3a22"; g.fillRect(20, y + 120, 472, 50); for (let i = 0; i < 7; i++) { g.fillStyle = "#fff"; g.fillRect(40 + i * 62, y + 104, 18, 16); g.fillStyle = "#3a2414"; g.fillRect(43 + i * 62, y + 106, 12, 4); }
       for (let i = 0; i < 4; i++) { g.fillStyle = "rgba(255,200,120,.9)"; g.beginPath(); g.arc(60 + i * 70, y + 28, 10, 0, 6.28); g.fill(); } }
     else if (t === "BARBER SHOP") { for (let i = 0; i < 3; i++) { const x = 80 + i * 150; g.fillStyle = "#cfe3ff"; g.fillRect(x - 40, y + 24, 80, 70); g.fillStyle = "#111"; g.fillRect(x - 28, y + 110, 56, 40); g.fillRect(x - 8, y + 150, 16, 30); g.fillStyle = "#7a1010"; g.fillRect(x - 30, y + 96, 60, 16); }
-      for (let s2 = 0; s2 < 8; s2++) { g.fillStyle = s2 % 2 ? "#d0182c" : "#2346c8"; g.fillRect(488, y + 20 + s2 * 20, 14, 10); } }
+      for (let s2 = 0; s2 < 8; s2++) { g.fillStyle = s2 % 2 ? "#d0182c" : "#2346c8"; g.fillRect(488, y + 20 + s2 * 20, 14, 10); }
+      const per = (x, yy, sc, body, skin) => { g.fillStyle = body; g.beginPath(); g.ellipse(x, yy + 30 * sc, 24 * sc, 34 * sc, 0, 0, 6.28); g.fill(); g.fillStyle = skin; g.beginPath(); g.arc(x, yy - 12 * sc, 15 * sc, 0, 6.28); g.fill(); g.fillStyle = "#1b1410"; g.beginPath(); g.arc(x, yy - 17 * sc, 14 * sc, Math.PI, 0); g.fill(); };
+      [80, 230].forEach((x, q) => { per(x, y + 96, 0.9, "#f2f2f2", ["#c58c62", "#7a4e33"][q]); per(x + 46, y + 72, 1.1, "#141414", ["#e2b48f", "#a86b45"][q]); g.fillStyle = "#c9c9c9"; g.fillRect(x + 22, y + 74, 14, 4); }); }
     else if (t === "TACOS 24/7") { g.fillStyle = "#1a1a1a"; g.fillRect(30, y + 20, 452, 70); g.fillStyle = "#ffd23f"; g.font = "bold 22px Inter, Arial"; ["TACOS XL  8", "BOWL  9", "FRITES  3"].forEach((m, i) => g.fillText(m, 44 + i * 150, y + 62));
       g.fillStyle = "#b3122e"; g.fillRect(20, y + 128, 472, 64); g.fillStyle = "#f3e2c0"; for (let i = 0; i < 6; i++) g.fillRect(50 + i * 72, y + 110, 40, 18); }
     else if (t === "LAVERIE") { for (let i = 0; i < 6; i++) { const x = 60 + i * 78; g.fillStyle = "#f2f6fa"; g.fillRect(x - 32, y + 70, 64, 100); g.fillStyle = "#33495e"; g.beginPath(); g.arc(x, y + 124, 22, 0, 6.28); g.fill(); g.fillStyle = "#7fb4ff"; g.beginPath(); g.arc(x, y + 124, 15, 0, 6.28); g.fill(); } }
@@ -1757,11 +1762,44 @@ function shopSigns() {
   SHOP_G = SHOPS.map((_, k) => { const g2 = new THREE.PlaneGeometry(6, 0.75), uv = g2.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, (SHOPS.length - 1 - k + uv.getY(i)) / SHOPS.length); return g2; });
 }
 function addShopSign(x, z, w, d, base, faces, r) {
-  shopSigns(); vitrines();
+  shopSigns(); vitrines(); if (!SIGN_BOX) { SIGN_BOX = new THREE.MeshLambertMaterial({ color: 0x1c1c20 }); SIGN_BOXG = new THREE.BoxGeometry(6.25, 0.95, 0.28); }
   faces.forEach(([nx, nz]) => { if (r() < .35) return; const k = shopPick(r()), len = Math.min(nx ? d : w, 8) * 0.8, sc = len / 6;
     const px = x + nx * ((nx ? w : 0) / 2 + 0.07), pz = z + nz * ((nz ? d : 0) / 2 + 0.07), ry = nx ? (nx > 0 ? Math.PI / 2 : -Math.PI / 2) : (nz > 0 ? 0 : Math.PI);
-    addGeo(SHOP_M, SHOP_G[k], px, base + 4.25, pz, ry, sc, sc * 1.1, 1);
+    addGeo(SIGN_BOX, SIGN_BOXG, px + nx * 0.14, base + 4.25, pz + nz * 0.14, ry, sc, sc * 1.1, 1);
+    addGeo(SHOP_M, SHOP_G[k], px + nx * 0.29, base + 4.25, pz + nz * 0.29, ry, sc, sc * 1.1, 1);
     addGeo(VIT_M, VIT_G[k], px + nx * 0.01, base + 1.75, pz + nz * 0.01, ry, sc, 1, 1); });
+}
+// hôpital : grand bâtiment blanc, croix rouge lumineuse, entrée des urgences, hélistation sur le toit, ambulance
+let HOSP_M = null;
+function buildHospital(i, j, cx, cz, F, base, D) {
+  if (!HOSP_M) {
+    const mk = lit => { const c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d"); g.fillStyle = lit ? "#000" : "#eef1f4"; g.fillRect(0, 0, 256, 256);
+      for (let r2 = 0; r2 < 4; r2++) for (let c2 = 0; c2 < 4; c2++) { const on = !lit || ((r2 * 7 + c2 * 3) % 5 !== 0); g.fillStyle = lit ? (on ? "#cfe6ff" : "#000") : "#8fb3cf"; g.fillRect(c2 * 64 + 10, r2 * 64 + 14, 44, 34); if (!lit) { g.fillStyle = "#d7dde3"; g.fillRect(c2 * 64 + 8, r2 * 64 + 50, 48, 4); } }
+      const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 3); return t; };
+    HOSP_M = { wall: new THREE.MeshLambertMaterial({ map: mk(false), emissiveMap: mk(true), emissive: 0xffffff, emissiveIntensity: 0.55 }), white: new THREE.MeshLambertMaterial({ color: 0xf4f6f8 }), red: new THREE.MeshBasicMaterial({ color: 0xff1a35 }), glass: new THREE.MeshPhongMaterial({ color: 0x9fd0f0, shininess: 90, transparent: true, opacity: 0.8 }), pad: new THREE.MeshLambertMaterial({ color: 0x2b2e33 }), blue: new THREE.MeshBasicMaterial({ color: 0x2a7bff }) };
+  }
+  const M = HOSP_M, H = 22, w = 30, d = 19, bz = cz - 5.5, front = bz + d / 2;
+  addGeo(D.lot, new THREE.BoxGeometry(F, 0.06, F), cx, base + 0.03, cz);
+  addGeo(M.wall, new THREE.BoxGeometry(w, H, d), cx, base + H / 2, bz);
+  addGeo(M.white, new THREE.BoxGeometry(w + 0.6, 0.7, d + 0.6), cx, base + H + 0.35, bz);
+  addGeo(M.white, new THREE.BoxGeometry(12, 9, 6), cx - 9, base + 4.5, front + 2.2);            // aile basse des urgences
+  addGeo(M.glass, new THREE.BoxGeometry(8, 3.6, 0.2), cx + 4, base + 1.8, front + 0.12);           // hall vitré
+  addGeo(M.white, new THREE.BoxGeometry(11, 0.4, 5.5), cx + 4, base + 4.2, front + 2.8);           // auvent
+  [[-1.2, 5.2], [9.2, 5.2]].forEach(([ox, oz]) => addGeo(M.white, new THREE.BoxGeometry(0.4, 4, 0.4), cx + ox, base + 2, front + oz));
+  // croix rouge lumineuse (façade et toit) et marquage de l'hélistation
+  addGeo(M.red, new THREE.BoxGeometry(1.4, 4.6, 0.2), cx + 10, base + H - 4, front + 0.15); addGeo(M.red, new THREE.BoxGeometry(4.6, 1.4, 0.2), cx + 10, base + H - 4, front + 0.15);
+  addGeo(M.pad, new THREE.CylinderGeometry(7, 7, 0.25, 28), cx - 4, base + H + 0.82, bz);
+  addGeo(M.white, new THREE.BoxGeometry(0.8, 0.05, 5), cx - 5.6, base + H + 0.97, bz); addGeo(M.white, new THREE.BoxGeometry(0.8, 0.05, 5), cx - 2.4, base + H + 0.97, bz); addGeo(M.white, new THREE.BoxGeometry(2.4, 0.05, 0.8), cx - 4, base + H + 0.97, bz);
+  addGeo(M.red, new THREE.TorusGeometry(6.2, 0.18, 6, 32), cx - 4, base + H + 0.97, bz, 0, 1, 1, 1, Math.PI / 2);
+  const sg = wallSign("Hôpital", "#ff1a35", 12, 3); sg.position.set(cx - 2, base + H - 4, front + 0.16); scene.add(sg);
+  const ur = wallSign("Urgences", "#ff1a35", 7, 1.75); ur.position.set(cx - 9, base + 7.4, front + 5.25); scene.add(ur);
+  // ambulance garée devant les urgences, gyrophare bleu
+  const ax = cx - 9, az = front + 9.5;
+  addGeo(M.white, new THREE.BoxGeometry(2.3, 2.5, 4.2), ax, base + 1.55, az - 0.6); addGeo(M.white, new THREE.BoxGeometry(2.2, 1.6, 1.6), ax, base + 1.1, az + 2.3);
+  addGeo(M.red, new THREE.BoxGeometry(2.34, 0.35, 4.24), ax, base + 1.5, az - 0.6); addGeo(M.glass, new THREE.BoxGeometry(2.0, 0.8, 0.1), ax, base + 1.6, az + 3.1);
+  addGeo(M.blue, new THREE.BoxGeometry(1.6, 0.25, 0.4), ax, base + 2.95, az + 1.3);
+  [[-1, -2], [1, -2], [-1, 2], [1, 2]].forEach(([sx, sz]) => addGeo(D.trimDark, new THREE.CylinderGeometry(0.42, 0.42, 0.3, 10), ax + sx * 1.1, base + 0.42, az + sz * 0.95 - 0.2, 0, 1, 1, 1, 0, Math.PI / 2));
+  setBoxes(i, j, [[cx - w / 2, bz - d / 2, cx + w / 2, bz + d / 2], [cx - 15, front, cx - 3, front + 5.2], [ax - 1.2, az - 2.8, ax + 1.2, az + 3.2]]);
 }
 function buildingDetail(x0, z0, w, d, h, base, r) {
   const D = districtMats(), floors = Math.floor((h - 4) / 3.3);
@@ -1865,6 +1903,7 @@ function buildDistrictBlock(i, j, cx, cz, F, dist, r, M) {
     setBoxes(i, j, boxes);
     return;
   }
+  if (z === "hospital") { buildHospital(i, j, cx, cz, F, base, D); return; }
   if (z === "construction") {
     addGeo(D.lot, new THREE.BoxGeometry(F, 0.06, F), cx, base + 0.03, cz);
     for (let k = -1; k <= 1; k += 2) { addGeo(D.fence, new THREE.BoxGeometry(F, 2.2, 0.15), cx, base + 1.1, cz + k * F / 2); addGeo(D.fence, new THREE.BoxGeometry(0.15, 2.2, F), cx + k * F / 2, base + 1.1, cz); }
@@ -2093,7 +2132,7 @@ function buildGuinguettes() {
   const wood = new THREE.MeshLambertMaterial({ color: 0x9a6a44 }), dark = new THREE.MeshLambertMaterial({ color: 0x3a2416 }), white = new THREE.MeshLambertMaterial({ color: 0xf3ece0 }), pinkM = new THREE.MeshLambertMaterial({ color: 0xff4fa3, emissive: 0x551133 });
   const bottleM = [0x2f8f4e, 0x7a3b12, 0xd8e8ff, 0xff4fa3].map(c => new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.25 }));
   const spots = [
-    { x: HALF + 22, z: bC(5), sx: 1, sz: 0, n: "Guinguette · Le Constant" },
+    { x: HALF + 22, z: bC(6) + 2, sx: 1, sz: 0, n: "Guinguette · Le Constant" },
     { x: -HALF - 22, z: bC(11), sx: -1, sz: 0, n: "Beach Bar · Flamingo" },
     { x: bC(4), z: HALF + 22, sx: 0, sz: 1, n: "Terrasse · Sunset" },
     { x: bC(10), z: HALF + 22, sx: 0, sz: 1, n: "Le Petit Phare" }
@@ -3824,7 +3863,7 @@ function drawMapBase() {
   const isle = (m, col) => { g.fillStyle = col; g.beginPath(); for (let k = 0; k <= 360; k++) { const a = k / 360 * Math.PI * 2, cx = Math.cos(a), cz = Math.sin(a), u = Math.pow(Math.pow(Math.abs(cx), 6) + Math.pow(Math.abs(cz), 6), 1 / 6), r = (shoreEdge(cx, cz) - 4.5 + m) / u; k ? g.lineTo(MO + cx * r, MO + cz * r) : g.moveTo(MO + cx * r, MO + cz * r); } g.fill(); };
   isle(48, "#167fa0"); isle(22, "#2bb3b4"); isle(0, "#e3c58d");
   g.fillStyle = "#3a3940"; g.fillRect(MO - HALF, MO - HALF, HALF * 2, HALF * 2);
-  const ZC = { park: "#4f9a45", houses: "#9cc98a", parking: "#4a4950", construction: "#b9a27a", downtown: "#7d8296", mixed: "#8f8c99" };
+  const ZC = { park: "#4f9a45", houses: "#9cc98a", parking: "#4a4950", construction: "#b9a27a", hospital: "#f1f3f6", downtown: "#7d8296", mixed: "#8f8c99" };
   for (let i = 0; i < NB; i++) for (let j = 0; j < NB; j++) {
     if (j === RIVER_J) { g.fillStyle = "#6c6976"; g.fillRect(MO + bMin(i), MO + RZ0 - WALK, BLOCK, WALK); g.fillRect(MO + bMin(i), MO + RZ1, BLOCK, WALK); continue; }
     g.fillStyle = "#6c6976"; g.fillRect(MO + bMin(i), MO + bMin(j), BLOCK, BLOCK); g.fillStyle = ZC[ZONES.get(i + "," + j)] || "#8f8c99"; g.fillRect(MO + bMin(i) + WALK, MO + bMin(j) + WALK, BLOCK - WALK * 2, BLOCK - WALK * 2);

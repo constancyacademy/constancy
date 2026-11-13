@@ -215,7 +215,8 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
 #photoUI .pshot{width:78px;height:78px;border-radius:50%;border:5px solid #fff;background:rgba(255,255,255,.25);box-shadow:0 0 0 2px rgba(0,0,0,.35)}
 #photoUI .pshot:active{background:#fff}
 #pFlash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:41;transition:opacity .35s}
-#feedBtn{align-self:flex-start;margin-bottom:4px}
+#feedBtn{align-self:flex-start}
+.blrow{display:flex;gap:8px;margin-bottom:4px}
 .menu-btn .dot{position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 2px rgba(0,0,0,.6)}
 .feed{display:flex;flex-direction:column;gap:10px;text-align:left;max-height:62vh;overflow-y:auto;margin:10px 0 14px;padding-right:4px}
 .post{display:flex;gap:10px;padding:11px 12px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
@@ -274,7 +275,7 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
 <div id="glare" aria-hidden="true"></div><div id="adapt" aria-hidden="true"></div>
 <div id="hud" class="hidden">
   <div class="tl">
-    <div class="row" style="position:relative"><button class="menu-btn ico" id="menuBtn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button><button class="menu-btn ico" id="photoBtn" type="button" aria-label="Mode photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3l1.6-2.3h6.8L17 8.5h3v10H4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="none"/><circle cx="12" cy="13.3" r="3.2" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button><button class="menu-btn ico" id="viewBtn" type="button" aria-label="Vue à la première personne"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="2.8" fill="currentColor"/></svg></button><button class="menu-btn hidden" id="soundBtn" type="button">SON</button></div>
+    <div class="row" style="position:relative"><button class="menu-btn ico" id="menuBtn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button><button class="menu-btn ico" id="viewBtn" type="button" aria-label="Vue à la première personne"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="2.8" fill="currentColor"/></svg></button><button class="menu-btn hidden" id="soundBtn" type="button">SON</button></div>
     <div class="help" id="help"></div>
   <div id="notes"></div>
   <div id="scopeV"></div>
@@ -292,7 +293,7 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
   </div>
   <div class="sub" id="sub"></div>
   <div class="bl">
-    <button class="menu-btn ico" id="feedBtn" type="button" aria-label="Fil d'actu de la ville"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.8" width="10" height="18.4" rx="2.4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M10.5 18h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="dot hidden" id="feedDot"></span></button>
+    <div class="blrow"><button class="menu-btn ico" id="feedBtn" type="button" aria-label="Fil d'actu de la ville"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.8" width="10" height="18.4" rx="2.4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M10.5 18h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="dot hidden" id="feedDot"></span></button><button class="menu-btn ico" id="photoBtn" type="button" aria-label="Mode photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3l1.6-2.3h6.8L17 8.5h3v10H4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="none"/><circle cx="12" cy="13.3" r="3.2" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button><button class="menu-btn ico hidden" id="radioBtn" type="button" aria-label="Radio"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="8" width="17" height="11.5" rx="2.2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M7 8 16.5 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="15.5" cy="13.7" r="2.6" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M6.5 12h3M6.5 15.4h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
     <canvas id="minimap" width="300" height="300"></canvas>
     <div class="stats">
       <div class="st"><span>Muscle <b id="vMuscle"></b></span><div class="gauge"><i id="gMuscle" style="background:linear-gradient(90deg,#8d8d98,#ffffff)"></i></div></div>
@@ -3089,7 +3090,9 @@ function updateCrossers(dt) {
 const DAILY = [
   { k: "feux", n: 4, t: "Code de la route", d: "Arrête-toi à 4 feux rouges en voiture.", w: "Tu t'es arrêté au rouge 4 fois. Personne ne t'a vu. C'est justement pour ça que ça compte." },
   { k: "propre", n: 2, t: "Conduite propre", d: "Réussis 2 missions sans un seul choc.", w: "Deux missions, zéro choc. La régularité, c'est aussi faire les choses proprement." },
-  { k: "pied", n: 800, t: "Marche quotidienne", d: "Fais 800 mètres à pied.", w: "800 mètres à pied. Petit effort, mais fait aujourd'hui. Demain, on remet ça." }
+  { k: "pied", n: 800, t: "Marche quotidienne", d: "Fais 800 mètres à pied.", w: "800 mètres à pied. Petit effort, mais fait aujourd'hui. Demain, on remet ça." },
+  { k: "routine", n: 1, t: "Routine du matin", d: "Fais la routine du matin : Entre 6 h et 10 h 30 (heure du jeu), à pied sur le front de mer.", w: "Routine faite. Le reste de la journée sera plus facile : Tu as déjà gagné la première bataille." },
+  { k: "lavage", n: 1, t: "Prends soin de tes affaires", d: "Roule un peu, puis lave ta voiture devant chez toi (repère A).", w: "Voiture propre. Ce qui est entretenu tous les jours ne casse pas." }
 ];
 function dailyDef() { const d = new Date(); return DAILY[(d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) % DAILY.length]; }
 function dailyState() { const t = todayStr(), D = dailyDef(); if (!P.daily || P.daily.date !== t) P.daily = { date: t, k: D.k, prog: 0, done: false }; return P.daily; }
@@ -3158,7 +3161,7 @@ function updateDirt(dt) {
     if (dh < 10 && sp < 0.5 && P.dirt > 0.08) { G.washT = (G.washT || 0) + dt; FX.mat.uniforms.col.value.setHex(0xdcefff);
       for (let q = 0; q < 3; q++) { const a = Math.random() * 6.28; emitDust(c.x + Math.cos(a) * 1.4, 0.6 + Math.random() * 1.2, c.z + Math.sin(a) * 2.2, Math.cos(a) * 1.5, Math.sin(a) * 1.5, 0.7); }
       if (!G.washMsg) { G.washMsg = true; help("Lavage en cours… Ne bouge pas.", 3); }
-      if (G.washT > 4) { G.washT = 0; G.washMsg = false; P.dirt = 0; P.dirtWarned = false; P.washes = (P.washes || 0) + 1; sfx.win(); stat("lavage-voiture"); help(`<b>Voiture propre.</b> ${P.washes > 1 ? `${P.washes}e lavage. ` : ""}Prendre soin de ses affaires, c'est aussi de la régularité.`, 5);
+      if (G.washT > 4) { setTimeout(() => dailyAdd("lavage", 1), 1500); G.washT = 0; G.washMsg = false; P.dirt = 0; P.dirtWarned = false; P.washes = (P.washes || 0) + 1; sfx.win(); stat("lavage-voiture"); help(`<b>Voiture propre.</b> ${P.washes > 1 ? `${P.washes}e lavage. ` : ""}Prendre soin de ses affaires, c'est aussi de la régularité.`, 5);
         if (P.washes === 3 || P.washes % 10 === 0) setTimeout(() => feedPost("tom", "La voiture du livreur brille toujours. Le gars entretient tout, même ce qui ne se voit pas. ✨"), 2500); saveNow(); } }
     else { G.washT = 0; G.washMsg = false; if (dh < 35 && P.dirt > 0.3 && sp < 6 && (!G.washHintT || performance.now() - G.washHintT > 90000)) { G.washHintT = performance.now(); help("Arrête-toi juste devant chez toi pour laver ta voiture.", 4); } } }
   if (carMesh && (G.dirtMesh !== carMesh || Math.abs((G.dirtShown || 0) - P.dirt) > 0.02)) { G.dirtMesh = carMesh; G.dirtShown = P.dirt; applyDirt(carMesh, G.ride && G.ride.kind === "own" ? P.dirt : 0); }
@@ -4114,6 +4117,27 @@ function snapPhoto() {
     try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: "Constancy", text: "Pris dans Constancy, le jeu où ta régularité fait le score." }); stat("photo-partagee"); return; } } catch (e) { return; }
     const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "constancy-photo.png"; document.body.appendChild(a); a.click(); a.remove(); help("Photo enregistrée.", 2.5); }, "image/png");
 }
+// ---------- radio de la voiture : deux stations (chargées seulement à la première écoute), qui « tournent » même quand tu ne les écoutes pas
+const RADIO = { i: 0, list: [null, { k: "lofi", name: "Lo-fi Constancy", url: "assets/radio_lofi.mp3", len: 48 }, { k: "drive", name: "Drive FM", url: "assets/radio_drive.mp3", len: 16 * 4 * 60 / 112 }], buf: {}, src: null, g: null, f: null };
+function radioStop() { if (RADIO.src) { try { RADIO.src.stop(); } catch (e) {} RADIO.src = null; } }
+function radioPlay() {
+  radioStop(); const st = RADIO.list[RADIO.i], c = SND.ctx; if (!st || !c) return; const b = RADIO.buf[st.k];
+  if (!b) { if (!st.loading) { st.loading = true; fetch(st.url).then(r => r.arrayBuffer()).then(a => c.decodeAudioData(a, d => { RADIO.buf[st.k] = d; if (RADIO.list[RADIO.i] === st) radioPlay(); }, () => { st.loading = false; })).catch(() => { st.loading = false; }); } return; }
+  if (!RADIO.g) { RADIO.f = c.createBiquadFilter(); RADIO.f.type = "lowpass"; RADIO.f.frequency.value = 9000; RADIO.g = c.createGain(); RADIO.g.gain.value = 0; RADIO.f.connect(RADIO.g); RADIO.g.connect(c.destination); }
+  const s = c.createBufferSource(); s.buffer = b; s.loop = true; s.loopStart = 0; s.loopEnd = Math.min(b.duration, st.len); s.connect(RADIO.f); s.start(0, (c.currentTime + (st.k === "drive" ? 11 : 0)) % s.loopEnd); RADIO.src = s;
+}
+function radioNext() {
+  if (!SND.ctx || !SND.on) { help("Active le son (menu) pour écouter la radio.", 3); return; }
+  RADIO.i = (RADIO.i + 1) % RADIO.list.length; const st = RADIO.list[RADIO.i]; if (P) P.radio = RADIO.i;
+  if (st) { radioPlay(); help(`📻 <b>${st.name}</b>${RADIO.buf[st.k] ? "" : " · Réglage…"}`, 2.2); stat("radio-" + st.k); } else { radioStop(); help("Radio coupée.", 1.6); }
+  $("radioBtn").classList.toggle("on", !!st);
+}
+function updateRadio() {
+  const b = $("radioBtn"); if (!b) return; const inCar = G.mode === "play" && G.started && !G.onFoot && !!carMesh && !G.inside && !!G.ride && (G.ride.kind === "own" || !!(RIDES[G.ride.kind] && RIDES[G.ride.kind].car));
+  if (b.classList.contains("hidden") === inCar) b.classList.toggle("hidden", !inCar);
+  if (inCar && !G.radioInit && P && P.radio && SND.ctx && SND.on) { G.radioInit = true; RADIO.i = P.radio % RADIO.list.length; radioPlay(); b.classList.add("on"); }
+  if (RADIO.g && SND.ctx) { const t = SND.ctx.currentTime, on = inCar && SND.on && !!RADIO.list[RADIO.i]; RADIO.g.gain.setTargetAtTime(on ? (G.fpv ? 0.5 : 0.34) : 0, t, 0.25); RADIO.f.frequency.setTargetAtTime(G.fpv ? 15000 : 7000, t, 0.3); }
+}
 function notify(kind, html, secs = 7) {
   const box = $("notes"); if (!box) return; const el = document.createElement("div"); el.className = "note-bar " + kind;
   el.innerHTML = `<span class="ic">${kind === "gold" ? "Constancy" : "Info"}</span><span>${html}</span>`; box.appendChild(el);
@@ -4180,6 +4204,7 @@ function endMission(ok) {
   if (M.type === "run" || M.type === "club") {
     destBeacon.visible = false;
     if (ok) { const run = M.type === "run"; P.runK = (P.runK || 0) + (run ? 2 : 1.5); P.counts[M.type] = (P.counts[M.type] || 0) + 1; addXP(run ? 90 : 70); P.mindset += Math.round(4 * P.mult); sfx.win();
+      if (run) setTimeout(() => dailyAdd("routine", 1), 1500);
       if (run) { P.morningStreak = P.morningLast === P.day - 1 ? (P.morningStreak || 1) + 1 : 1; P.morningLast = P.day; }
       help(run ? `<b>Routine faite.</b> ${P.morningStreak > 1 ? `${P.morningStreak} matins d'affilée. ` : ""}Le reste de la journée sera plus facile : tu as déjà gagné la première bataille.` : `<b>Séance avec le club validée.</b> Le groupe t'attend demain, même heure.`, 7);
       setTimeout(() => feedPost(run ? "lea" : "coach", run ? (P.morningStreak > 1 ? `${P.morningStreak} matins d'affilée que je le croise en train de courir sur le front de mer. Ça force le respect. 🌅` : "Croisé un gars en train de courir sur le front de mer à l'aube. Pas le plus rapide. Mais il était là. 🌅") : "Le livreur a couru avec le club ce soir. Bienvenue dans la famille. 🏃", { toast: true }), 2500); }
@@ -4912,7 +4937,7 @@ function loop(now) {
   updateSound();
   for (let i = 0; i < ANIMATED.length; i++) { const g = ANIMATED[i]; if (!g.visible || !g.parent) continue; const gp = g.parent.isScene ? g.position : g.parent.position; if (gp.distanceToSquared(camera.position) < 160000 && (g.parent.isScene || g.parent.visible)) g.userData.mixer.update(dt); }
   if (mamieMesh && mamieMesh.userData.q && G.started) setClip(mamieMesh, G.alerts.mamieActive && !G.mission ? "Waving" : "Idle_Talking_Loop");
-  updateGlare(dt); if ((loop.cf = (loop.cf || 0) + 1) % 15 === 0) cullChunks(); updateDinos(dt); updateWild(dt); updateSpin(dt); updateFx(dt); updateWeather(dt); updateFireworks(dt); updateUfo(dt); sea.material.uniforms.time.value = now / 1000; sea.position.y = -0.62 + Math.sin(now / 1000 * 0.6) * 0.1; syncAllRigs(dt); renderer.render(scene, camera);
+  updateGlare(dt); updateRadio(); if ((loop.cf = (loop.cf || 0) + 1) % 15 === 0) cullChunks(); updateDinos(dt); updateWild(dt); updateSpin(dt); updateFx(dt); updateWeather(dt); updateFireworks(dt); updateUfo(dt); sea.material.uniforms.time.value = now / 1000; sea.position.y = -0.62 + Math.sin(now / 1000 * 0.6) * 0.1; syncAllRigs(dt); renderer.render(scene, camera);
 }
 
 /* ============ Commandes ============ */
@@ -4940,6 +4965,7 @@ $("jokerBtn").addEventListener("click", useJoker);
 $("quitBtn").addEventListener("click", () => { if (G.mode === "play" && G.mission) confirmQuit(); });
 $("mult").addEventListener("click", () => { if (G.mode === "play") help(`<b>Constancy ${multTxt(P.mult)}</b> : ton multiplicateur de gains. Chaque journée réussie d'affilée le fait monter de 0,25 (jusqu'à x2). Une journée ratée le remet à x1.`, 8); });
 $("feedBtn").addEventListener("click", () => { if (G.mode === "play") openFeed(); });
+$("radioBtn").addEventListener("click", radioNext);
 $("photoBtn").addEventListener("click", openPhoto); $("pExit").addEventListener("click", closePhoto); $("pShot").addEventListener("click", snapPhoto);
 $("pTime").addEventListener("click", () => { P.dayT = (P.dayT + DAY_SECONDS / 8) % DAY_SECONDS; });
 { const d = $("pDrag"), last = PHOTO.pts;

@@ -3102,14 +3102,18 @@ function dailyAdd(k, v) {
   if (k === "feux") help(`<b>Arrêt au feu rouge.</b> Défi du jour : ${S.prog}/${D.n}.`, 2.5);
   else if (k === "propre") help(`<b>Mission sans choc.</b> Défi du jour : ${S.prog}/${D.n}.`, 3);
   else if (Math.floor(before / 200) !== Math.floor(S.prog / 200) && S.prog < D.n) help(`Défi du jour : ${Math.round(S.prog)} m sur ${D.n} à pied.`, 2.5);
-  if (S.prog >= D.n) { S.done = true; P.dailyDone = (P.dailyDone || 0) + 1; P.dailyLast = S.date; addCash(250); P.mindset += Math.round(3 * P.mult); sfx.win(); stat("defi-du-jour-" + k);
+  if (S.prog >= D.n) { S.done = true; P.dailyDone = (P.dailyDone || 0) + 1; P.dailyStreak = P.dailyLast === yesterdayStr() ? (P.dailyStreak || 0) + 1 : 1; P.dailyLast = S.date; addCash(250);
+    // série de défis (comme les objectifs quotidiens des grands jeux en ligne) : 7 jours d'affilée, puis 30
+    const ds = P.dailyStreak; if (ds % 7 === 0 || ds === 30) setTimeout(() => { const big = ds % 30 === 0; addCash(big ? 10000 : 1500); P.jokers = Math.min(big ? 99 : 3, (P.jokers || 0) + 1); sfx.win(); stat("serie-defis-" + ds);
+      notify("gold", `<b>${ds} défis du jour d'affilée.</b> ${big ? "Un mois sans casser la chaîne. Ça, c'est la Constancy." : "Une semaine complète. La chaîne tient."} <b style="color:var(--cash)">+$${fmt(big ? 10000 : 1500)}</b> · +1 Joker`, 10);
+      feedPost("mentor", big ? "30 jours de défis d'affilée. Le résultat finit toujours par rattraper l'effort." : `${ds} jours de défis d'affilée pour le livreur. La motivation, il ne l'attend plus.`, { toast: false }); saveNow(); }, 4500); P.mindset += Math.round(3 * P.mult); sfx.win(); stat("defi-du-jour-" + k);
     notify("gold", `<b>Défi du jour réussi.</b> ${D.w} <b style="color:var(--cash)">+$250</b>`, 8);
     setTimeout(() => feedPost("coach", P.dailyDone > 1 ? `${P.dailyDone} défis du jour réussis. Un petit truc chaque jour, et regardez où il en est. 💪` : "Premier défi du jour réussi pour le nouveau. Le plus dur, c'est de commencer. 💪", { toast: false }), 3000);
     saveNow(); }
 }
 function updateDaily(dt) {
   if (!P || G.mode !== "play" || !G.started || G.inside) return; const S = dailyState(); if (S.done) return;
-  if (!G.dailyShown) { G.dailyT = (G.dailyT || 0) + dt; if (G.dailyT > 14 && !G.mission) { G.dailyShown = true; const D = dailyDef(); notify("info", `<b>Défi du jour · ${D.t}.</b> ${D.d} Il change chaque jour. Reviens demain pour le suivant.`, 8); } }
+  if (!G.dailyShown) { G.dailyT = (G.dailyT || 0) + dt; if (G.dailyT > 14 && !G.mission) { G.dailyShown = true; const D = dailyDef(); notify("info", `<b>Défi du jour · ${D.t}.</b> ${D.d} Il change chaque jour. 7 jours d'affilée = gros bonus.`, 8); } }
   if (S.k === "pied") { const m = G.me; if (G.onFoot && G.dailyP) { const d = Math.hypot(m.x - G.dailyP[0], m.z - G.dailyP[1]); if (d > 0.02 && d < 3) dailyAdd("pied", d); } G.dailyP = G.onFoot ? [m.x, m.z] : null; }
   if (S.k === "feux" && !G.onFoot && carMesh && Math.abs(G.car.v) < 0.6) {
     const c = G.car, i = Math.round((c.x + HALF - ROAD / 2) / STEP), j = Math.round((c.z + HALF - ROAD / 2) / STEP); if (i < 1 || i >= NB || j < 1 || j >= NB) return;
@@ -3123,7 +3127,8 @@ function dailyCard() {
   return `<div class="card" style="text-align:left"><div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700">Défi du jour · ${D.t}</div>
     <div style="font-size:15px;margin-top:4px">${S.done ? "Réussi. Reviens demain pour le suivant." : D.d}</div>
     <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.15);margin-top:8px;overflow:hidden"><i style="display:block;height:100%;width:${S.done ? 100 : pct}%;background:var(--gold)"></i></div>
-    <div class="note" style="margin:6px 0 0">${S.done ? "✓ Fait aujourd'hui" : D.k === "pied" ? Math.round(S.prog) + " m sur " + D.n : S.prog + " sur " + D.n} · ${P.dailyDone || 0} défi${(P.dailyDone || 0) > 1 ? "s" : ""} réussi${(P.dailyDone || 0) > 1 ? "s" : ""} au total</div></div>`;
+    <div class="note" style="margin:6px 0 0">Série : <b>${P.dailyLast === todayStr() || P.dailyLast === yesterdayStr() ? (P.dailyStreak || 0) : 0} jour${(P.dailyStreak || 0) > 1 ? "s" : ""}</b> d'affilée · Bonus à 7 jours ($1 500) et 30 jours ($10 000)</div>
+    <div class="note" style="margin:4px 0 0">${S.done ? "✓ Fait aujourd'hui" : D.k === "pied" ? Math.round(S.prog) + " m sur " + D.n : S.prog + " sur " + D.n} · ${P.dailyDone || 0} défi${(P.dailyDone || 0) > 1 ? "s" : ""} réussi${(P.dailyDone || 0) > 1 ? "s" : ""} au total</div></div>`;
 }
 // ---------- phares et feux arrière de la circulation la nuit (visibles de loin, au-delà du brouillard)
 const CARL = { head: null, tail: null }, _cb = new THREE.Box3();

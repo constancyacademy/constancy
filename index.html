@@ -341,13 +341,13 @@ const HALF = (NB * BLOCK + (NB + 1) * ROAD) / 2;           // 400
 const SHORE = HALF + 40;                                     // bord de l'eau
 // rivage organique : carré aux angles très arrondis + ondulations, la plage descend en pente douce sous l'eau
 const shoreE = (x, z) => Math.pow(Math.pow(Math.abs(x), 6) + Math.pow(Math.abs(z), 6), 1 / 6);
-const shoreEdge = (x, z) => { const a = Math.atan2(z, x); return SHORE + 9 * Math.sin(3 * a + 1) + 6 * Math.sin(7 * a + 2) + 3.5 * Math.sin(13 * a + 0.5) + 2 * Math.sin(29 * a); };
+const shoreEdge = (x, z) => { const a = Math.atan2(z, x), c = Math.abs(Math.cos(a)), sn = Math.abs(Math.sin(a)), rr = (HALF + 14) / Math.max(c, sn), need = rr * Math.pow(Math.pow(c, 6) + Math.pow(sn, 6), 1 / 6) + 26; return Math.max(need, SHORE + 9 * Math.sin(3 * a + 1) + 6 * Math.sin(7 * a + 2) + 3.5 * Math.sin(13 * a + 0.5) + 2 * Math.sin(29 * a)); };
 const beachH = (x, z) => { const e = shoreE(x, z), ed = shoreEdge(x, z), t = Math.min(1, Math.max(0, (e - (ed - 18)) / 40)); let h = -0.05 - 2.6 * t * t * (3 - 2 * t); if (z > RZ0 + 0.5 && z < RZ1 - 0.5) h = -2.6; return h; };
 // rivière façon Miami : une rangée de pâtés devient un canal qui traverse la ville d'une mer à l'autre, avec des ponts aux carrefours
 const RIVER_J = 9, RZ0 = -HALF + ROAD + 9 * STEP + WALK, RZ1 = -HALF + ROAD + 9 * STEP + BLOCK - WALK;
 const inRiverBand = z => z > RZ0 && z < RZ1;
 const onBridge = x => { const k = Math.round((x + HALF - ROAD / 2) / STEP); return k >= 0 && k <= NB && Math.abs(x - (-HALF + ROAD / 2 + k * STEP)) < ROAD / 2; };
-const isWater = (x, z) => !onAirport(x, z) && !onHighway(x, z) && !onNorth(x, z) && (shoreE(x, z) > shoreEdge(x, z) - 4.5 || (inRiverBand(z) && !onBridge(x) && Math.abs(x) < SHORE + 40));
+const isWater = (x, z) => !(Math.abs(x) < HALF + 12 && Math.abs(z) < HALF + 12 && !inRiverBand(z)) && !onAirport(x, z) && !onHighway(x, z) && !onNorth(x, z) && (shoreE(x, z) > shoreEdge(x, z) - 4.5 || (inRiverBand(z) && !onBridge(x) && Math.abs(x) < SHORE + 40));
 const BLOCK_BOXES = new Map(); // zones solides par pâté (par défaut : toute l'emprise bâtie)
 // la montagne (clin d'œil au grand sommet) : une île au nord, reliée par une voie rapide sur pont
 const MT = { x: 0, z: -2050, R: 520, peak: 255 };
@@ -2558,7 +2558,7 @@ function buildWorld() {
       float vn(vec2 q){ vec2 i = floor(q), f = fract(q); f = f * f * (3.0 - 2.0 * f); return mix(mix(hsh(i), hsh(i + vec2(1.0, 0.0)), f.x), mix(hsh(i + vec2(0.0, 1.0)), hsh(i + vec2(1.0, 1.0)), f.x), f.y); }
       vec2 vg(vec2 q){ const float e = 0.15; return vec2(vn(q + vec2(e, 0.0)) - vn(q - vec2(e, 0.0)), vn(q + vec2(0.0, e)) - vn(q - vec2(0.0, e))) / (2.0 * e); }
       void main(){
-        vec2 p = vW.xz; float a = atan(p.y, p.x); float e = pow(pow(abs(p.x), 6.0) + pow(abs(p.y), 6.0), 1.0 / 6.0); float ed = shore + 9.0 * sin(3.0 * a + 1.0) + 6.0 * sin(7.0 * a + 2.0) + 3.5 * sin(13.0 * a + 0.5) + 2.0 * sin(29.0 * a); float d = e - (ed - 5.0);
+        vec2 p = vW.xz; float a = atan(p.y, p.x); float e = pow(pow(abs(p.x), 6.0) + pow(abs(p.y), 6.0), 1.0 / 6.0); float ca = abs(cos(a)), sa = abs(sin(a)), rq = (shore - 26.0) / max(ca, sa), need = rq * pow(pow(ca, 6.0) + pow(sa, 6.0), 1.0 / 6.0) + 26.0; float ed = max(need, shore + 9.0 * sin(3.0 * a + 1.0) + 6.0 * sin(7.0 * a + 2.0) + 3.5 * sin(13.0 * a + 0.5) + 2.0 * sin(29.0 * a)); float d = e - (ed - 5.0);
         float a1 = p.x * 0.08 + time * 0.9, a2 = p.y * 0.11 - time * 1.1, a3 = (p.x + p.y) * 0.21 + time * 1.7, a4 = (p.x - p.y) * 0.37 - time * 2.3;
         float cd = length(vW.xz - cameraPosition.xz), near = 1.0 - smoothstep(60.0, 420.0, cd);
         vec2 sl = vec2(0.0);
@@ -2834,7 +2834,10 @@ function pedPos(p) {
 }
 /* --- vie autour : avions, bateaux, joggeurs, plage, street workout --- */
 const planes = [], boats = [], joggers = [];
-const life = { heli: null, gulls: [], sharks: [], dolphins: [], dogs: [] };
+const life = { heli: null, gulls: [], sharks: [], dolphins: [], dogs: [], beach: [], raptors: [] };
+// un point de la plage à l'angle a, à « inset » mètres du bord de l'eau (suit la vraie forme du rivage)
+function beachPoint(a, inset) { const c = Math.cos(a), sn = Math.sin(a), k = Math.pow(Math.pow(Math.abs(c), 6) + Math.pow(Math.abs(sn), 6), 1 / 6), r = (shoreEdge(c, sn) - inset) / k; return [c * r, sn * r]; }
+function beachSpot(inset, a0) { for (let t = 0; t < 30; t++) { const a = t === 0 && a0 != null ? a0 : Math.random() * 6.28, [x, z] = beachPoint(a, inset); if (!onAirport(x, z) && !onHighway(x, z) && !onNorth(x, z) && !inRiverBand(z) && (Math.abs(x) > HALF + 8 || Math.abs(z) > HALF + 8)) return [x, z, a]; } return beachPoint(0, inset).concat([0]); }
 // traînée (avion, sillage de bateau) : bande dont la transparence s'efface vers l'arrière
 function fadeTex(soft) {
   const c = document.createElement("canvas"); c.width = 32; c.height = 256; const g = c.getContext("2d");
@@ -2942,7 +2945,10 @@ function buildLife() {
   if (MODELS.dolphin) for (let k = 0; k < 4; k++) { const dl = new THREE.Group(); dl.add(modelInstance("dolphin")); scene.add(dl); life.dolphins.push({ mesh: dl, a: rand(0, 6.28), r: SHORE + rand(70, 140), s: rand(0.025, 0.035), ph: rand(0, 6) }); }
   if (MODELS.dog) peds.slice(0, 18).forEach(p => { const dg = new THREE.Group(); dg.add(modelInstance("dog")); scene.add(dg); life.dogs.push({ mesh: dg, ped: p }); });
   if (MODELS.cat) for (let k = 0; k < 10; k++) { const i = Math.floor(rand(0, NB)), j = (k * 5) % NB === RIVER_J ? 2 : (k * 5) % NB; const c = modelInstance("cat"); c.position.set(bMin(i) + rand(1, 3), 0.25, bC(j) + rand(-12, 12)); c.rotation.y = rand(0, 6.28); scene.add(c); }
-  if (MODELS.flamingo) for (let k = 0; k < 8; k++) { const a = rand(0, 6.28), rr = SHORE - rand(12, 22); const f = modelInstance("flamingo"); f.position.set(Math.cos(a) * rr, beachH(Math.cos(a) * rr, Math.sin(a) * rr), Math.sin(a) * rr); f.rotation.y = rand(0, 6.28); scene.add(f); }
+  if (MODELS.flamingo) for (let k = 0; k < 10; k++) { const g = new THREE.Group(), f = modelInstance("flamingo"); g.add(f); scene.add(g); const [x, z, a] = beachSpot(rand(8, 16)); life.beach.push({ kind: "flam", mesh: g, x, z, a, h: rand(0, 6.28), st: "idle", t: rand(1, 6), y: 0 }); }
+  if (MODELS.gull) for (let k = 0; k < 12; k++) { const g = new THREE.Group(), m = modelInstance("gull"); m.scale.multiplyScalar(0.8); g.add(m); scene.add(g); const [x, z, a] = beachSpot(rand(14, 30)); life.beach.push({ kind: "gull", mesh: g, x, z, a, h: rand(0, 6.28), st: "idle", t: rand(1, 6), y: 0 }); }
+  // rapaces qui tournent au-dessus de la montagne
+  if (MODELS.gull) for (let k = 0; k < 5; k++) { const g = new THREE.Group(), m = modelInstance("gull"); m.scale.multiplyScalar(1.5); m.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color && o.material.color.multiplyScalar(0.45); } }); g.add(m); scene.add(g); life.raptors.push({ mesh: g, a: rand(0, 6.28), r: rand(120, 320), y: rand(60, 140), s: rand(0.05, 0.09) * (k % 2 ? 1 : -1), ph: rand(0, 6) }); }
   // les bateaux tournent au large : leur cercle passe au-delà des coins de l'île
   for (let k = 0; k < 6; k++) { const b = makeBoat(); scene.add(b); boats.push({ mesh: b, a: k * Math.PI / 3 + rand(0, .5), r: SHORE * 1.45 + 25 + rand(0, 80), s: rand(0.008, 0.015) * (k % 2 ? 1 : -1) }); }
   for (let k = 0; k < 10; k++) {
@@ -3019,6 +3025,17 @@ function updateLife(dt) {
   planes.forEach(p => { p.a += p.s * dt; p.mesh.position.set(Math.cos(p.a) * p.r, p.y, Math.sin(p.a) * p.r); p.mesh.rotation.set(0, -p.a + (p.s < 0 ? Math.PI : 0), p.s < 0 ? 0.25 : -0.25, "YXZ"); });
   const T = performance.now() / 1000;
   if (life.heli) { const h = life.heli; h.a += 0.09 * dt; h.mesh.position.set(Math.cos(h.a) * h.r, h.y + Math.sin(T * 0.5) * 3, Math.sin(h.a) * h.r); h.mesh.rotation.set(0, -h.a, -0.12, "YXZ"); }
+  { const o = target();
+    life.beach.forEach(b => { const dp = Math.hypot(b.x - o.x, b.z - o.z), near = dp < (b.kind === "gull" ? 9 : 11) && (G.onFoot || Math.abs(G.car.v) > 1); b.t -= dt;
+      if (b.st !== "fly" && near) { b.st = "fly"; b.t = 7 + Math.random() * 4; b.h = Math.atan2(b.x - o.x, b.z - o.z) + (Math.random() - .5) * 0.8; b.vy = 4 + Math.random() * 2; if (b.kind === "gull" && Math.random() < .5) playBuf && playBuf("gull", 0.3, 0.95 + Math.random() * 0.2); }
+      if (b.st === "fly") { const sp = b.kind === "gull" ? 9 : 7; b.x += Math.sin(b.h) * sp * dt; b.z += Math.cos(b.h) * sp * dt; b.y = Math.min(b.y + b.vy * dt, b.kind === "gull" ? 16 : 10); b.h += Math.sin(T * 0.7 + b.a) * 0.25 * dt;
+        if (b.t <= 0) { const [nx, nz, na] = beachSpot(b.kind === "gull" ? rand(14, 30) : rand(8, 16), Math.atan2(b.z, b.x) + (Math.random() - .5) * 0.5); b.a = na; b.x = nx; b.z = nz; b.y = 0; b.st = "idle"; b.t = 4 + Math.random() * 6; } }
+      else if (b.st === "walk") { const sp = b.kind === "gull" ? 0.8 : 0.5; b.x += Math.sin(b.h) * sp * dt; b.z += Math.cos(b.h) * sp * dt; if (b.t <= 0) { b.st = "idle"; b.t = 2 + Math.random() * 5; } }
+      else if (b.t <= 0) { b.st = "walk"; b.t = 2 + Math.random() * 4; b.h += (Math.random() - .5) * 2.2; }
+      const gy = b.st === "fly" ? b.y : Math.max(beachH(b.x, b.z), -0.55), bob = b.st === "walk" ? Math.abs(Math.sin(T * (b.kind === "gull" ? 9 : 5) + b.a)) * 0.06 : 0, peck = b.st === "idle" ? Math.max(0, Math.sin(T * 1.3 + b.a * 3)) * 0.35 : 0;
+      b.mesh.position.set(b.x, gy + bob, b.z); b.mesh.rotation.set(b.st === "fly" ? -0.15 : peck, b.h + (b.kind === "gull" ? -Math.PI / 2 : 0), b.st === "fly" ? Math.sin(T * 2 + b.a) * 0.25 : 0, "YXZ");
+      b.mesh.visible = dp < 260; });
+    life.raptors.forEach(r => { r.a += r.s * dt; const cx = MT.x + Math.cos(r.a) * r.r, cz = MT.z + Math.sin(r.a) * r.r; r.mesh.position.set(cx, mtnH(cx, cz) + r.y + Math.sin(T * 0.6 + r.ph) * 4, cz); r.mesh.rotation.set(0, -r.a + (r.s < 0 ? Math.PI : 0), r.s < 0 ? 0.35 : -0.35, "YXZ"); }); }
   life.gulls.forEach(gl => { gl.a += gl.s * dt; gl.mesh.position.set(Math.cos(gl.a) * gl.r, gl.y + Math.sin(T * 0.8 + gl.ph) * 2, Math.sin(gl.a) * gl.r); gl.mesh.rotation.set(0, -gl.a + (gl.s < 0 ? Math.PI : 0), gl.s < 0 ? 0.3 : -0.3, "YXZ"); });
   life.sharks.forEach(sh => { seaStep(sh, dt); sh.mesh.position.set(Math.cos(sh.a) * sh.r, -0.6, Math.sin(sh.a) * sh.r); sh.mesh.rotation.y = -sh.a + (sh.s < 0 ? Math.PI : 0); });
   life.dolphins.forEach(d => { seaStep(d, dt); const j = Math.sin(T * 1.6 + d.ph); d.mesh.position.set(Math.cos(d.a) * d.r, -0.9 + Math.max(0, j) * 3.2, Math.sin(d.a) * d.r); d.mesh.rotation.set(-Math.cos(T * 1.6 + d.ph) * 0.7, -d.a, 0, "YXZ"); });
@@ -3191,8 +3208,8 @@ function mechSpot(o, m) {
     const x = alongZ ? rc(i) + side * 6.5 : bC(i) + off, z = alongZ ? bC(j) + off : rc(j) + side * 6.5, d = Math.hypot(x - o.x, z - o.z);
     if (d < 30 || d > 100 || Math.abs(x) > HALF - 6 || Math.abs(z) > HALF - 6) continue; if (!alongZ && (i >= NB)) continue;
     m.x = x; m.z = z; m.h = (alongZ ? 0 : Math.PI / 2) + (Math.random() < .5 ? Math.PI : 0); m.car.position.set(x, 0, z); m.car.rotation.y = m.h;
-    const fx = Math.sin(m.h), fz = Math.cos(m.h), px = x + fx * 3.35, pz = z + fz * 3.35; // le mécanicien à genoux devant le capot
-    m.h0 = [px, pz]; m.man.position.set(px, 0.02, pz); m.man.rotation.y = Math.atan2(-fx, -fz);
+    const fx = Math.sin(m.h), fz = Math.cos(m.h), sd = Math.random() < .5 ? 1 : -1, rx = Math.cos(m.h) * sd, rz = -Math.sin(m.h) * sd, px = x + fx * 1.35 + rx * 2.2, pz = z + fz * 1.35 + rz * 2.2; // le mécanicien à genoux contre la roue avant, sur le côté (plus la tête dans le capot)
+    m.h0 = [px, pz]; m.man.position.set(px, 0.02, pz); m.man.rotation.y = Math.atan2(-rx, -rz);
     setClip(m.man, "Fixing_Kneeling", 0.9 + Math.random() * 0.2); m.ok = true; return true; }
   return false;
 }
@@ -5398,7 +5415,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

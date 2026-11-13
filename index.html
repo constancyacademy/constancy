@@ -1797,12 +1797,17 @@ function buildDistrictBlock(i, j, cx, cz, F, dist, r, M) {
   });
   setBoxes(i, j, boxes);
 }
+let RAIL_M = null;
 function buildRiverBlock(i, cx, cz, r) {
   // quais : trottoirs le long des rives, palmiers et réverbères ; l'eau (la mer, qui passe sous la ville) se voit entre les ponts
   const D = districtMats();
   [[RZ0 - WALK / 2], [RZ1 + WALK / 2]].forEach(([z]) => { addGeo(walkM_ref, new THREE.BoxGeometry(BLOCK, 0.25, WALK), cx, 0.125, z); });
   if (r() < .7) palm(cx + (r() - .5) * 30, RZ0 - 2, r); if (r() < .7) palm(cx + (r() - .5) * 30, RZ1 + 2, r);
   lamp(cx - 12, RZ0 - 1.2); lamp(cx + 12, RZ1 + 1.2);
+  // rambardes : le long des quais et sur les bords des ponts
+  { if (!RAIL_M) RAIL_M = new THREE.MeshPhongMaterial({ color: 0x8d939c, shininess: 70 }); const x0 = bMin(i) + 0.35, x1 = bMax(i) - 0.35, L = x1 - x0, Lz = (RZ1 - 0.35) - (RZ0 + 0.35);
+    [RZ0 + 0.35, RZ1 - 0.35].forEach(z => { addGeo(RAIL_M, new THREE.BoxGeometry(L, 0.07, 0.07), cx, 1.05, z); addGeo(RAIL_M, new THREE.BoxGeometry(L, 0.04, 0.04), cx, 0.62, z); for (let x = x0; x <= x1 + 0.01; x += 2.4) addGeo(RAIL_M, new THREE.BoxGeometry(0.06, 0.85, 0.06), x, 0.66, z); });
+    [x0, x1].forEach(x => { const zc = (RZ0 + RZ1) / 2; addGeo(RAIL_M, new THREE.BoxGeometry(0.07, 0.07, Lz), x, 1.05, zc); addGeo(RAIL_M, new THREE.BoxGeometry(0.04, 0.04, Lz), x, 0.62, zc); for (let z = RZ0 + 0.35; z <= RZ1 - 0.34; z += 2.4) addGeo(RAIL_M, new THREE.BoxGeometry(0.06, 0.85, 0.06), x, 0.66, z); }); }
   setBoxes(i, RIVER_J, [[bMin(i), RZ0 + 0.6, bMax(i), RZ1 - 0.6]]);
 }
 let walkM_ref = null;
@@ -3612,7 +3617,7 @@ function collideBlocks(o, rad, swim) {
   const fi = clamp(Math.floor((o.x + HALF) / STEP), 0, NB - 1), fj = clamp(Math.floor((o.z + HALF) / STEP), 0, NB - 1);
   for (let i = fi - 1; i <= fi + 1; i++) for (let j = fj - 1; j <= fj + 1; j++) {
     if (i < 0 || j < 0 || i >= NB || j >= NB) continue;
-    if (j === RIVER_J && swim) continue; // à pied, on peut plonger dans la rivière
+    if (j === RIVER_J && swim && (o !== G.me || G.riverOK)) continue; // à pied : rambarde, sauf si on saute par-dessus ou qu'on nage déjà
     const list = BLOCK_BOXES.get(i + "," + j) || [[bMin(i) + WALK, bMin(j) + WALK, bMax(i) - WALK, bMax(j) - WALK]];
     for (const e of list) {
       if (e.length === 3) { const dx = o.x - e[0], dz = o.z - e[1], d = Math.hypot(dx, dz), m = rad + e[2]; if (d < m && d > 0.001) { o.x = e[0] + dx / d * m; o.z = e[1] + dz / d * m; hit = true; } continue; }
@@ -3823,6 +3828,10 @@ function updateCar(dt) {
     }
   }
 }
+const riverZ = z => z > RZ0 - WALK - 1 && z < RZ1 + WALK + 1;
+function jump() {
+  const me = G.me; if (G.mode !== "play" || !G.onFoot || G.inside || G.swimming || (me.jy || 0) > 0.01) return; me.vy = 5.6; me.jy = 0.02; sfx.step && sfx.step(); stat("saut");
+}
 // à pied : haut = avancer, côtés = tourner, rond poussé tout en haut = sprint (jauge d'énergie)
 function updateMe(dt) {
   if (SCOPE.on) { if (!scopeNear()) toggleScope(); G.me.speed = 0; return; }
@@ -3839,20 +3848,24 @@ function updateMe(dt) {
   const tgtV = inp.fwd > 0.05 ? (G.sprint ? (G.sprintMax ? 13.5 + clamp((G.sprintHold - 0.9) / 0.8, 0, 1) * 8 : 13.5) : 2.4 + inp.fwd * 6.2) : inp.fwd < -0.05 ? -2.4 : 0; // courir est gratuit, seul le sprint consomme
   { const cur = me.v || 0, rate = Math.abs(tgtV) > Math.abs(cur) ? (G.sprint ? 16 : 22) : 26; me.v = cur + clamp(tgtV - cur, -rate * dt, rate * dt); if (G.inside) me.v = tgtV; }
   const speed = me.v;
+  if ((me.jy || 0) > 0) { me.vy -= 15 * dt; me.jy += me.vy * dt; if (me.jy <= 0) { me.jy = 0; me.vy = 0; } }
+  G.riverOK = G.swimming || (me.jy || 0) > 0.55;
+  if (P && !P.jumpTip && !G.inside && !G.swimming && (Math.abs(me.z - RZ0) < 3 || Math.abs(me.z - RZ1) < 3)) { P.jumpTip = true; help("Envie d'un plongeon ? <b>Double-tape l'écran</b> pour sauter par-dessus la rambarde (Espace sur ordinateur). Tu nages très bien.", 6); }
   me.x += Math.sin(me.h) * speed * dt; me.z += Math.cos(me.h) * speed * dt;
   if (G.inside === "home") { me.x = clamp(me.x, HX - HRW + 0.8, HX + HRW - 0.8); me.z = clamp(me.z, HZ - HD + 0.8, HZ + HD - 0.8); pushOutBoxes(me, 0.45, HOME_OBST); }
   else if (G.inside) { me.x = clamp(me.x, IX - IW + 0.8, IX + IW - 0.8); me.z = clamp(me.z, IZ - ID + 0.8, IZ + ID - 0.8); pushOutBoxes(me, 0.45, GYM_OBST); } else collide(me, 0.6, true);
   // nage : dans l'eau on avance lentement et l'énergie fond ; à zéro, retour sur la plage
   const water = !G.inside && isWater(me.x, me.z);
   if (water) {
-    if (!G.swimming) { G.swimming = true; sfx.splash(); help("Tu nages. Attention à ton énergie : trop loin, tu coules."); }
-    me.x -= Math.sin(me.h) * speed * dt * 0.55; me.z -= Math.cos(me.h) * speed * dt * 0.55;
-    G.energy = Math.max(0, G.energy - (2.5 + (inp.fwd > 0.1 ? 3 : 0)) * dt);
+    if (!G.swimming) { G.swimming = true; me.jy = 0; me.vy = 0; sfx.splash(); if (!P.swimTip) { P.swimTip = true; help("Tu nages. Rejoins un quai ou la plage pour sortir de l'eau : tu te hisses tout seul.", 5); } }
+    me.x -= Math.sin(me.h) * speed * dt * (G.energy > 5 ? 0.55 : 0.7); me.z -= Math.cos(me.h) * speed * dt * (G.energy > 5 ? 0.55 : 0.7);
+    if (false) {
     if (G.energy <= 0) { G.swimming = false; fade(() => { const a = Math.atan2(me.z, me.x); me.x = Math.cos(a) * (SHORE - 12); me.z = Math.sin(a) * (SHORE - 12); me.x = clamp(me.x, -SHORE + 12, SHORE - 12); me.z = clamp(me.z, -SHORE + 12, SHORE - 12); G.energy = 40; }); help("Tu as coulé… Un maître-nageur t'a ramené sur la plage."); }
-  } else if (G.swimming) G.swimming = false;
+    }
+  } else if (G.swimming) { G.swimming = false; if (riverZ(me.z)) help("Tu te hisses sur le quai.", 2); }
   me.speed = Math.abs(speed);
   const clipSwim = water && meMesh.userData.mixer && meMesh.userData.clipSet;
-  meMesh.position.set(me.x, G.inside ? 0 : water ? (clipSwim ? -0.72 : -1.0) : 0.25 + GH(me.x, me.z), me.z); meMesh.rotation.set(water && !clipSwim ? 1.35 : clamp(speed / 22, 0, 1) * 0.12, me.h, water ? 0 : (me.turn || 0) * clamp(Math.abs(speed) / 12, 0, 1) * 0.2, "YXZ");
+  meMesh.position.set(me.x, G.inside ? 0 : water ? (clipSwim ? -0.72 : -1.0) : 0.25 + GH(me.x, me.z) + (me.jy || 0), me.z); meMesh.rotation.set(water && !clipSwim ? 1.35 : clamp(speed / 22, 0, 1) * 0.12, me.h, water ? 0 : (me.turn || 0) * clamp(Math.abs(speed) / 12, 0, 1) * 0.2, "YXZ");
   if (clipSwim) setClip(meMesh, inp.fwd > 0.1 ? "Swim_Fwd_Loop" : "Swim_Idle_Loop");
   else if (water) { // crawl : bras en moulinet, battements de jambes
     const u = meMesh.userData; u.phase += dt * (2.5 + me.speed * 1.2);
@@ -4073,7 +4086,7 @@ function toggleCar() {
     if (RIDES[k] && RIDES[k].boat && carMesh.userData.wake) carMesh.userData.wake.visible = false;
     if (RIDES[k] && RIDES[k].plane) { carMesh.rotation.set(0, c.h, 0); carMesh.position.y = GH(c.x, c.z); c.alt = 0; c.pitch = 0; c.roll = 0; G.tbOn = false; }
     carMesh = null; G.ride = { kind: "none" }; G.onFoot = true;
-    G.me.x = c.x + Math.cos(c.h) * (two ? 1.1 : 2.6); G.me.z = c.z - Math.sin(c.h) * (two ? 1.1 : 2.6); G.me.h = c.h; collide(G.me, 0.6);
+    G.me.x = c.x + Math.cos(c.h) * (two ? 1.1 : 2.6); G.me.z = c.z - Math.sin(c.h) * (two ? 1.1 : 2.6); G.me.h = c.h; { const boat = RIDES[k] && RIDES[k].boat; if (boat) G.riverOK = true; collide(G.me, 0.6, boat); }
     meMesh.visible = true; resetPose(); sfx.door(); G.lastZone = null;
   } else {
     const n = nearestRide(); if (!n) { help("Approche-toi d'un véhicule."); return; }
@@ -4085,7 +4098,8 @@ function finishEnter(n) {
   if (n.own) { carMesh = G.parked.mesh; G.car.x = G.parked.x; G.car.z = G.parked.z; G.car.h = G.parked.h; G.parked = null; G.ride = { kind: "own" }; meMesh.visible = false; }
   else {
     const list = n.traffic ? traffic : rentals, i = list.indexOf(n.r); if (i >= 0) list.splice(i, 1);
-    carMesh = n.r.mesh; carMesh.visible = true; [...carMesh.children].forEach(ch => { if (ch.material === DRIVER_M) carMesh.remove(ch); }); // le conducteur descend G.car.x = n.r.x; G.car.z = n.r.z; G.car.h = n.r.h; G.ride = { kind: n.kind, offroad: !!n.r.offroad };
+    carMesh = n.r.mesh; carMesh.visible = true; [...carMesh.children].forEach(ch => { if (ch.material === DRIVER_M) carMesh.remove(ch); }); // le conducteur descend
+    G.car.x = n.r.x; G.car.z = n.r.z; G.car.h = n.r.h; G.ride = { kind: n.kind, offroad: !!n.r.offroad };
     meMesh.visible = !RIDES[n.kind].car;
     help(n.traffic ? "Le conducteur te laisse le volant. Bonne route !" : `${RIDES[n.kind].name} : elle est à toi. Descends quand tu veux, elle reste là.`);
   }
@@ -5085,7 +5099,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
@@ -5126,7 +5140,8 @@ function loop(now) {
 /* ============ Commandes ============ */
 const joyEl = $("joy"), joyKnob = joyEl.querySelector("i"); let joyId = null, joyO = null;
 cv.addEventListener("pointerdown", e => {
-  audioInit(); if (G.mode !== "play" || joyId !== null) return;
+  audioInit(); if (G.mode === "play" && G.onFoot && e.pointerType !== "mouse") { const t = performance.now(); if (t - (G.lastTap || 0) < 330) { jump(); G.lastTap = 0; } else G.lastTap = t; }
+  if (G.mode !== "play" || joyId !== null) return;
   if (e.pointerType !== "mouse" && e.clientY < window.innerHeight * 0.62) return; // pouce en bas de l'écran, pour ne pas cacher la route
   joyId = e.pointerId; joyO = { x: e.clientX, y: e.clientY }; G.joy = { x: 0, y: 0 };
   joyEl.style.left = e.clientX + "px"; joyEl.style.top = e.clientY + "px"; joyEl.classList.remove("hidden"); joyKnob.style.transform = ""; $("joyHint").classList.add("hidden");
@@ -5175,6 +5190,7 @@ window.addEventListener("keydown", e => {
   if (G.mode !== "play") return;
   if (GK.includes(e.code)) { keys.add(e.code); e.preventDefault(); }
   if (e.code === "KeyF" || e.code === "KeyE") toggleCar();
+  if (e.code === "Space" && G.onFoot && !e.repeat) jump();
   if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.code === "KeyN") G.turbo = true;
   if (e.code === "KeyJ") useJoker();
   if (e.code === "KeyV") $("viewBtn").click();

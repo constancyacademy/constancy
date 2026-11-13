@@ -243,6 +243,7 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
 .help{background:var(--glass2);border:1px solid var(--edge);border-left:2px solid #c9b98a;border-radius:14px;box-shadow:var(--hi),var(--drop);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12.5px}
 .act{font-family:var(--font-ui);font-weight:600;font-size:12px;letter-spacing:.14em;height:52px;min-width:52px;border-radius:26px;background:var(--glass2);border:1px solid var(--edge);box-shadow:var(--hi),var(--drop);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .act:active{transform:scale(.95)}
+.act.ufo{background:linear-gradient(180deg,#6ff0b0,#1f9e6e);color:#06140d;border:0}
 .act.turbo{background:linear-gradient(180deg,#ff5a6e,#d81f45);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),var(--drop)}
 .act.joker{background:linear-gradient(180deg,#3a3a46,#16161c)}
 .mission .t{font-family:var(--font-ui);font-weight:600;font-size:19px;letter-spacing:-.01em}
@@ -310,6 +311,7 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
   <button class="act hidden" id="quitBtn" type="button">ABANDONNER</button>
   <button class="act joker hidden" id="jokerBtn" type="button">JOKER</button>
   <button class="act hidden" id="scopeBtn" type="button">LONGUE-VUE</button>
+  <button class="act ufo hidden" id="ufoBtn" type="button">🛸 RETOUR EN VILLE</button>
   <button class="act turbo hidden" id="turboBtn" type="button">TURBO<i id="nitroBar"></i></button>
   <button class="act" id="exitBtn" type="button">SORTIR</button>
 </div>
@@ -2047,8 +2049,25 @@ function buildUfo() {
   [[0, 9], [13, 15], [21, 22.5]].forEach(([r0, r1]) => { const rg = new THREE.RingGeometry(Math.max(0.01, r0), r1, 56, 1); rg.rotateX(-Math.PI / 2); const pa = rg.attributes.position; for (let i = 0; i < pa.count; i++) pa.setY(i, csH(pa.getX(i) + cx, pa.getZ(i) + cz) + 0.18); rg.computeVertexNormals(); const m = new THREE.Mesh(rg, mat); m.position.set(cx, 0, cz); scene.add(m); });
   for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2, x = cx + Math.cos(a) * 30, z = cz + Math.sin(a) * 30, rg = new THREE.CircleGeometry(3.2, 20); rg.rotateX(-Math.PI / 2); const pa = rg.attributes.position; for (let i = 0; i < pa.count; i++) pa.setY(i, csH(pa.getX(i) + x, pa.getZ(i) + z) + 0.18); rg.computeVertexNormals(); const m = new THREE.Mesh(rg, mat); m.position.set(x, 0, z); scene.add(m); }
 }
+function callUfo() {
+  if (!G.onFoot || G.ufoRide || UFO.st || G.mode !== "play") return; G.ufoRide = { t: 0, x: G.me.x, z: G.me.z, gy: GH(G.me.x, G.me.z) }; G.farT = 0; stat("ovni-taxi");
+  help("<b>L'OVNI arrive…</b> Ne bouge pas.", 3);
+}
+function updateUfoRide(dt) {
+  const R = G.ufoRide, U = UFO; R.t += dt; U.mesh.visible = true; U.mesh.rotation.y += dt * 2.4;
+  const yTop = R.gy + 24, arrive = Math.min(1, R.t / 2.2); U.mesh.position.set(R.x, yTop + (1 - arrive) * 90, R.z);
+  U.lights.forEach((l, i) => l.material.color.setHSL(((R.t * 0.6 + i / 12) % 1), 0.9, 0.6));
+  if (R.t > 2.2) { U.beam.visible = true; const L = U.mesh.position.y - R.gy; U.beam.scale.y = L; U.beam.position.y = -L / 2; U.beam.material.opacity = 0.2 + Math.sin(R.t * 8) * 0.05;
+    const lift = Math.min(1, (R.t - 2.4) / 2.2); G.me.x = R.x; G.me.z = R.z; if (meMesh && lift > 0) { meMesh.position.set(R.x, R.gy + 0.25 + lift * 19, R.z); meMesh.rotation.y += dt * 3; } }
+  if (R.t > 4.8 && !R.flash) { R.flash = true; const fl = $("pFlash"); if (fl) { fl.style.transition = "none"; fl.style.opacity = 1; }
+    setTimeout(() => { const x = rc(7) + 10, z = rc(8) - 28; G.me.x = x; G.me.z = z; G.me.h = Math.PI; G.me.v = 0; G.snapCam = true; resetPose();
+      if (G.parked && Math.hypot(G.parked.x - x, G.parked.z - z) > 300) { G.parked.x = x - 5; G.parked.z = z + 6; G.parked.h = Math.PI; G.parked.mesh.position.set(G.parked.x, 0, G.parked.z); G.parked.mesh.rotation.set(0, G.parked.h, 0); }
+      U.mesh.visible = false; U.beam.visible = false; G.ufoRide = null; if (fl) requestAnimationFrame(() => { fl.style.transition = "opacity 1.2s"; fl.style.opacity = 0; });
+      notify("gold", "<b>Déposé en centre-ville.</b> Les extraterrestres aussi aiment la régularité. Ta voiture t'attend juste à côté.", 6); }, 450); }
+}
 function updateUfo(dt) {
   if (!UFO.mesh || !P) return;
+  if (G.ufoRide) return updateUfoRide(dt);
   const h = hourNow(), night = h >= 23 || h < 4, U = UFO;
   // une nuit sur deux, il apparaît au-dessus d'un des trois endroits
   if (!U.st && night && G.started && U.seen !== P.day && mulberry(P.day * 31 + 5)() < 0.5) { const sp = U.spots[P.day % U.spots.length]; U.st = { x: sp[0], z: sp[1], y: landH(sp[0], sp[1]) + 26, mode: "hover", t: 0 }; }
@@ -3554,6 +3573,9 @@ function updateHud(dt) {
   $("exitBtn").textContent = !G.onFoot ? (G.ride.kind === "own" ? "SORTIR" : "DESCENDRE") : near ? (near.own ? "MONTER" : "PRENDRE") : "";
   $("exitBtn").classList.toggle("hidden", G.onFoot && !near);
   const en = $("energy"); en.classList.toggle("hidden", !G.onFoot); en.classList.toggle("low", G.energy < 25); $("energyBar").style.width = G.energy + "%";
+  { const far = G.onFoot && !G.inside && !G.para && !G.ufoRide && Math.hypot(G.me.x, G.me.z) > HALF + 260 && !(UFO.st); const nowS = performance.now() / 1000; if (!far) G.farT = 0; else if (!G.farT) G.farT = nowS;
+    const ub = $("ufoBtn"); const show = !!G.farT && nowS - G.farT > 4; if (show && !P.ufoTip) { P.ufoTip = true; help("<b>Perdu loin de la ville ?</b> Appelle l'OVNI : Il te dépose en centre-ville en quelques secondes.", 6); } ub.classList.toggle("hidden", !show); }
+  { const dS = Math.hypot(G.me.x - SCOPE.x, G.me.z - SCOPE.z); if (G.onFoot && !G.inside && dS < 230 && dS > 6 && !P.scopeTip) { P.scopeTip = true; help("<b>Hé, regarde !</b> Une longue-vue t'attend au belvédère, juste à côté. Avec un peu de chance, tu verras un dinosaure.", 8); destBeacon.position.set(SCOPE.x, 0, SCOPE.z); destBeacon.visible = true; setTimeout(() => { if (!G.mission) destBeacon.visible = false; }, 45000); } }
   { const sb = $("scopeBtn"); sb.classList.toggle("hidden", !(scopeNear() || SCOPE.on)); sb.textContent = SCOPE.on ? "QUITTER" : "LONGUE-VUE"; }
   const tbB = $("turboBtn"); tbB.classList.toggle("hidden", G.onFoot || !!G.inside); tbB.classList.toggle("on", !!G.tbOn); $("nitroBar").style.width = (G.nitro == null ? 100 : G.nitro) + "%";
   const jb = $("jokerBtn"); jb.classList.toggle("hidden", !(G.stars > 0 && P.jokers > 0)); jb.textContent = "JOKER · " + P.jokers;
@@ -3998,6 +4020,7 @@ function jump() {
 // à pied : haut = avancer, côtés = tourner, rond poussé tout en haut = sprint (jauge d'énergie)
 function updateMe(dt) {
   if (G.para) return updateParachute(dt);
+  if (G.ufoRide) { G.me.speed = 0; return; }
   if (SCOPE.on) { if (!scopeNear()) toggleScope(); G.me.speed = 0; return; }
   const me = G.me, inp = input();
   // sprint : pousser le doigt (ou la souris) bien au-delà du rond, ou Maj au clavier ; dans le rond on court vite sans fatigue
@@ -4251,6 +4274,11 @@ function updateCamera(dt, follow) {
     G.camYaw = Math.atan2(c.x - camera.position.x, c.z - camera.position.z);
     sky.position.copy(camera.position); sun.position.set(c.x - 160, c.alt + 220, c.z + 100); sun.target.position.set(c.x, c.alt, c.z);
     return;
+  }
+  if (foot && G.ufoRide && UFO.mesh) {
+    const R = G.ufoRide, tx = R.x - Math.sin(G.me.h) * 14, tz = R.z - Math.cos(G.me.h) * 14, k = 1 - Math.exp(-dt * 2.5);
+    camera.position.x += (tx - camera.position.x) * k; camera.position.y += (R.gy + 4 - camera.position.y) * k; camera.position.z += (tz - camera.position.z) * k;
+    camera.lookAt(R.x, R.gy + 10, R.z); sky.position.copy(camera.position); return;
   }
   if (foot && G.para) {
     const me = G.me, tx = me.x - Math.sin(me.h) * 11, tz = me.z - Math.cos(me.h) * 11, ty = G.para.alt + 5, k = G.snapCam ? 1 : 1 - Math.exp(-dt * 3); G.snapCam = false;
@@ -5474,6 +5502,7 @@ function joyEnd(e) { if (e.pointerId !== joyId) return; joyId = null; G.joy = nu
 ["pointerup", "pointercancel", "lostpointercapture"].forEach(ev => cv.addEventListener(ev, joyEnd));
 $("exitBtn").addEventListener("click", toggleCar);
 $("scopeBtn").addEventListener("click", toggleScope);
+$("ufoBtn").addEventListener("click", callUfo);
 ["pointerdown"].forEach(ev => $("turboBtn").addEventListener(ev, e => { e.preventDefault(); G.turbo = true; }));
 ["pointerup", "pointercancel", "pointerleave"].forEach(ev => $("turboBtn").addEventListener(ev, () => { G.turbo = false; }));
 $("jokerBtn").addEventListener("click", useJoker);

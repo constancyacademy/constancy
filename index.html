@@ -3681,7 +3681,7 @@ function updatePlane(dt) {
     else c.v *= Math.pow(0.7, dt);
     c.h -= inp.side * 0.8 * dt * clamp(c.v / 6, -1, 1);
     c.alt = gh; c.pitch += (0 - c.pitch) * Math.min(1, dt * 5); c.roll += (0 - c.roll) * Math.min(1, dt * 5);
-    if (c.v > 29 && thr > 0.55 && !isWater(c.x, c.z)) { c.alt = gh + 0.8; c.pitch = 0.16; if (!G.flyHint) { G.flyHint = true; help("<b>Décollage !</b> Haut = monter · bas = descendre · côtés = virer. Pour atterrir : descends doucement au-dessus d'une piste.", 7); } sfx.door && 0; }
+    if (c.v > 29 && thr > 0.55 && !isWater(c.x, c.z)) { c.alt = gh + 0.8; c.pitch = 0.16; if (!G.flyHint) { G.flyHint = true; help("<b>Décollage !</b> Haut = monter · bas = descendre · côtés = virer. Pour atterrir : descends doucement au-dessus d'une piste, ou touche SORTIR (pilote automatique).", 7); } sfx.door && 0; }
   } else {
     const cruise = 46 * (tb ? 1.6 : 1);
     c.v += (cruise - c.v) * Math.min(1, dt * 0.7);
@@ -4074,7 +4074,13 @@ function nearestRide() {
 function toggleCar() {
   if (G.mode !== "play" || G.entering) return;
   if (!G.onFoot) {
-    if (G.ride.kind === "avion" && G.car.alt > GH(G.car.x, G.car.z) + 0.8) { help("Pose-toi d'abord : descends doucement vers une piste ou un terrain plat."); return; }
+    if (G.ride.kind === "avion" && G.car.alt > planeGround(G.car.x, G.car.z) + 0.8) { // en vol : pilote automatique jusqu'à la piste la plus proche (on ne reste jamais coincé dans l'avion)
+      if (G.autoLand) return; G.autoLand = true; help("<b>Pilote automatique.</b> Atterrissage sur la piste la plus proche…", 3); stat("atterrissage-auto");
+      fade(() => { const c = G.car, dAP = Math.hypot(c.x - (AP.x0 + AP.x1) / 2, c.z - AP.rz), dPad = Math.hypot(c.x - (PAD.x0 + PAD.x1) / 2, c.z - (PAD.z0 + PAD.z1) / 2);
+        if (dAP <= dPad) { c.x = AP.x0 + 60; c.z = AP.rz; c.h = Math.PI / 2; } else { c.x = (PAD.x0 + PAD.x1) / 2; c.z = PAD.z1 - 20; c.h = Math.PI; }
+        c.alt = planeGround(c.x, c.z); c.v = 0; c.pitch = 0; c.roll = 0; G.turbo = false; G.tbOn = false; G.snapCam = true; G.autoLand = false;
+        if (carMesh) { carMesh.rotation.set(0, c.h, 0); carMesh.position.set(c.x, c.alt, c.z); } help("Posé. Touche <b>SORTIR</b> pour descendre.", 4); });
+      return; }
     // en roulant : on freine automatiquement puis on descend (plus besoin de s'arrêter soi-même)
     if (Math.abs(G.car.v) > 4) { G.wantExit = true; return; }
     G.wantExit = false;

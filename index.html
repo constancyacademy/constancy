@@ -774,11 +774,16 @@ function label(text, color) {
   const c = document.createElement("canvas"); c.width = 512; c.height = 128; const g = c.getContext("2d");
   g.fillStyle = "rgba(5,5,5,.82)"; g.fillRect(0, 16, 512, 96); g.fillStyle = color; g.fillRect(0, 16, 12, 96);
   g.font = "64px Anton, Impact, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = "#fff"; g.fillText(text.toUpperCase(), 262, 68);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false })); s.scale.set(16, 4, 1); return s;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false })); s.scale.set(16, 4, 1);
+  const n = document.createElement("canvas"); n.width = 512; n.height = 128; const h = n.getContext("2d");
+  h.fillStyle = "rgba(14,4,22,.9)"; h.fillRect(4, 16, 504, 96); h.shadowColor = "#ff3fb4"; h.shadowBlur = 18; h.strokeStyle = "#ff6fcf"; h.lineWidth = 5; h.strokeRect(8, 20, 496, 88);
+  h.font = "64px Anton, Impact, sans-serif"; h.textAlign = "center"; h.textBaseline = "middle"; h.shadowBlur = 22; h.fillStyle = "#ffe6f6"; h.fillText(text.toUpperCase(), 256, 68);
+  NEON_LABELS.push({ mats: [s.material], day: s.material.map, night: new THREE.CanvasTexture(n) }); return s;
 }
+const NEON_LABELS = [];
 // enseigne plate fixée au mur (contrairement aux étiquettes flottantes qui suivent la caméra)
 function wallSign(text, color, w, h) {
-  const sp = label(text, color), m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: sp.material.map, transparent: true }));
+  const sp = label(text, color), m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: sp.material.map, transparent: true })); NEON_LABELS[NEON_LABELS.length - 1].mats.push(m.material);
   return m;
 }
 function wornTextTexture(text) {
@@ -1421,6 +1426,15 @@ const HX = 3000, HZ = 400, HRW = 11, HD = 8;
 const HZN = { bed: { x: HX - 7, z: HZ - 4.5 }, exit: { x: HX + 8, z: HZ + HD - 1.5 }, tv: { x: HX + 2, z: HZ - 6 } };
 const HOME_OBST = [[HX - 10.5, HZ - 7.6, HX - 4, HZ - 1.6], [HX - 1.5, HZ - 1.2, HX + 5.5, HZ + 0.6], [HX + 6.5, HZ - 7.6, HX + 10.6, HZ - 5.6], [HX - 10.6, HZ + 5.4, HX - 6, HZ + 7.6]];
 let homeLight = null, homeDeco = null;
+const HOMEVIEW = { rt: null, cam: null, t: 0 };
+function updateHomeView(dt) {
+  if (!HOMEVIEW.rt || G.inside !== "home") { HOMEVIEW.t = 0; return; } HOMEVIEW.t -= dt; if (HOMEVIEW.t > 0) return; HOMEVIEW.t = 1.2;
+  const hx = LM.home.x, hz = LM.home.z, c = HOMEVIEW.cam; c.position.set(hx, 24, hz); c.lookAt(TOWER.x, 70, TOWER.z);
+  const vis = meMesh ? meMesh.visible : false; if (meMesh) meMesh.visible = false; const fogF = scene.fog.far, fogN = scene.fog.near; scene.fog.near = 300; scene.fog.far = 1500;
+  CHUNKS.forEach(m => { m.visible = true; }); if (cullChunks.big) cullChunks.big.forEach(m => { m.visible = true; });
+  const sp = sky.position.clone(); sky.position.copy(c.position); renderer.setRenderTarget(HOMEVIEW.rt); renderer.render(scene, c); renderer.setRenderTarget(null); sky.position.copy(sp); cullChunks();
+  scene.fog.near = fogN; scene.fog.far = fogF; if (meMesh) meMesh.visible = vis;
+}
 function buildHomeInterior() {
   const floorM = new THREE.MeshLambertMaterial({ color: 0x9a8668 }), wallM = new THREE.MeshLambertMaterial({ color: 0xcfc6b4, side: THREE.BackSide });
   const room = new THREE.Mesh(new THREE.BoxGeometry(HRW * 2, 5.5, HD * 2), wallM); room.position.set(HX, 2.75, HZ); scene.add(room);
@@ -1430,10 +1444,11 @@ function buildHomeInterior() {
   const gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, "#2a1e5c"); gr.addColorStop(0.55, "#ff7a59"); gr.addColorStop(1, "#ffd08a"); g.fillStyle = gr; g.fillRect(0, 0, 512, 256);
   for (let k = 0; k < 40; k++) { const w = 12 + Math.random() * 26, h = 40 + Math.random() * 150, x = Math.random() * 512; g.fillStyle = "rgba(20,14,40,.9)"; g.fillRect(x, 256 - h, w, h); g.fillStyle = "rgba(255,220,150,.7)"; for (let y = 256 - h + 6; y < 250; y += 9) if (Math.random() < .4) g.fillRect(x + 3, y, 3, 3); }
   // petite fenêtre aux stores à moitié baissés (pas de baie vitrée au début)
-  const view = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(vc) })); view.position.set(HX - 1.5, 2.7, HZ - HD + 0.06); scene.add(view);
+  HOMEVIEW.rt = new THREE.WebGLRenderTarget(1024, 576); HOMEVIEW.cam = new THREE.PerspectiveCamera(48, 1024 / 576, 0.5, 2400);
+  const view = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 2), new THREE.MeshBasicMaterial({ map: HOMEVIEW.rt.texture })); view.position.set(HX - 1.5, 2.7, HZ - HD + 0.06); scene.add(view); HOMEVIEW.mesh = view;
   const frameM = new THREE.MeshLambertMaterial({ color: 0xe8e4dc });
   [[-3.1, 0], [0.1, 0]].forEach(([dx]) => { const f = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.1, 0.1), frameM); f.position.set(HX + dx, 2.7, HZ - HD + 0.1); scene.add(f); });
-  for (let k = 0; k < 6; k++) { const sl = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.1, 0.05), new THREE.MeshLambertMaterial({ color: 0xd8d2c4 })); sl.position.set(HX - 1.5, 3.65 - k * 0.12, HZ - HD + 0.12); scene.add(sl); }
+  for (let k = 0; k < 2; k++) { const sl = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.1, 0.05), new THREE.MeshLambertMaterial({ color: 0xd8d2c4 })); sl.position.set(HX - 1.5, 3.65 - k * 0.12, HZ - HD + 0.12); scene.add(sl); }
   { const f = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.12, 0.1), frameM); f.position.set(HX - 1.5, 1.7, HZ - HD + 0.1); scene.add(f); const f2 = f.clone(); f2.position.y = 3.72; scene.add(f2); }
   // traces d'humidité sur le mur, ampoule nue au plafond
   { const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d"); const gr = x.createRadialGradient(64, 64, 4, 64, 64, 62); gr.addColorStop(0, "rgba(120,105,80,.35)"); gr.addColorStop(1, "rgba(120,105,80,0)"); x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
@@ -1491,7 +1506,7 @@ function startInHome(first) { // le joueur se réveille chez lui ; la voiture at
   if (carMesh && G.ride.kind === "own") { G.parked = { mesh: carMesh, x: G.car.x, z: G.car.z, h: G.car.h }; carMesh = null; }
   G.ride = { kind: "none" }; G.onFoot = true; meMesh.visible = true; resetPose(); G.inside = "home"; G.snapCam = true; homeLight.intensity = 1.1; refreshHomeDeco();
   G.me.x = HZN.bed.x + 1.5; G.me.z = HZN.bed.z + 6.2; G.me.h = Math.atan2(HZN.exit.x - G.me.x, HZN.exit.z - G.me.z); G.lastZone = "inside"; G.intro = "door";
-  help(first ? "<b>Jour 1.</b> Petit appart, gros réveil. Tout commence ici. <b>Suis la flèche rouge</b> pour sortir." : `<b>Jour ${P.day}.</b> Debout. La flèche rouge t'indique la sortie.`, 7);
+  help(first ? (hourNow() >= 19 || hourNow() < 6 ? "<b>Première nuit à Constancy City.</b> Regarde par la fenêtre… Puis <b>suis la flèche rouge</b> pour sortir." : "<b>Jour 1.</b> Petit appart, gros réveil. Tout commence ici. <b>Suis la flèche rouge</b> pour sortir.") : `<b>Jour ${P.day}.</b> Debout. La flèche rouge t'indique la sortie.`, 7);
 }
 const gymFolks = [];
 // matériel de la salle : on ne passe plus à travers (boîtes x0, z0, x1, z1)
@@ -2761,7 +2776,7 @@ function buildWorld() {
   const mamie = mamieMesh = makeHuman({ shirt: 0x9fd8b0, pants: 0x6a6a7a, skin: 0xf0c8a8, hair: 0xdedede }); mamie.position.set(LM.mamie.x - 4, 0.25, bMax(0) - 2); mamie.rotation.y = 0; scene.add(mamie); if (mamie.userData.q) setClip(mamie, "Idle_Talking_Loop");
   const mentor = makeHuman({ shirt: 0x1d2a44, pants: 0x1d2a44, skin: 0xc68a5e, hair: 0x111111 }); mentor.position.set(HALF + 34, 0.6, bC(5)); mentor.rotation.y = -Math.PI / 2; scene.add(mentor); if (mentor.userData.q) { mentor.position.y = 0.6; setClip(mentor, "Idle_Talking_Loop"); }
 
-  buildTrafficLights(); buildTraffic(); buildPeds(); buildLife(); buildRentals();
+  buildTrafficLights(); buildTraffic(); buildPeds(); buildLife(); buildRentals(); buildRoofNeons();
   PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeInterior(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildUfo();
   ownMark = makeBeacon(new THREE.Color(0xffffff)); ownMark.userData.col.scale.set(0.5, 0.35, 0.5); ownMark.userData.col.position.y = 12;
   const ol = label("Ta voiture", "#ffffff"); ol.scale.set(9, 2.2, 1); ol.position.y = 6; ownMark.add(ol); ownMark.visible = false; scene.add(ownMark);
@@ -2792,6 +2807,19 @@ const chooseRandom = a => pick(notBack(a));
 const chooseFlee = a => { const o = notBack(a).sort((p, q) => Math.hypot(rc(q[0]) - G.car.x, rc(q[1]) - G.car.z) - Math.hypot(rc(p[0]) - G.car.x, rc(p[1]) - G.car.z)); return Math.random() < .7 ? o[0] : pick(o); };
 const chooseChase = a => { const t = target(); return nb(a.from).sort((p, q) => Math.hypot(rc(p[0]) - t.x, rc(p[1]) - t.z) - Math.hypot(rc(q[0]) - t.x, rc(q[1]) - t.z))[0]; };
 const TRAFFIC_COLORS = [0xe8e4dc, 0x2d5aa8, 0xb83a3a, 0x3a3a40, 0xf0f0f0, 0x6fa86a, 0xd9b44a, 0x8a5cc2, 0x222222, 0xc0c4cc, 0x3fb5c9, 0xe07a3a];
+const NEON = { mats: [] };
+function buildRoofNeons() {
+  const edges = []; let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  BLOCK_BOXES.forEach(L => L.forEach(b => { if (b.length < 5 || !(b[4] > 11)) return; const [x0, z0, x1, z1, h] = b, y = h + 0.35, c = rnd() < 0.62 ? 0 : 1;
+    if (rnd() < 0.25) return; edges.push([x0, z0, x1, z0, y, c], [x1, z0, x1, z1, y, c], [x1, z1, x0, z1, y, c], [x0, z1, x0, z0, y, c]);
+    if (h > 34 && rnd() < 0.7) edges.push([x0, z1, x0, z1, -h, c]); }));
+  const geo = new THREE.BoxGeometry(1, 0.28, 0.28), cols = [0xff3fb4, 0x3fe6ff];
+  cols.forEach((col, ci) => { const list = edges.filter(e => e[5] === ci); if (!list.length) return; const mat = new THREE.MeshBasicMaterial({ color: col }); mat.userData.base = new THREE.Color(col); NEON.mats.push(mat);
+    const im = new THREE.InstancedMesh(geo, mat, list.length), m = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
+    list.forEach((e, k) => { if (e[4] < 0) { const H = -e[4]; v.set(e[0] + 0.15, 0.25 + H / 2, e[1] - 0.15); q.identity(); sc.set(0.28, H / 0.28, 1); m.compose(v, q, sc); im.setMatrixAt(k, m); return; }
+      const dx = e[2] - e[0], dz = e[3] - e[1], L = Math.hypot(dx, dz); v.set((e[0] + e[2]) / 2, e[4], (e[1] + e[3]) / 2); q.setFromAxisAngle(Y, -Math.atan2(dz, dx)); sc.set(L, 1, 1); m.compose(v, q, sc); im.setMatrixAt(k, m); });
+    im.frustumCulled = false; scene.add(im); });
+}
 const TL = { per: 18, inst: null, list: [], phase: -1 };
 function tlState(axis, t) { // "g" vert, "a" orange, "r" rouge pour l'axe x ou z
   const k = ((t % TL.per) + TL.per) % TL.per, x = k < 7.5 ? "g" : k < 9 ? "a" : "r", z = k >= 9 && k < 16.5 ? "g" : k >= 16.5 ? "a" : "r";
@@ -3465,7 +3493,7 @@ function lerpKeys(keys, h, out) {
   for (let i = 0; i < keys.length - 1; i++) if (h >= keys[i][0] && h <= keys[i + 1][0]) { const k = (h - keys[i][0]) / (keys[i + 1][0] - keys[i][0]); _c1.set(keys[i][1]); _c2.set(keys[i + 1][1]); return out.copy(_c1).lerp(_c2, k); }
   return out.set(keys[0][1]);
 }
-function hourNow() { return (8 + (P ? P.dayT : 0) / (DAY_SECONDS / 24)) % 24; }
+function hourNow() { return (8 + (P && P.nightStart && P.day === 1 ? 13 : 0) + (P ? P.dayT : 0) / (DAY_SECONDS / 24)) % 24; }
 let nightK = 0;
 function applySky(h) {
   lerpKeys(SKY_TOP, h, skyMat.uniforms.top.value); lerpKeys(SKY_BOT, h, skyMat.uniforms.bottom.value);
@@ -3481,6 +3509,8 @@ function applySky(h) {
   winMats.forEach(m => m.emissiveIntensity = 0.06 + nightK * 0.9);
   if (DM.hw) { DM.hw[0].emissiveIntensity = nightK * 1.3; DM.hw[1].emissiveIntensity = nightK * 1.1; }
   if (FX.towerLed) FX.towerLed.emissiveIntensity = 0.05 + nightK * 2.1;
+  NEON.mats.forEach(m => m.color.copy(m.userData.base).multiplyScalar(0.06 + nightK * 1.0));
+  { const nt = nightK > 0.45; if (NEON.lblNight !== nt) { NEON.lblNight = nt; NEON_LABELS.forEach(L => L.mats.forEach(mm => { mm.map = nt ? L.night : L.day; mm.needsUpdate = true; })); } }
   if (AVL_M) AVL_M.opacity = (0.25 + nightK * 0.75) * (Math.floor(performance.now() / 900) % 2 ? 1 : 0.15);
   lampGlowMat.opacity = nightK * 0.95; if (lampPoolMat) lampPoolMat.opacity = nightK * 0.42 * (1 + WX.wet * 0.5); bulbMat.color.setRGB(0.47 + nightK * 0.53, 0.44 + nightK * 0.5, 0.4 + nightK * 0.3);
   const su = sea.material.uniforms; su.sunDir.value.copy(sd); su.sunCol.value.copy(skyMat.uniforms.sunCol.value); su.skyCol.value.copy(skyMat.uniforms.top.value).lerp(skyMat.uniforms.bottom.value, 0.5);
@@ -3495,7 +3525,7 @@ function applySky(h) {
 function freshSave(obj, muscle) {
   return { v: 2, objective: obj, muscle, cm: MUSCLES[muscle].base, cash: 150, earned: 0, biz: 0, statut: 0, mindset: 0,
     look: { gender: "homme", outfit: 0, skin: 1 }, goal: { type: obj, tier: 0, base: 0 }, unlocked: {},
-    cars: ["citadine"], car: "citadine", day: 1, dayT: 0, counts: {}, mult: 1, bestMult: 1, jokers: 2,
+    cars: ["citadine"], car: "citadine", day: 1, dayT: 0, nightStart: 1, counts: {}, mult: 1, bestMult: 1, jokers: 2,
     lastDate: todayStr(), streakDays: 1, deliveries: 0, sessions: 0, signed: false };
 }
 function saveNow() {
@@ -5499,7 +5529,7 @@ function loop(now) {
   updateSound();
   for (let i = 0; i < ANIMATED.length; i++) { const g = ANIMATED[i]; if (!g.visible || !g.parent) continue; const gp = g.parent.isScene ? g.position : g.parent.position; if (gp.distanceToSquared(camera.position) < 160000 && (g.parent.isScene || g.parent.visible)) g.userData.mixer.update(dt); }
   if (mamieMesh && mamieMesh.userData.q && G.started) setClip(mamieMesh, G.alerts.mamieActive && !G.mission ? "Waving" : "Idle_Talking_Loop");
-  updateGlare(dt); updateGuideArrow(dt); updateRadio(); updateNightSky(dt); if ((loop.cf = (loop.cf || 0) + 1) % 15 === 0) cullChunks(); updateDinos(dt); updateWild(dt); updateSpin(dt); updateFx(dt); updateWeather(dt); updateFireworks(dt); updateUfo(dt); updateGhost(dt); sea.material.uniforms.time.value = now / 1000; sea.position.y = -0.62 + Math.sin(now / 1000 * 0.6) * 0.1; sea.position.x = Math.round(camera.position.x / 20) * 20; sea.position.z = Math.round(camera.position.z / 20) * 20; syncAllRigs(dt); renderer.render(scene, camera);
+  updateGlare(dt); updateGuideArrow(dt); updateRadio(); updateNightSky(dt); if ((loop.cf = (loop.cf || 0) + 1) % 15 === 0) cullChunks(); updateDinos(dt); updateWild(dt); updateSpin(dt); updateFx(dt); updateWeather(dt); updateFireworks(dt); updateUfo(dt); updateGhost(dt); sea.material.uniforms.time.value = now / 1000; sea.position.y = -0.62 + Math.sin(now / 1000 * 0.6) * 0.1; sea.position.x = Math.round(camera.position.x / 20) * 20; sea.position.z = Math.round(camera.position.z / 20) * 20; syncAllRigs(dt); updateHomeView(dt); renderer.render(scene, camera);
 }
 
 /* ============ Commandes ============ */

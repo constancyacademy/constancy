@@ -2898,7 +2898,7 @@ function buildLife() {
   if (MODELS.gull) for (let k = 0; k < 14; k++) { const gg = new THREE.Group(); gg.add(modelInstance("gull")); scene.add(gg); life.gulls.push({ mesh: gg, a: rand(0, 6.28), r: SHORE + rand(-30, 60), y: rand(10, 30), s: rand(0.04, 0.07) * (k % 2 ? 1 : -1), ph: rand(0, 6) }); }
   if (MODELS.shark) for (let k = 0; k < 5; k++) { const sh = new THREE.Group(); const m = modelInstance("shark"); sh.add(m); m.position.y = -MODELS.shark.size.y * 0.72; scene.add(sh); life.sharks.push({ mesh: sh, a: rand(0, 6.28), r: SHORE + rand(140, 260), s: rand(0.012, 0.02) * (k % 2 ? 1 : -1) }); }
   if (MODELS.dolphin) for (let k = 0; k < 4; k++) { const dl = new THREE.Group(); dl.add(modelInstance("dolphin")); scene.add(dl); life.dolphins.push({ mesh: dl, a: rand(0, 6.28), r: SHORE + rand(70, 140), s: rand(0.025, 0.035), ph: rand(0, 6) }); }
-  if (MODELS.dog) peds.slice(0, 10).forEach(p => { const dg = new THREE.Group(); dg.add(modelInstance("dog")); scene.add(dg); life.dogs.push({ mesh: dg, ped: p }); });
+  if (MODELS.dog) peds.slice(0, 18).forEach(p => { const dg = new THREE.Group(); dg.add(modelInstance("dog")); scene.add(dg); life.dogs.push({ mesh: dg, ped: p }); });
   if (MODELS.cat) for (let k = 0; k < 10; k++) { const i = Math.floor(rand(0, NB)), j = (k * 5) % NB === RIVER_J ? 2 : (k * 5) % NB; const c = modelInstance("cat"); c.position.set(bMin(i) + rand(1, 3), 0.25, bC(j) + rand(-12, 12)); c.rotation.y = rand(0, 6.28); scene.add(c); }
   if (MODELS.flamingo) for (let k = 0; k < 8; k++) { const a = rand(0, 6.28), rr = SHORE - rand(12, 22); const f = modelInstance("flamingo"); f.position.set(Math.cos(a) * rr, beachH(Math.cos(a) * rr, Math.sin(a) * rr), Math.sin(a) * rr); f.rotation.y = rand(0, 6.28); scene.add(f); }
   // les bateaux tournent au large : leur cercle passe au-delà des coins de l'île
@@ -3062,7 +3062,7 @@ function streetSpot(o) {
 }
 function updateStreetScenes(dt) {
   if (!HQ.ready) return; const o = target(), inCity = Math.abs(o.x) < HALF && Math.abs(o.z) < HALF && !G.inside;
-  if (!STREET.list.length) for (let k = 0; k < 6; k++) { const pair = [0, 1].map(q => { const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = makeHuman(opt); scene.add(h); lodFor(h, opt); h.visible = false; return h; }); STREET.list.push({ pair, x: 1e5, z: 1e5 }); }
+  if (!STREET.list.length) for (let k = 0; k < 9; k++) { const pair = [0, 1].map(q => { const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = makeHuman(opt); scene.add(h); lodFor(h, opt); h.visible = false; return h; }); STREET.list.push({ pair, x: 1e5, z: 1e5 }); }
   STREET.list.forEach((sc, k) => {
     const d = Math.hypot(sc.x - o.x, sc.z - o.z);
     if (d > 120 && inCity) { const sp = streetSpot(o); if (sp) { sc.x = sp[0]; sc.z = sp[1]; const a = sp[2] + (Math.random() - .5) * 0.6, talk = Math.random() < 0.75;
@@ -3072,6 +3072,49 @@ function updateStreetScenes(dt) {
       if (!G.onFoot && carMesh && h.visible) { const dx = G.car.x - h.position.x, dz = G.car.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 2.4) { const n = dc || 1; G.car.x += dx / n * (2.4 - dc); G.car.z += dz / n * (2.4 - dc); G.car.v = 0; } }
       else if (G.onFoot && h.visible) { const dx = G.me.x - h.position.x, dz = G.me.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 0.75) { const n = dc || 1; G.me.x += dx / n * (0.75 - dc); G.me.z += dz / n * (0.75 - dc); } } });
   });
+}
+// ---------- des chats de quartier autour de toi : assis sur le trottoir, ils détalent quand tu passes trop près
+const CATS = { list: [] };
+function updateCats(dt) {
+  if (!MODELS.cat) return; const o = target(), inCity = Math.abs(o.x) < HALF && Math.abs(o.z) < HALF && !G.inside;
+  if (!CATS.list.length) for (let k = 0; k < 7; k++) { const m = new THREE.Group(); m.add(modelInstance("cat")); m.visible = false; scene.add(m); CATS.list.push({ m, ok: false, run: 0 }); }
+  const fast = G.onFoot ? (G.me.v || 0) > 3.5 : Math.abs(G.car.v) > 3;
+  CATS.list.forEach(c => {
+    const d = c.ok ? Math.hypot(c.m.position.x - o.x, c.m.position.z - o.z) : 1e9;
+    if (inCity && (d > 90 || (!c.ok))) { const sp = streetSpot(o); if (sp) { const [x, z, r] = sp, off = (Math.random() < .5 ? 1 : -1) * (1.2 + Math.random() * 1.5); c.m.position.set(x + Math.sin(r) * off, 0.25, z + Math.cos(r) * off); c.m.rotation.y = Math.random() * 6.28; c.ok = true; c.run = 0; } }
+    c.m.visible = inCity && c.ok && d < 70; if (!c.m.visible) return;
+    if (!c.run && d < (G.onFoot ? 4 : 7) && fast) { c.run = 1.2; c.dir = Math.atan2(c.m.position.x - o.x, c.m.position.z - o.z) + (Math.random() - .5) * 0.8; c.m.rotation.y = c.dir; if (Math.random() < .5 && SND.ctx) meow(); }
+    if (c.run > 0) { c.run -= dt; c.m.position.x += Math.sin(c.dir) * 7 * dt; c.m.position.z += Math.cos(c.dir) * 7 * dt; c.m.position.y = 0.25 + Math.abs(Math.sin(c.run * 18)) * 0.08; if (c.run <= 0) { c.run = 0; c.m.position.y = 0.25; } }
+  });
+}
+function meow() { const c = SND.ctx; if (!c || !SND.on) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter(); o.type = "triangle"; o.frequency.setValueAtTime(620, t); o.frequency.linearRampToValueAtTime(900, t + 0.12); o.frequency.linearRampToValueAtTime(520, t + 0.38);
+  f.type = "bandpass"; f.frequency.value = 1200; f.Q.value = 2; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.08, t + 0.04); g.gain.linearRampToValueAtTime(0.0, t + 0.42); o.connect(f); f.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.45); }
+// ---------- petites disputes de rue (sans violence) : deux voisins s'emportent, puis se réconcilient
+const DISP = { pair: null, bub: [], t: 0, i: 0, x: 0, z: 0, ok: false, script: null };
+const DISP_SCRIPTS = [
+  ["C'était MA place de parking !", "J'étais là avant toi !", "Tu l'as vue arriver, ma voiture ?", "Bon… On se gare chacun son tour ?", "Ok. Désolé, je me suis emporté."],
+  ["Tu m'as même pas dit merci !", "J'étais pressé, c'est tout !", "Pressé, toujours pressé !", "T'as raison. Merci, vraiment.", "Ça me fait plaisir. Allez."],
+  ["Le dernier croissant, c'était le mien !", "Y avait pas ton nom dessus !", "Je l'avais réservé hier !", "Ok, je t'en ramène deux demain.", "Deux ? Marché conclu."],
+  ["Tu rends jamais ce que t'empruntes !", "Je te la rends, ta perceuse !", "Ça fait trois mois !", "Demain matin. Promis.", "Je note. Demain matin."],
+  ["T'avais dit 18 h, il est 19 h !", "Y avait des bouchons !", "Y a toujours des bouchons !", "La prochaine fois, je pars plus tôt.", "C'est tout ce que je demande."]
+];
+function bubbleSprite() { const c = document.createElement("canvas"); c.width = 512; c.height = 128; const t = new THREE.CanvasTexture(c); const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false })); sp.scale.set(3.2, 0.8, 1); sp.userData.c = c; sp.userData.t = t; sp.visible = false; scene.add(sp); return sp; }
+function bubbleText(sp, txt, hot) { const c = sp.userData.c, g = c.getContext("2d"); g.clearRect(0, 0, 512, 128); g.font = "600 34px Inter, system-ui, sans-serif"; const w = Math.min(500, g.measureText(txt).width + 44);
+  g.fillStyle = hot ? "rgba(255,255,255,.96)" : "rgba(235,245,255,.96)"; g.beginPath(); g.roundRect ? g.roundRect(256 - w / 2, 14, w, 78, 26) : g.rect(256 - w / 2, 14, w, 78); g.fill(); g.beginPath(); g.moveTo(240, 90); g.lineTo(256, 118); g.lineTo(272, 90); g.fill();
+  g.fillStyle = hot ? "#c0172f" : "#14202a"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(txt, 256, 54, 480); sp.userData.t.needsUpdate = true; }
+function updateDispute(dt) {
+  if (!HQ.ready) return; const o = target(), inCity = Math.abs(o.x) < HALF && Math.abs(o.z) < HALF && !G.inside;
+  if (!DISP.pair) { DISP.pair = [0, 1].map(() => { const h = makeHuman({ skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }); h.visible = false; scene.add(h); return h; }); DISP.bub = [bubbleSprite(), bubbleSprite()]; DISP.wait = 20; }
+  const d = DISP.ok ? Math.hypot(DISP.x - o.x, DISP.z - o.z) : 1e9;
+  if (!DISP.ok || d > 110) { DISP.wait -= dt; if (DISP.wait <= 0 && inCity) { const sp = streetSpot(o); if (sp) { DISP.x = sp[0]; DISP.z = sp[1]; const a = sp[2]; DISP.script = pick(DISP_SCRIPTS); DISP.i = -1; DISP.t = 0; DISP.ok = true;
+        DISP.pair.forEach((h, q) => { const sx = Math.cos(a) * 0.7 * (q ? 1 : -1), sz = -Math.sin(a) * 0.7 * (q ? 1 : -1); h.position.set(DISP.x + sx, 0.25, DISP.z + sz); h.rotation.y = Math.atan2(-sx, -sz); setClip(h, "Idle_Talking_Loop", 1.7); }); } } }
+  const vis = inCity && DISP.ok && d < 80; DISP.pair.forEach(h => { h.visible = vis; }); DISP.bub.forEach(b => { b.visible = false; }); if (!vis) return;
+  if (d < 35) { DISP.t -= dt; if (DISP.t <= 0) { DISP.i++; DISP.t = 2.4; if (DISP.i >= DISP.script.length + 2) { DISP.ok = false; DISP.wait = 90 + Math.random() * 60; return; }
+      const calm = DISP.i >= DISP.script.length - 2; DISP.pair.forEach(h => setClip(h, calm ? "Idle_Loop" : "Idle_Talking_Loop", calm ? 1 : 1.7));
+      if (DISP.i === DISP.script.length - 1 && !G.dispSeen) { G.dispSeen = true; stat("dispute-reconciliation"); } }
+    const k = DISP.i; if (k >= 0 && k < DISP.script.length) { const sp = DISP.bub[k % 2], h = DISP.pair[k % 2]; bubbleText(sp, DISP.script[k], k < DISP.script.length - 2); sp.position.set(h.position.x, 2.55, h.position.z); sp.visible = true; } }
+  if (!G.onFoot && carMesh) DISP.pair.forEach(h => { const dx = G.car.x - h.position.x, dz = G.car.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 2.4) { const n = dc || 1; G.car.x += dx / n * (2.4 - dc); G.car.z += dz / n * (2.4 - dc); G.car.v = 0; } });
+  else if (G.onFoot) DISP.pair.forEach(h => { const dx = G.me.x - h.position.x, dz = G.me.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 0.75) { const n = dc || 1; G.me.x += dx / n * (0.75 - dc); G.me.z += dz / n * (0.75 - dc); } });
 }
 // ---------- food truck sur la plage ouest : un vendeur fidèle au poste, une petite file d'attente
 const FT = { g: null, x: -HALF - 21, z: 0, people: [] };
@@ -3257,7 +3300,7 @@ function updateDirt(dt) {
   if (carMesh && (G.dirtMesh !== carMesh || Math.abs((G.dirtShown || 0) - P.dirt) > 0.02)) { G.dirtMesh = carMesh; G.dirtShown = P.dirt; applyDirt(carMesh, G.ride && G.ride.kind === "own" ? P.dirt : 0); }
 }
 function updateWorldLife(dt) {
-  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateCrossers(dt); updateSitters(dt); updateMechanics(dt); updateFoodTruck(); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
+  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateCrossers(dt); updateSitters(dt); updateMechanics(dt); updateFoodTruck(); updateCats(dt); updateDispute(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
   const cxp = camera.position.x, czp = camera.position.z;
   for (let i = 0; i < rentals.length; i++) { const r = rentals[i]; r.mesh.visible = (r.x - cxp) ** 2 + (r.z - czp) ** 2 < 52900; }
   const me = target();
@@ -5097,15 +5140,18 @@ function gate() {
   setMode("gate");
   show(`<div class="panel"><div class="kicker">Bêta · accès anticipé</div><h2>Tu veux continuer à jouer ?</h2>
     <p class="lead">Constancy évolue tous les jours : nouvelles missions, nouvelles voitures, nouveaux métiers. Inscris-toi pour garder ton accès et recevoir chaque nouvelle version avant tout le monde.</p>
-    ${SIGNUP_URL ? `<a class="btn" href="${SIGNUP_URL}" target="_blank" rel="noopener" data-focus>Je m'inscris</a>` : `<button class="btn" type="button" disabled>Inscriptions très bientôt</button>`}
+    ${SIGNUP_URL ? `<a class="btn" href="${SIGNUP_URL}" target="_blank" rel="noopener" data-focus>Je m'inscris</a>` : `<p class="lead" style="margin-top:-4px">Les nouveautés sortent d'abord sur nos comptes. Abonne-toi pour ne rien rater.</p>
+      <a class="btn" id="fIg" href="https://www.instagram.com/constancy.academy/" target="_blank" rel="noopener" data-focus>Suivre sur Instagram</a>
+      <a class="btn alt" id="fTt" href="https://www.tiktok.com/@constancy.academy" target="_blank" rel="noopener">Suivre sur TikTok</a>`}
     <button class="btn alt" id="cont" type="button">${SIGNUP_URL ? "C'est fait, je continue" : "Continuer à jouer"}</button></div>`);
   on("cont", () => { P.signed = true; saveNow(); startPlay(); });
+  ["fIg", "fTt"].forEach(id => { const e = $(id); if (e) e.addEventListener("click", () => stat(id === "fIg" ? "suivre-instagram" : "suivre-tiktok")); });
 }
 
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

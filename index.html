@@ -507,6 +507,7 @@ const RIDES = {
   voiture:     { name: "Voiture de location",    max: 44, price: 30, rad: 2.1, seat: false, car: true },
   avion:       { name: "Avion",                  max: 48, price: 0,  rad: 5,   seat: false, car: true, plane: true },
   airbus:      { name: "Avion de ligne",         max: 60, price: 0,  rad: 10,  seat: false, car: true, plane: true, big: true },
+  jetski:      { name: "Jet-ski",                max: 32, price: 0,  rad: 1.3, seat: true, boat: true },
   bateau:      { name: "Bateau",                 max: 26, price: 0,  rad: 3,   seat: false, car: true, boat: true }
 };
 const rentals = [];
@@ -956,6 +957,16 @@ function makeRide(kind) {
   const g = new THREE.Group();
   if (kind === "airbus") { const m = modelInstance("plane_liner"); if (m) g.add(m); return g; }
   if (kind === "avion") { const m = modelInstance("plane_small"); if (m) { g.add(m); addRotors(m, "plane_small", () => carMesh === g && !G.onFoot ? 14 + Math.abs(G.car.v) * 1.2 : 0); } else { const b = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 9), RENT_M); b.position.y = 1.4; g.add(b); const w = new THREE.Mesh(new THREE.BoxGeometry(11, 0.2, 1.8), RENT_M); w.position.set(0, 1.8, 0.6); g.add(w); } return g; }
+  if (kind === "jetski") {
+    const pink = new THREE.MeshPhongMaterial({ color: 0xff3fa4, shininess: 90, specular: 0xffffff }), white = new THREE.MeshPhongMaterial({ color: 0xf4f4f6, shininess: 90 }), black = new THREE.MeshLambertMaterial({ color: 0x15151a });
+    const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.78, 3.1, 10), white); hull.rotation.x = Math.PI / 2; hull.scale.set(1, 1, 0.42); hull.position.y = 0.2; g.add(hull);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.62, 1.1, 10), pink); nose.rotation.x = Math.PI / 2; nose.scale.set(1, 1, 0.42); nose.position.set(0, 0.22, 2.05); g.add(nose);
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.18, 2.2), pink); deck.position.set(0, 0.42, 0.1); g.add(deck);
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.22, 1.3), black); seat.position.set(0, 0.6, -0.35); g.add(seat);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.08), black); bar.position.set(0, 0.95, 0.75); g.add(bar);
+    const col = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.12), black); col.position.set(0, 0.72, 0.68); col.rotation.x = -0.4; g.add(col);
+    return g;
+  }
   if (kind === "bateau") {
     if (MODELS.yacht) { const m = modelInstance("yacht"); m.scale.setScalar(0.46); m.position.y = -MODELS.yacht.size.y * 0.46 * 0.2; g.add(m); }
     else { const w = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 70 }), hull = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, 9), w); hull.position.y = 0.2; g.add(hull); }
@@ -997,6 +1008,7 @@ function buildRentals() {
 
 /* --- personnages --- */
 function makeHuman(o) { return HQ.ready ? makeHumanQ(o) : makeHumanLegacy(o); }
+function bodyVar(h) { const r = Math.random(); if (r < 0.3) h.scale.set(1.3, 0.97, 1.24); else if (r < 0.5) h.scale.set(0.85, 1.04, 0.86); else if (r < 0.65) h.scale.set(1.05, 0.9, 1.05); else if (r < 0.75) h.scale.set(1.12, 1.06, 1.1); return h; }
 function makeHumanLegacy(o) {
   const g = new THREE.Group();
   const skin = new THREE.MeshLambertMaterial({ color: o.skin }), shirt = new THREE.MeshLambertMaterial({ color: o.shirt }), pants = new THREE.MeshLambertMaterial({ color: o.pants });
@@ -2258,6 +2270,18 @@ function cloudTexture() {
   for (let k = 0; k < 26; k++) { const x = 128 + (Math.random() - .5) * 140, y = 128 + (Math.random() - .5) * 70, r = 30 + Math.random() * 50; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, "rgba(255,255,255,.55)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 256, 256); }
   return new THREE.CanvasTexture(c);
 }
+const CTRAIL = { n: 900, i: 0, pts: null };
+function trailPuff(x, y, z) {
+  if (!CTRAIL.pts) { const g = new THREE.BufferGeometry(); CTRAIL.pos = new Float32Array(CTRAIL.n * 3).fill(-9999); CTRAIL.col = new Float32Array(CTRAIL.n * 3); CTRAIL.age = new Float32Array(CTRAIL.n).fill(99);
+    g.setAttribute("position", new THREE.BufferAttribute(CTRAIL.pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(CTRAIL.col, 3));
+    CTRAIL.pts = new THREE.Points(g, new THREE.PointsMaterial({ size: 2.6, map: glowTexture(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true })); CTRAIL.pts.frustumCulled = false; scene.add(CTRAIL.pts); }
+  const i = CTRAIL.i = (CTRAIL.i + 1) % CTRAIL.n; CTRAIL.pos[i * 3] = x; CTRAIL.pos[i * 3 + 1] = y; CTRAIL.pos[i * 3 + 2] = z; CTRAIL.age[i] = 0;
+}
+function updateTrails(dt) {
+  if (!CTRAIL.pts) return; const k = 0.55 + nightK * 0.1;
+  for (let i = 0; i < CTRAIL.n; i++) { const a = CTRAIL.age[i] += dt; const v = a > 4.5 ? 0 : (1 - a / 4.5) * k; CTRAIL.col[i * 3] = v; CTRAIL.col[i * 3 + 1] = v; CTRAIL.col[i * 3 + 2] = v * 1.02; }
+  CTRAIL.pts.geometry.attributes.color.needsUpdate = true; CTRAIL.pts.geometry.attributes.position.needsUpdate = true;
+}
 function emitDust(x, y, z, vx, vz, size) {
   const i = FX.i = (FX.i + 1) % FX.n;
   FX.pos[i * 3] = x; FX.pos[i * 3 + 1] = y; FX.pos[i * 3 + 2] = z; FX.v[i * 3] = vx + (Math.random() - .5); FX.v[i * 3 + 1] = 0.6 + Math.random() * 0.6; FX.v[i * 3 + 2] = vz + (Math.random() - .5);
@@ -2752,6 +2776,7 @@ function buildWorld() {
   addGeo(boatM, new THREE.BoxGeometry(6, 2.2, 15), HALF + 52, .4, bC(5) + 10); addGeo(boatM, new THREE.BoxGeometry(4, 1.6, 6), HALF + 52, 2.2, bC(5) + 8);
   addGeo(boatM, new THREE.BoxGeometry(5, 2, 12), HALF + 58, .4, bC(5) - 11);
   const ml = label("Marina", LM.mentor.color); ml.position.set(HALF + 30, 9, bC(5)); scene.add(ml);
+  [[HALF + 66, bC(5) + 16, Math.PI / 2], [HALF + 66, bC(5) + 20, Math.PI / 2], [-HALF - 60, bC(8) + 10, -Math.PI / 2]].forEach(([x, z, h]) => { const mesh = makeRide("jetski"); mesh.position.set(x, -0.2, z); mesh.rotation.y = h; scene.add(mesh); rentals.push({ kind: "jetski", mesh, x, z, h }); });
   [[HALF + 68, bC(5) + 6, Math.PI / 2], [HALF + 68, bC(5) - 6, Math.PI / 2], [-HALF - 62, bC(8), -Math.PI / 2]].forEach(([x, z, h]) => { const mesh = makeRide("bateau"); mesh.position.set(x, -0.2, z); mesh.rotation.y = h; scene.add(mesh); rentals.push({ kind: "bateau", mesh, x, z, h }); });
   buildBeachStatic(r);
   buildMountain(r);
@@ -2884,7 +2909,7 @@ function lodFor(h, opt) { const l = makeHumanLegacy(Object.assign({}, opt, { lit
 function lodSync(h, d, speed, dt, far = 30) { const l = h.userData.lod; if (!l) return; if (d > far && h.visible) { h.visible = false; l.visible = true; l.position.copy(h.position); l.rotation.y = h.rotation.y; animHuman(l, speed, dt); } else l.visible = false; }
 function buildPeds() {
   for (let k = 0; k < 36; k++) {
-    const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = makeHuman(opt); scene.add(h); lodFor(h, opt);
+    const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = bodyVar(makeHuman(opt)); scene.add(h); lodFor(h, opt);
     const i = Math.floor(rand(0, NB)); let j = Math.floor(rand(0, NB)); if (j === RIVER_J) j = RIVER_J - 1;
     peds.push({ mesh: h, i, j, t: rand(0, 144), speed: rand(1.3, 2.2) * (Math.random() < .5 ? 1 : -1), dodge: 0 });
   }
@@ -3188,7 +3213,7 @@ function streetSpot(o) {
 }
 function updateStreetScenes(dt) {
   if (!HQ.ready) return; const o = target(), inCity = Math.abs(o.x) < HALF && Math.abs(o.z) < HALF && !G.inside;
-  if (!STREET.list.length) for (let k = 0; k < 9; k++) { const pair = [0, 1].map(q => { const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = makeHuman(opt); scene.add(h); lodFor(h, opt); h.visible = false; return h; }); STREET.list.push({ pair, x: 1e5, z: 1e5 }); }
+  if (!STREET.list.length) for (let k = 0; k < 9; k++) { const pair = [0, 1].map(q => { const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = bodyVar(makeHuman(opt)); scene.add(h); lodFor(h, opt); h.visible = false; return h; }); STREET.list.push({ pair, x: 1e5, z: 1e5 }); }
   STREET.list.forEach((sc, k) => {
     const d = Math.hypot(sc.x - o.x, sc.z - o.z);
     if (d > 120 && inCity) { const sp = streetSpot(o); if (sp) { sc.x = sp[0]; sc.z = sp[1]; const a = sp[2] + (Math.random() - .5) * 0.6, talk = true;
@@ -3323,7 +3348,7 @@ function crossSpot(o, c) {
 }
 function updateCrossers(dt) {
   if (!HQ.ready) return; const o = target(), inCity = Math.abs(o.x) < HALF && Math.abs(o.z) < HALF && !G.inside;
-  if (!CROSS.list.length) for (let k = 0; k < 8; k++) { const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = makeHuman(opt); scene.add(h); lodFor(h, opt); h.visible = false; CROSS.list.push({ h, st: "new" }); }
+  if (!CROSS.list.length) for (let k = 0; k < 8; k++) { const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = bodyVar(makeHuman(opt)); scene.add(h); lodFor(h, opt); h.visible = false; CROSS.list.push({ h, st: "new" }); }
   CROSS.pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); CROSS.fr.setFromProjectionMatrix(CROSS.pm);
   const t = tlNow();
   CROSS.list.forEach(c => {
@@ -3831,13 +3856,13 @@ function collide0Terrain(o, swim) {
 function updateBoat(dt) {
   const c = G.car, inp = input();
   if (G.nitro == null) G.nitro = 100; const tb = G.turbo && G.nitro > 1 && inp.fwd >= 0; G.nitro = clamp(G.nitro + (tb ? -18 : 9) * dt, 0, 100); G.tbOn = tb;
-  const vmax = 24 * (tb ? 1.55 : 1) * (tb ? 1 : inp.fwd > 0 ? Math.max(0.35, inp.fwd) : 1);
+  const jet = G.ride.kind === "jetski", vmax = (jet ? 30 : 24) * (tb ? 1.55 : 1) * (tb ? 1 : inp.fwd > 0 ? Math.max(0.35, inp.fwd) : 1);
   if (inp.brake && !tb) c.v *= Math.pow(0.25, dt);
   else if (inp.fwd > 0 || tb) c.v = Math.min(vmax, c.v + (9 + (tb ? 8 : 0)) * dt);
   else if (inp.fwd < 0) c.v = Math.max(-5, c.v - 10 * dt);
   else c.v *= Math.pow(0.55, dt);
   c.s += (inp.side - c.s) * Math.min(1, dt * 4);
-  c.h -= c.s * 1.05 * dt * clamp(c.v / 5, -1, 1);
+  c.h -= c.s * (jet ? 1.7 : 1.05) * dt * clamp(c.v / 5, -1, 1);
   const nx = c.x + Math.sin(c.h) * c.v * dt, nz = c.z + Math.cos(c.h) * c.v * dt;
   const fx = nx + Math.sin(c.h) * 4 * Math.sign(c.v || 1), fz = nz + Math.cos(c.h) * 4 * Math.sign(c.v || 1);
   if (isWater(fx, fz) && Math.hypot(nx, nz + 450) < 2300) { c.x = nx; c.z = nz; } else { if (Math.abs(c.v) > 6) sfx.bump(); c.v *= -0.25; }
@@ -3845,7 +3870,13 @@ function updateBoat(dt) {
   carMesh.rotation.order = "YXZ"; carMesh.position.set(c.x, sea.position.y + 0.45 + Math.sin(t * 2.1) * 0.08 + Math.min(0.5, sp / 60), c.z);
   carMesh.rotation.set(-Math.min(0.1, sp / 220) + Math.sin(t * 1.7) * 0.02, c.h, -c.s * Math.min(1, sp / 20) * 0.12 + Math.sin(t * 1.3) * 0.02);
   if (carMesh.userData.wake) { carMesh.userData.wake.visible = sp > 2; carMesh.userData.wake.scale.set(1, 1, 0.4 + Math.min(1, sp / 20)); }
-  if (sp > 6 && Math.random() < 0.6) { FX.mat.uniforms.col.value.setHex(0xffffff); emitDust(c.x - Math.sin(c.h) * 5, 0.3, c.z - Math.cos(c.h) * 5, -Math.sin(c.h) * sp * 0.1, -Math.cos(c.h) * sp * 0.1, 1.2); }
+  if (sp > 6 && Math.random() < 0.6) { FX.mat.uniforms.col.value.setHex(0xffffff); emitDust(c.x - Math.sin(c.h) * (jet ? 1.8 : 5), 0.3, c.z - Math.cos(c.h) * (jet ? 1.8 : 5), -Math.sin(c.h) * sp * 0.1, -Math.cos(c.h) * sp * 0.1, 1.2); }
+  if (jet) { // gerbe d'eau en éventail derrière le jet-ski, éclaboussures sur les côtés dans les virages, pilote assis
+    const bx = c.x - Math.sin(c.h) * 1.9, bz = c.z - Math.cos(c.h) * 1.9, n = Math.min(4, Math.floor(sp / 5));
+    for (let q = 0; q < n; q++) { FX.mat.uniforms.col.value.setHex(0xf2fbff); emitDust(bx + (Math.random() - .5) * 0.6, 0.4 + Math.random() * (0.6 + sp / 14), bz + (Math.random() - .5) * 0.6, -Math.sin(c.h) * sp * (0.25 + Math.random() * 0.3), -Math.cos(c.h) * sp * (0.25 + Math.random() * 0.3), 0.7 + Math.random() * 0.8); }
+    if (Math.abs(c.s) > 0.4 && sp > 10) { const sd = -Math.sign(c.s), px = c.x + Math.cos(c.h) * sd * 0.8, pz = c.z - Math.sin(c.h) * sd * 0.8; emitDust(px, 0.5, pz, Math.cos(c.h) * sd * 5, -Math.sin(c.h) * sd * 5, 1.1); }
+    if (meMesh) { meMesh.visible = !G.fpv; meMesh.position.set(c.x - Math.sin(c.h) * 0.35, carMesh.position.y + 0.42, c.z - Math.cos(c.h) * 0.35); meMesh.rotation.set(0, c.h, carMesh.rotation.z); if (meMesh.userData.clip !== "Driving_Loop") setClip(meMesh, "Driving_Loop", 1, 0.05); }
+  }
 }
 /* ============ Avion (arcade) ============ */
 function planeGround(x, z) { return GH(x, z); }
@@ -3898,7 +3929,7 @@ function updatePlane(dt) {
     if (G.crash.splash) { carMesh.position.set(c.x, c.alt, c.z); return; } }
   if (!air && collide(c, 4.5)) c.v *= Math.pow(0.05, dt);
   carMesh.rotation.order = "YXZ"; carMesh.position.set(c.x, c.alt, c.z); carMesh.rotation.set(-c.pitch, c.h, -c.roll);
-  if (air && Math.random() < 0.5 && c.alt > 20) { FX.mat.uniforms.col.value.setHex(0xffffff); emitDust(c.x - Math.sin(c.h) * 7, c.alt + 1, c.z - Math.cos(c.h) * 7, 0, 0, 1.6); }
+  if (air && c.alt > 12) { const big = G.ride.kind === "airbus", wing = big ? 17 : 5.5, back = big ? 14 : 2.5, rx = Math.cos(c.h), rz = -Math.sin(c.h); [-1, 1].forEach(sd => trailPuff(c.x + rx * wing * sd - Math.sin(c.h) * back, c.alt + 0.4, c.z + rz * wing * sd - Math.cos(c.h) * back)); }
 }
 // hauteur du toit sous l'avion (blocs de la ville)
 function buildingTop(x, z) {
@@ -4008,7 +4039,7 @@ function updateSkid(dt, c, inp, sp, yaw, tb, onRoad) {
 function updateCar(dt) {
   if (!carMesh) return;
   if (G.ride && isPlane(G.ride.kind)) return updatePlane(dt);
-  if (G.ride && G.ride.kind === "bateau") return updateBoat(dt);
+  if (G.ride && RIDES[G.ride.kind] && RIDES[G.ride.kind].boat) return updateBoat(dt);
   const c = G.car, def = carDef(), inp = input();
   const inTownC = Math.abs(c.x) < HALF + 2 && Math.abs(c.z) < HALF + 2, onRoadC = inTownC || onHighway(c.x, c.z) || onAirport(c.x, c.z) || (c.z < -470 && (nearNat(c.x, c.z) < 8 || nearMRoad(c.x, c.z) < 7 || padMask(c.x, c.z) > 0.5));
   const offRoad = !onRoadC, ok4 = OFFROAD[G.ride.kind === "own" ? P.car : G.ride.kind] || G.ride.offroad;
@@ -4336,9 +4367,9 @@ function updateCamera(dt, follow) {
   }
   // 3 vues : proche et basse (caméra à hauteur de coffre, qui regarde légèrement vers le haut = contre-plongée), moyenne, lointaine ; à pied aussi un chouïa en contre-plongée ; la 4e est la vue intérieure (cockpit)
   const cv = G.camView || 0, sv = Math.abs(G.car.v), VC = [[6.9 + sv * 0.045, 1.6 + sv * 0.004, 2.2, 16], [9.2 + sv * 0.06, 2.05 + sv * 0.01, 2.1, 13], [13.5 + sv * 0.08, 3.4 + sv * 0.02, 1.9, 10]][Math.min(cv, 2)], VF = [[4.3, 1.62, 1.82, 4], [6.2, 2.0, 1.85, 5], [9, 3.0, 1.8, 4]][Math.min(cv, 2)];
-  const h = (foot ? o.h : G.car.h) + (G.lookYaw || 0), back = G.inside ? 4.6 : foot ? VF[0] : VC[0], up = (G.inside ? 3 : foot ? VF[1] : VC[1]) + (G.lookPitch || 0) * back * 0.9;
+  const h = (foot ? o.h : G.car.h) + (G.lookYaw || 0), back = (G.inside ? 4.6 : foot ? VF[0] : VC[0]) + (!foot && G.ride.kind === "jetski" ? 3.2 : 0), up = (G.inside ? 3 : foot ? VF[1] : VC[1]) + (!foot && G.ride.kind === "jetski" ? 0.9 : 0) + (G.lookPitch || 0) * back * 0.9;
   let tx = o.x - Math.sin(h) * back, tz = o.z - Math.cos(h) * back;
-  const gy = G.inside ? 0 : GH(o.x, o.z); let cy = up + Math.max(gy, G.inside ? 0 : GH(tx, tz));
+  const onBoat = !foot && RIDES[G.ride.kind] && RIDES[G.ride.kind].boat, gy = G.inside || onBoat ? 0 : GH(o.x, o.z); let cy = up + (onBoat ? 0.6 : 0) + Math.max(gy, G.inside || onBoat ? 0 : GH(tx, tz));
   const fc = camClip(o, tx, tz, cy, gy); G.camF = (G.camF || 1) + (fc - (G.camF || 1)) * Math.min(1, dt * (fc < (G.camF || 1) ? 14 : 2.5)); // contre un mur : la caméra se rapproche vite, puis recule en douceur
   if (G.camF < 0.999) { tx = o.x + (tx - o.x) * G.camF; tz = o.z + (tz - o.z) * G.camF; cy = gy + 1.6 + (cy - gy - 1.6) * Math.max(G.camF, 0.55); }
   const k = G.snapCam ? 1 : 1 - Math.exp(-dt * (foot ? 4 : 4.5) * (G.camF < 0.9 ? 2.5 : 1)); G.snapCam = false; // téléportation (porte, appart) : caméra posée directement
@@ -4395,7 +4426,7 @@ function updateGhost(dt) {
   g.mesh.rotation.order = "YXZ"; g.mesh.position.set(g.x, g.alt, g.z); g.mesh.rotation.set(-g.pitch, g.h, -g.roll);
   const gh = isWater(g.x, g.z) ? -0.6 : planeGround(g.x, g.z);
   if (g.alt <= gh + 0.5 || g.t > 60) {
-    FX.mat.uniforms.col.value.setHex(isWater(g.x, g.z) ? 0xe8f6ff : 0xcfc6b8); for (let q = 0; q < 120; q++) { const a = Math.random() * 6.28, sp = 2 + Math.random() * 8; emitDust(g.x + Math.cos(a) * 3, gh + 0.6, g.z + Math.sin(a) * 3, Math.cos(a) * sp, Math.random() * 7, Math.sin(a) * sp); }
+    FX.mat.uniforms.col.value.setHex(isWater(g.x, g.z) ? 0xe8f6ff : 0xcfc6b8); for (let q = 0; q < 120; q++) { const a = Math.random() * 6.28, sp = 2 + Math.random() * 8; emitDust(g.x + Math.cos(a) * 3, gh + 0.6, g.z + Math.sin(a) * 3, Math.cos(a) * sp, Math.sin(a) * sp, 1.6); }
     if (isWater(g.x, g.z) && sfx.splash) sfx.splash();
     const hm = g.home; g.mesh.rotation.set(0, hm.h, 0); g.mesh.position.set(hm.x, GH(hm.x, hm.z), hm.z); rentals.push({ kind: g.kind, mesh: g.mesh, x: hm.x, z: hm.z, h: hm.h, plane: true });
     G.ghost = null; feedPost("pig", "Un avion sans pilote vient de finir sa course dans la mer. Le pilote ? Il est descendu en parachute, tranquille. L'appareil est déjà de retour au hangar.");
@@ -5576,7 +5607,7 @@ function loop(now) {
   updateSound();
   for (let i = 0; i < ANIMATED.length; i++) { const g = ANIMATED[i]; if (!g.visible || !g.parent) continue; const gp = g.parent.isScene ? g.position : g.parent.position; if (gp.distanceToSquared(camera.position) < 160000 && (g.parent.isScene || g.parent.visible)) g.userData.mixer.update(dt); }
   if (mamieMesh && mamieMesh.userData.q && G.started) setClip(mamieMesh, G.alerts.mamieActive && !G.mission ? "Waving" : "Idle_Talking_Loop");
-  updateGlare(dt); updateGuideArrow(dt); updateRadio(); updateNightSky(dt); if ((loop.cf = (loop.cf || 0) + 1) % 15 === 0) cullChunks(); updateDinos(dt); updateWild(dt); updateSpin(dt); updateFx(dt); updateWeather(dt); updateFireworks(dt); updateUfo(dt); updateGhost(dt); sea.material.uniforms.time.value = now / 1000; sea.position.y = -0.62 + Math.sin(now / 1000 * 0.6) * 0.1; sea.position.x = Math.round(camera.position.x / 20) * 20; sea.position.z = Math.round(camera.position.z / 20) * 20; syncAllRigs(dt); updateHomeView(dt); renderer.render(scene, camera);
+  updateGlare(dt); updateGuideArrow(dt); updateRadio(); updateNightSky(dt); if ((loop.cf = (loop.cf || 0) + 1) % 15 === 0) cullChunks(); updateDinos(dt); updateWild(dt); updateSpin(dt); updateFx(dt); updateWeather(dt); updateFireworks(dt); updateUfo(dt); updateGhost(dt); updateTrails(dt); sea.material.uniforms.time.value = now / 1000; sea.position.y = -0.62 + Math.sin(now / 1000 * 0.6) * 0.1; sea.position.x = Math.round(camera.position.x / 20) * 20; sea.position.z = Math.round(camera.position.z / 20) * 20; syncAllRigs(dt); updateHomeView(dt); renderer.render(scene, camera);
 }
 
 /* ============ Commandes ============ */

@@ -1701,6 +1701,7 @@ function buildAviationLights() {
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(AVL.flat(), 3)); const pts = new THREE.Points(g, AVL_M); pts.frustumCulled = false; scene.add(pts);
   if (typeof TOWER !== "undefined" && TOWER && TOWER.h) { }
 }
+const BENCHES = []; // bancs des parcs (pour y asseoir des passants)
 function buildDistrictBlock(i, j, cx, cz, F, dist, r, M) {
   const D = districtMats(), z = zoneOf(i, j, dist, r), base = 0.25; ZONES.set(i + "," + j, z);
   if (z === "park") {
@@ -1710,7 +1711,7 @@ function buildDistrictBlock(i, j, cx, cz, F, dist, r, M) {
     addGeo(D.poolEdge, new THREE.CylinderGeometry(0.5, 0.7, 2.4, 10), cx, base + 1.2, cz);
     for (let k = 0; k < 7; k++) palm(cx + (r() - .5) * (F - 6), cz + (r() - .5) * (F - 6), r);
     grassTufts(cx, cz, F - 1, F - 1, 120, r, base + 0.1, (x, z) => Math.abs(x - cx) < 2.2 || Math.abs(z - cz) < 2.2 || Math.hypot(x - cx, z - cz) < 5.5, 0.3);
-    [[-8, 4], [8, -4], [4, 8], [-4, -8]].forEach(([ox, oz]) => { if (!addModelGeo("bench", cx + ox, base + 0.05, cz + oz, Math.abs(ox) > Math.abs(oz) ? Math.PI / 2 : 0)) addGeo(D.path, new THREE.BoxGeometry(2.4, 0.5, 0.8), cx + ox, base + 0.4, cz + oz); });
+    [[-8, 4], [8, -4], [4, 8], [-4, -8]].forEach(([ox, oz]) => { BENCHES.push({ x: cx + ox, z: cz + oz, y: base + 0.05, alongX: Math.abs(ox) < Math.abs(oz), face: Math.abs(ox) < Math.abs(oz) ? Math.atan2(0, Math.sign(oz)) : Math.atan2(Math.sign(ox), 0) }); if (!addModelGeo("bench", cx + ox, base + 0.05, cz + oz, Math.abs(ox) > Math.abs(oz) ? Math.PI / 2 : 0)) addGeo(D.path, new THREE.BoxGeometry(2.4, 0.5, 0.8), cx + ox, base + 0.4, cz + oz); });
     setBoxes(i, j, [[cx, cz, 4.6]]);
     return;
   }
@@ -3057,6 +3058,21 @@ function updateStreetScenes(dt) {
       else if (G.onFoot && h.visible) { const dx = G.me.x - h.position.x, dz = G.me.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 0.75) { const n = dc || 1; G.me.x += dx / n * (0.75 - dc); G.me.z += dz / n * (0.75 - dc); } } });
   });
 }
+// ---------- des gens assis sur les bancs des parcs (seuls ou à deux, en train de discuter)
+const SIT = { list: [], t: 0 };
+function updateSitters(dt) {
+  if (!HQ.ready || !BENCHES.length) return; const o = target(), inCity = Math.abs(o.x) < HALF && Math.abs(o.z) < HALF && !G.inside;
+  if (!SIT.list.length) for (let k = 0; k < 5; k++) { const pair = [0, 1].map(() => { const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = makeHuman(opt); scene.add(h); h.visible = false; return h; }); SIT.list.push({ pair, b: null }); }
+  SIT.list.forEach(sc => {
+    const d = sc.b ? Math.hypot(sc.b.x - o.x, sc.b.z - o.z) : 1e9;
+    if (inCity && d > 120) { const used = new Set(SIT.list.map(q => q.b)), cand = BENCHES.filter(b => !used.has(b) && Math.hypot(b.x - o.x, b.z - o.z) < 110 && Math.hypot(b.x - o.x, b.z - o.z) > 25);
+      if (cand.length) { const b = pick(cand); sc.b = b; sc.two = Math.random() < 0.6; const fx = Math.sin(b.face), fz = Math.cos(b.face);
+        sc.pair.forEach((h, q) => { const along = sc.two ? (q ? 0.5 : -0.5) : (Math.random() - .5) * 0.8, lx = b.alongX ? along : 0, lz = b.alongX ? 0 : along;
+          h.position.set(b.x + lx - fx * 0.2, b.y - 0.05, b.z + lz - fz * 0.2); h.rotation.y = b.face; h.userData.seated = sc.two || q === 0;
+          setClip(h, sc.two ? (Math.random() < .7 ? "Sitting_Talking_Loop" : "Sitting_Idle_Loop") : "Sitting_Idle_Loop", 0.85 + Math.random() * 0.3); }); } }
+    sc.pair.forEach(h => { const dd = Math.hypot(h.position.x - o.x, h.position.z - o.z); h.visible = inCity && !!sc.b && h.userData.seated && dd < 65; });
+  });
+}
 // ---------- piétons qui traversent aux passages piétons quand le feu est rouge pour les voitures
 const CROSS = { list: [], fr: new THREE.Frustum(), pm: new THREE.Matrix4(), v: new THREE.Vector3() };
 function crossSpot(o, c) {
@@ -3172,7 +3188,7 @@ function updateDirt(dt) {
   if (carMesh && (G.dirtMesh !== carMesh || Math.abs((G.dirtShown || 0) - P.dirt) > 0.02)) { G.dirtMesh = carMesh; G.dirtShown = P.dirt; applyDirt(carMesh, G.ride && G.ride.kind === "own" ? P.dirt : 0); }
 }
 function updateWorldLife(dt) {
-  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateCrossers(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
+  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateCrossers(dt); updateSitters(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
   const cxp = camera.position.x, czp = camera.position.z;
   for (let i = 0; i < rentals.length; i++) { const r = rentals[i]; r.mesh.visible = (r.x - cxp) ** 2 + (r.z - czp) ** 2 < 52900; }
   const me = target();
@@ -4957,7 +4973,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

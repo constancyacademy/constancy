@@ -125,6 +125,7 @@ body{font-family:var(--font-ui);-webkit-user-select:none;user-select:none;touch-
 /* ---------- Écrans ---------- */
 #screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:linear-gradient(180deg,rgba(5,5,5,.5),rgba(5,5,5,.88));overflow-y:auto;pointer-events:auto;touch-action:pan-y}
 #screen.clear{background:rgba(5,5,5,.6)}
+#screen.mail{z-index:55;background:radial-gradient(120% 70% at 50% 0%,rgba(255,63,164,.24),transparent 62%),linear-gradient(180deg,rgba(9,7,16,.93),rgba(9,7,16,.98))}
 .ptr{position:fixed;z-index:60;font-size:54px;line-height:1;color:#fff;text-shadow:0 0 18px rgba(255,45,85,.9),0 2px 0 #000;pointer-events:none;animation:ptrB 0.9s ease-in-out infinite alternate}
 .ptr.tr{top:calc(4px + env(safe-area-inset-top,0px));right:calc(18px + env(safe-area-inset-right,0px))}
 .ptr.br{bottom:calc(6px + env(safe-area-inset-bottom,0px));right:calc(22px + env(safe-area-inset-right,0px))}
@@ -454,11 +455,11 @@ const OUTFITS = {
 const SKIN_TONES = [0xf2cfb3, 0xc68a5e, 0x6e4a33];
 const GOALS = { livraison: { label: "Livraisons", color: COL.business }, salle: { label: "Séances", color: COL.physique }, mentor: { label: "Mentor", color: COL.mental }, mamie: { label: "Mamie", color: COL.env } };
 const CARS = [
-  { id: "citadine", name: "Citadine rafistolée", price: 0,     max: 32, color: 0xcfc6b4, statut: 0 },
-  { id: "coupe",    name: "Coupé Néon",          price: 2500,  max: 42, color: 0xff3fa4, statut: 8 },
-  { id: "suv",      name: "SUV Noir Mat",        price: 6000,  max: 44, color: 0x1a1a20, statut: 15 },
-  { id: "gt",       name: "GT Sunset",           price: 15000, max: 54, color: 0xff7a2f, statut: 25 },
-  { id: "hyper",    name: "Hyper Gold",          price: 40000, max: 66, color: 0xf6c945, statut: 40 }
+  { id: "citadine", name: "Citadine rafistolée", price: 0,     max: 40, color: 0xcfc6b4, statut: 0 },
+  { id: "coupe",    name: "Coupé Néon",          price: 2500,  max: 52, color: 0xff3fa4, statut: 8 },
+  { id: "suv",      name: "SUV Noir Mat",        price: 6000,  max: 54, color: 0x1a1a20, statut: 15 },
+  { id: "gt",       name: "GT Sunset",           price: 15000, max: 68, color: 0xff7a2f, statut: 25 },
+  { id: "hyper",    name: "Hyper Gold",          price: 40000, max: 84, color: 0xf6c945, statut: 40 }
 ];
 const QUIZ = [
   { q: "Tu te réveilles sans aucune motivation. Tu fais quoi ?", o: ["Je repousse à demain.", "Je fais une version réduite, mais je la fais.", "J'attends que l'envie revienne."], a: 1, e: "Les jours sans, tu baisses le volume. Tu ne lâches pas." },
@@ -500,8 +501,8 @@ const RIDES = {
   trottinette: { name: "Trottinette électrique", max: 14, price: 5,  rad: 0.8, seat: false },
   velo:        { name: "Vélo",                   max: 12, price: 3,  rad: 0.8, seat: true  },
   scooter:     { name: "Scooter",                max: 22, price: 10, rad: 1.0, seat: true  },
-  moto:        { name: "Moto",                   max: 40, price: 25, rad: 1.1, seat: true  },
-  voiture:     { name: "Voiture de location",    max: 36, price: 30, rad: 2.1, seat: false, car: true },
+  moto:        { name: "Moto",                   max: 50, price: 25, rad: 1.1, seat: true  },
+  voiture:     { name: "Voiture de location",    max: 44, price: 30, rad: 2.1, seat: false, car: true },
   avion:       { name: "Avion",                  max: 48, price: 0,  rad: 5,   seat: false, car: true, plane: true },
   airbus:      { name: "Avion de ligne",         max: 60, price: 0,  rad: 10,  seat: false, car: true, plane: true, big: true },
   bateau:      { name: "Bateau",                 max: 26, price: 0,  rad: 3,   seat: false, car: true, boat: true }
@@ -559,7 +560,7 @@ function startLoop(k) {
 }
 function loopVol(k, v, t, tc = 0.4) { const L = SND.loops[k]; if (L) L.g.gain.setTargetAtTime(v, t, tc); }
 // moteur échantillonné : un son par famille de véhicule, rejoué en boucle et accéléré selon la vitesse
-const ENG_SAMPLE = { citadine: ["engine", 0.66, 22], coupe: ["engine", 1.05, 30], suv: ["engine", 0.78, 28], voiture: ["engine", 0.9, 28], gt: ["race", 0.62, 40], hyper: ["race", 0.82, 46], avion: ["race", 0.34, 70], bateau: ["moto", 0.5, 30], moto: ["moto", 0.8, 34], scooter: ["scoot", 0.9, 20], trottinette: ["scoot", 1.15, 14] };
+const ENG_SAMPLE = { citadine: ["engine", 0.66, 22], coupe: ["v8", 0.95, 30], suv: ["v8", 0.62, 28], voiture: ["engine", 0.9, 28], gt: ["race", 0.62, 40], hyper: ["race", 0.82, 46], avion: ["moto", 0.42, 70], airbus: ["wind", 2.2, 90], bateau: ["moto", 0.5, 30], moto: ["moto", 0.8, 34], scooter: ["scoot", 0.9, 20], trottinette: ["scoot", 1.15, 14] };
 function engineSample(kind) {
   const c = SND.ctx, d = ENG_SAMPLE[kind], key = d && SND.buf && SND.buf[d[0]] ? d[0] : null;
   if (SND.engKey === key) return SND.engS ? d : null;
@@ -596,7 +597,7 @@ const ENGINE = {
   hyper: { b: 110, k: 9, f: 3200, v: 0.06, t: "square" }, voiture: { b: 45, k: 2.8, f: 600, v: 0.05, t: "sawtooth" },
   scooter: { b: 120, k: 6, f: 1400, v: 0.035, t: "square" }, moto: { b: 70, k: 7, f: 2200, v: 0.05, t: "sawtooth" },
   trottinette: { b: 300, k: 12, f: 900, v: 0.012, t: "sine" }, velo: null,
-  avion: { b: 60, k: 1.6, f: 700, v: 0.05, t: "sawtooth" }, bateau: { b: 48, k: 2.4, f: 520, v: 0.05, t: "sawtooth" }
+  avion: { b: 60, k: 1.6, f: 700, v: 0.05, t: "sawtooth" }, airbus: { b: 42, k: 0.8, f: 380, v: 0.07, t: "sawtooth" }, bateau: { b: 48, k: 2.4, f: 520, v: 0.05, t: "sawtooth" }
 };
 // musique sobre des menus et de la pause : nappe d'accords lente, filtrée, avec écho
 const CHORDS = [[220, 261.6, 329.6, 392], [174.6, 220, 261.6, 329.6], [130.8, 196, 246.9, 329.6], [196, 246.9, 293.7, 392]];
@@ -655,6 +656,8 @@ function updateSound() {
   const speed = Math.abs(G.car.v), prof = !P || G.onFoot || G.ride.kind === "none" ? null : ENGINE[G.ride.kind === "own" ? P.car : G.ride.kind], engOn = playing && prof;
   if (prof) { if (SND.eng.type !== prof.t) SND.eng.type = prof.t; SND.eng.frequency.setTargetAtTime(prof.b + speed * prof.k, t, 0.06); SND.filt.frequency.setTargetAtTime(prof.f + speed * 20, t, 0.1); }
   const kind = G.ride.kind === "own" ? (P && P.car) : G.ride.kind;
+  if (engOn && SND.ctx.state === "suspended") SND.ctx.resume();
+  if (engOn && SND.engKey && !SND.engS) SND.engKey = "__";
   const smp = engOn ? engineSample(kind) : engineSample(null), sport = kind === "gt" || kind === "hyper";
   SND.engGain.gain.setTargetAtTime(engOn ? prof.v * (0.55 + Math.min(1, speed / 30) * 0.6) * (smp ? (sport ? 0.45 : kind === "citadine" ? 0.55 : 0.15) : 1) : 0, t, 0.1);
   if (smp && SND.engS) {
@@ -1248,8 +1251,8 @@ const SND_FILES = { race: "assets/eng_race.mp3", moto: "assets/eng_moto.mp3", sc
 // face : direction du nez du modèle d'origine ; len : longueur voulue dans le monde (h : hauteur à la place)
 const MODEL_DEFS = {
   car_city: { len: 5.4 }, car_sport: { len: 5.7 }, car_taxi: { len: 5.6 }, car_police: { len: 5.7 }, car_suv: { len: 5.9 }, car_pickup: { len: 6.3 },
-  ambulance: { len: 7.4 }, bus: { len: 13 }, firetruck: { len: 10, face: "x" }, moto: { len: 2.5 },
-  plane_liner: { len: 64 }, plane_small: { len: 12, face: "-x" }, heli: { len: 15, face: "-x" },
+  ambulance: { len: 7.4 }, bus: { len: 13 }, firetruck: { len: 10, face: "x" }, moto: { len: 2.5, face: "-z" },
+  plane_liner: { len: 64 }, plane_small: { len: 12, face: "-z" }, heli: { len: 15, face: "-x" },
   yacht: { len: 24, face: "x" }, sailboat: { len: 10 }, gull: { len: 1.8, face: "x" }, shark: { len: 4.5, anim: "Swim" }, dolphin: { len: 3.2, anim: "Swim" },
   dog: { len: 1.3, anim: "Walk" }, cat: { h: 0.7 }, flamingo: { h: 1.7 }, trex: { len: 13, anim: "Walk" }, stego: { len: 10, anim: "Walk" }, trice: { len: 9, anim: "Walk" },
   hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 },
@@ -1891,6 +1894,7 @@ function updateWeather(dt) {
   SWAY.value += dt * (1 + WX.rain * 1.4);
   { const tt = performance.now() / 1000, wd = 0.6 + Math.sin(tt * 0.05) * 0.4; [FX.sock, FX.sock2].forEach((s, i) => { if (!s) return; s.rotation.set(Math.sin(tt * 3.3 + i) * 0.08, wd + Math.sin(tt * 0.9 + i) * 0.22, Math.PI / 2 - 0.12 - WX.rain * 0.1 + Math.sin(tt * 2.1 + i) * 0.1, "YXZ"); }); }
   if (FX.towerLight) FX.towerLight.visible = Math.floor(performance.now() / 900) % 2 === 0;
+  if (FX.towerHalo) { const br = 0.75 + Math.sin(performance.now() / 700) * 0.25; FX.towerHalo.material.opacity = nightK * 0.85 * br; FX.towerCore.material.opacity = nightK * br; const sc = 50 + br * 22; FX.towerHalo.scale.set(sc, sc, 1); }
   if (G.mode === "play" && WX.rain > 0.75 && performance.now() > WX.nextThunder) { WX.nextThunder = performance.now() + rand(14000, 32000); WX.flash = 1; const far = rand(400, 1500); setTimeout(() => thunder(clamp(1 - far / 1800, 0.15, 0.9)), far / 343 * 1000); }
   const show = WX.rain > 0.02 && !G.inside && G.mode !== "title";
   WX.lines.visible = show; if (!show) return;
@@ -2146,7 +2150,7 @@ function buildSupertall(cx, cz, F, mat, i, j) {
   const base = 0.25, tiers = [[17, 42], [16.2, 38], [15.2, 36], [14, 34], [12.6, 32], [11, 30], [9.4, 28], [7.8, 26], [6.2, 24], [4.6, 22]];
   const podium = new THREE.MeshPhongMaterial({ color: 0x1d2c3c, shininess: 90, specular: 0x88aacc, emissive: 0x0b1420 });
   addGeo(podium, new THREE.BoxGeometry(F, 6, F), cx, base + 3, cz); addGeo(new THREE.MeshLambertMaterial({ color: 0xe9e4dc }), new THREE.BoxGeometry(F + 0.6, 0.5, F + 0.6), cx, base + 6.2, cz);
-  FX.towerLed = FX.towerLed || new THREE.MeshLambertMaterial({ color: 0x8c96a3, emissive: 0xa9dcff, emissiveIntensity: 0 });
+  FX.towerLed = FX.towerLed || new THREE.MeshLambertMaterial({ color: 0x8c96a3, emissive: 0xff4fc8, emissiveIntensity: 0 });
   let y = base + 6;
   tiers.forEach(([L, H], k) => {
     for (let w = 0; w < 3; w++) { const a = w * Math.PI * 2 / 3 + Math.PI / 2, Lw = L * (1 - 0.07 * ((k + w) % 3)), mx = cx + Math.cos(a) * Lw / 2, mz = cz + Math.sin(a) * Lw / 2;
@@ -2158,6 +2162,8 @@ function buildSupertall(cx, cz, F, mat, i, j) {
   let sy = y + 14, r0 = 5.4; for (let k = 0; k < 6; k++) { const hh = 18; addGeo(k % 2 ? FX.towerLed : mat, new THREE.CylinderGeometry(r0 * 0.78, r0, hh, 14), cx, sy + hh / 2, cz); sy += hh; r0 *= 0.72; }
   addGeo(new THREE.MeshLambertMaterial({ color: 0xcfd6de }), new THREE.CylinderGeometry(0.15, 0.7, 36, 8), cx, sy + 18, cz); sy += 36;
   const red = new THREE.Mesh(new THREE.SphereGeometry(1.1, 10, 8), new THREE.MeshBasicMaterial({ color: 0xff2020 })); red.position.set(cx, sy, cz); scene.add(red); FX.towerLight = red; FX.towerTop = sy;
+  { const gt = glowTexture(); const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: gt, color: 0xff5ad2, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 })); halo.position.set(cx, sy, cz); halo.scale.set(60, 60, 1); scene.add(halo); FX.towerHalo = halo;
+    const core = new THREE.Sprite(new THREE.SpriteMaterial({ map: gt, color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 })); core.position.set(cx, sy, cz); core.scale.set(16, 16, 1); scene.add(core); FX.towerCore = core; }
   setBoxes(i, j, [[cx - F / 2, cz - F / 2, cx + F / 2, cz + F / 2, sy]]);
   const l = label("Tour Constancy", "#f2f0ec"); l.position.set(cx, base + 12, cz + F / 2 + 2); l.scale.set(18, 4.5, 1); scene.add(l);
   TOWER.x = cx; TOWER.z = cz;
@@ -2499,7 +2505,7 @@ function buildCountryside(r) {
     for (let i = 0; i < 14; i++) { const fx = x + 26 + i * 3.4, fz = z + 18; addModelGeo("c_fence", fx, csH(fx, fz), fz, 0, 1); }
     if (MODELS.c_tractor) addModelGeo("c_tractor", x + 14, csH(x + 14, z + 8), z + 8, a + 1.2, 1);
   };
-  [[330, -700, 0.3], [-520, -1100, 1.1], [316, -1250, -0.4], [-320, -880, 0.7], [-430, -1350, 0.2]].forEach(([x, z, a]) => farm(x, z, a));
+  [[330, -700, 0.3], [-520, -1100, 1.1], [410, -1255, -0.4], [-320, -880, 0.7], [-430, -1350, 0.2]].forEach(([x, z, a]) => farm(x, z, a));
   // village de Saint-Constant : maisons, clocher, café, place
   const vx = -170, vz = -1120;
   for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + r() * 0.2, rr = 38 + r() * 26, x = vx + Math.cos(a) * rr, z = vz + Math.sin(a) * rr; if (nearNat(x, z) < 12) continue; const h = csH(x, z), w = 8 + r() * 5, d = 8 + r() * 4, hg = 5 + r() * 4;
@@ -2850,7 +2856,7 @@ function addRotors(m, key, speedFn) {
     const d = new THREE.Mesh(new THREE.CircleGeometry(len / 2, 28), BLUR_M); if (axis === "y") d.rotation.x = -Math.PI / 2; r.add(d); return r; };
   // petit avion : on fait tourner SA propre hélice (le nez du modèle), au lieu d'ajouter une hélice flottante mal placée
   if (key === "plane_small") { let prop = null; m.traverse(o => { if (!prop && /propeller/i.test(o.name || "")) prop = o; });
-    if (prop) SPIN.push({ o: prop, ax: "x", f: speedFn || (() => 38) });
+    if (prop) SPIN.push({ o: prop, ax: "z", f: speedFn || (() => 38) });
     else { const r = mkRotor(S.y * 0.62, 0.16, "z"); r.position.set(0, S.y * 0.5, S.z / 2 + 0.08); m.add(r); SPIN.push({ o: r, ax: "z", f: speedFn || (() => 38) }); } }
   if (key === "heli") {
     const r = mkRotor(S.z * 0.92, 0.32, "y"); r.position.set(0, S.y * 0.97, S.z * 0.06); m.add(r); SPIN.push({ o: r, ax: "y", f: speedFn || (() => 26) });
@@ -2862,6 +2868,7 @@ function makePlane(kind) {
   const key = kind || (Math.random() < 0.6 ? "plane_liner" : "plane_small");
   if (MODELS[key]) {
     const g = new THREE.Group(), m = modelInstance(key); g.add(m); m.position.z = -MODELS[key].size.z / 2; addRotors(m, key);
+    m.traverse(o => { if (o.isMesh && o.material && !o.material.transparent && o.material.emissive) { o.material = o.material.clone(); o.material.emissive = new THREE.Color(0x5a5f69); } });
     TRAIL_MAT = TRAIL_MAT || new THREE.MeshBasicMaterial({ map: fadeTex(true), transparent: true, depthWrite: false, opacity: 0.8 });
     if (key === "plane_liner") [-9, 9].forEach(x => { const t = trail(260, 2.2, TRAIL_MAT); t.position.set(x, MODELS[key].size.y * 0.3, -MODELS[key].size.z * 0.55); g.add(t); });
     else { const t = trail(60, 1.2, TRAIL_MAT); t.position.set(0, 1, -MODELS[key].size.z * 0.6); t.material = TRAIL_MAT; g.add(t); }
@@ -3092,7 +3099,9 @@ const STREET = { list: [] };
 function streetSpot(o) {
   for (let t = 0; t < 12; t++) { const a = Math.random() * 6.28, d = 25 + Math.random() * 55, x = o.x + Math.cos(a) * d, z = o.z + Math.sin(a) * d, i = clamp(Math.round((x + HALF - ROAD / 2) / STEP), 0, NB), j = clamp(Math.round((z + HALF - ROAD / 2) / STEP), 0, NB);
     const alongX = Math.random() < .5, side = Math.random() < .5 ? 1 : -1, off = ROAD / 2 + 3.35, px = alongX ? x : rc(i) + side * off, pz = alongX ? rc(j) + side * off : z;
-    const bi = Math.floor((px + HALF) / STEP), bj = Math.floor((pz + HALF) / STEP); if (bj === RIVER_J || Math.abs(px) > HALF - 4 || Math.abs(pz) > HALF - 4) continue; return [px, pz, alongX ? 0 : Math.PI / 2]; }
+    const bi = Math.floor((px + HALF) / STEP), bj = Math.floor((pz + HALF) / STEP); if (bj === RIVER_J || Math.abs(px) > HALF - 4 || Math.abs(pz) > HALF - 4) continue;
+    { const al = alongX ? px : pz, k = clamp(Math.round((al + HALF - ROAD / 2) / STEP), 0, NB); if (Math.abs(al - rc(k)) < ROAD / 2 + WALK + 3) continue; } // pas au milieu d'un carrefour
+    return [px, pz, alongX ? 0 : Math.PI / 2]; }
   return null;
 }
 function updateStreetScenes(dt) {
@@ -3395,8 +3404,8 @@ function updateWorldLife(dt) {
 }
 
 /* ============ Ciel et heure ============ */
-const SKY_TOP = [[0, "#05061a"], [5, "#0e0f33"], [6.5, "#3b4a9a"], [9, "#2f7fd8"], [16, "#2f7fd8"], [18.5, "#4b3b8f"], [20, "#1a1240"], [22, "#070820"], [24, "#05061a"]];
-const SKY_BOT = [[0, "#0b0b22"], [5, "#25204a"], [6.5, "#ff9a6b"], [9, "#cfe8ff"], [16, "#cfe8ff"], [18.5, "#ff8a5c"], [20, "#7a3a6a"], [22, "#121030"], [24, "#0b0b22"]];
+const SKY_TOP = [[0, "#08041c"], [5, "#160c3a"], [6.5, "#4a4a9e"], [9, "#2f7fd8"], [16, "#2f7fd8"], [18.5, "#5a3a96"], [20, "#2a1050"], [22, "#0e0628"], [24, "#08041c"]];
+const SKY_BOT = [[0, "#1d0a33"], [5, "#3a1a55"], [6.5, "#ff8fa8"], [9, "#cfe8ff"], [16, "#cfe8ff"], [18.5, "#ff7a8a"], [20, "#c2368f"], [22, "#3a1050"], [24, "#1d0a33"]];
 const _c1 = new THREE.Color(), _c2 = new THREE.Color();
 function lerpKeys(keys, h, out) {
   for (let i = 0; i < keys.length - 1; i++) if (h >= keys[i][0] && h <= keys[i + 1][0]) { const k = (h - keys[i][0]) / (keys[i + 1][0] - keys[i][0]); _c1.set(keys[i][1]); _c2.set(keys[i + 1][1]); return out.copy(_c1).lerp(_c2, k); }
@@ -3413,9 +3422,11 @@ function applySky(h) {
   sun.intensity = 0.12 + day * 0.85; hemi.intensity = 0.32 + day * 0.55; if (IMG.sky) skyMat.uniforms.cloudK.value = 0.25 + day * 0.4;
   sun.color.setRGB(1, 0.75 + day * 0.2, 0.6 + day * 0.35);
   nightK = 1 - clamp(day * 1.8, 0, 1);
+  // Vice City : la nuit, la lumière d'ambiance vire au rose-violet (néons), sans délaver l'image
+  hemi.color.setRGB(1, 1 - nightK * 0.38, 1 - nightK * 0.08); hemi.groundColor.setRGB(0.23 + nightK * 0.2, 0.16, 0.23 + nightK * 0.22);
   winMats.forEach(m => m.emissiveIntensity = 0.06 + nightK * 0.9);
   if (DM.hw) { DM.hw[0].emissiveIntensity = nightK * 1.3; DM.hw[1].emissiveIntensity = nightK * 1.1; }
-  if (FX.towerLed) FX.towerLed.emissiveIntensity = 0.05 + nightK * 1.6;
+  if (FX.towerLed) FX.towerLed.emissiveIntensity = 0.05 + nightK * 2.1;
   if (AVL_M) AVL_M.opacity = (0.25 + nightK * 0.75) * (Math.floor(performance.now() / 900) % 2 ? 1 : 0.15);
   lampGlowMat.opacity = nightK * 0.95; if (lampPoolMat) lampPoolMat.opacity = nightK * 0.42 * (1 + WX.wet * 0.5); bulbMat.color.setRGB(0.47 + nightK * 0.53, 0.44 + nightK * 0.5, 0.4 + nightK * 0.3);
   const su = sea.material.uniforms; su.sunDir.value.copy(sd); su.sunCol.value.copy(skyMat.uniforms.sunCol.value); su.skyCol.value.copy(skyMat.uniforms.top.value).lerp(skyMat.uniforms.bottom.value, 0.5);
@@ -3772,7 +3783,7 @@ function updatePlane(dt) {
     else if (thr > 0) c.v = Math.min(vmax, c.v + (7 + (tb ? 9 : 0)) * thr * dt);
     else if (inp.fwd < 0) c.v = Math.max(-3, c.v - 12 * dt);
     else c.v *= Math.pow(0.7, dt);
-    c.h -= inp.side * 0.8 * dt * clamp(c.v / 6, -1, 1);
+    c.h -= inp.side * (G.ride.kind === "airbus" ? 0.55 : 1.1) * dt * clamp(c.v / 2.5, -1, 1) * (Math.abs(c.v) < 0.3 && thr > 0 ? 0 : 1); if (Math.abs(c.v) < 4 && Math.abs(inp.side) > 0.2 && thr > 0.05) c.v = Math.max(c.v, 3);
     c.alt = gh; c.pitch += (0 - c.pitch) * Math.min(1, dt * 5); c.roll += (0 - c.roll) * Math.min(1, dt * 5);
     if (c.v > 29 && thr > 0.55 && !isWater(c.x, c.z)) { c.alt = gh + 0.8; c.pitch = 0.16; if (!G.flyHint) { G.flyHint = true; help("<b>Décollage !</b> Haut = monter · bas = descendre · côtés = virer. Pour atterrir : descends doucement au-dessus d'une piste, ou touche SORTIR (pilote automatique).", 7); } sfx.door && 0; }
   } else {
@@ -3972,15 +3983,15 @@ function updateMe(dt) {
   if (SCOPE.on) { if (!scopeNear()) toggleScope(); G.me.speed = 0; return; }
   const me = G.me, inp = input();
   // sprint : pousser le doigt (ou la souris) bien au-delà du rond, ou Maj au clavier ; dans le rond on court vite sans fatigue
-  const full = G.joy ? (G.joy.over > 1.45 && -G.joy.y > 0.6) : (keys.has("ShiftLeft") || keys.has("ShiftRight"));
+  const full = G.joy ? (G.joy.over > 1.45 && -G.joy.y > 0.6) : (keys.has("ShiftLeft") || keys.has("ShiftRight")), far = G.joy ? G.joy.over > 2.15 : G.sprintHold > 1.2;
   G.sprintHold = full && inp.fwd > 0.5 ? G.sprintHold + dt : 0;
   G.sprint = G.sprintHold > 0.08 && G.energy > 2;
   // 3 allures : course (dans le rond), sprint (au-delà), puis sprint max en rouge après une seconde : on va beaucoup plus vite
-  G.sprintMax = G.sprint && G.sprintHold > 0.9 && !G.swimming;
-  if (G.sprint) G.energy = Math.max(0, G.energy - (G.sprintMax ? 9 : 5) * dt); else G.energy = Math.min(100, G.energy + (inp.fwd > 0.1 ? 4 : 10) * dt);
+  G.sprintMax = G.sprint && far && G.sprintHold > 0.15; if (G.sprintMax) G.maxHold = (G.maxHold || 0) + dt; else G.maxHold = 0;
+  if (G.sprint) G.energy = Math.max(0, G.energy - (G.sprintMax ? 8 : 3.2) * dt); else G.energy = Math.min(100, G.energy + (inp.fwd > 0.1 ? 4 : 10) * dt);
   $("joy").classList.toggle("sprint", G.sprint && !G.sprintMax); $("joy").classList.toggle("max", !!G.sprintMax);
   me.turn = (me.turn || 0) + (inp.side - (me.turn || 0)) * Math.min(1, dt * 11); me.h -= me.turn * 2.6 * dt;
-  const tgtV = inp.fwd > 0.05 ? (G.sprint ? (G.sprintMax ? 13.5 + clamp((G.sprintHold - 0.9) / 0.8, 0, 1) * 8 : 13.5) : 2.4 + inp.fwd * 6.2) : inp.fwd < -0.05 ? -2.4 : 0; // courir est gratuit, seul le sprint consomme
+  const tgtV = inp.fwd > 0.05 ? (G.sprint ? (G.sprintMax ? 16 + clamp(G.maxHold / 0.8, 0, 1) * 8 : 15) : 3 + inp.fwd * 8.5) : inp.fwd < -0.05 ? -2.4 : 0; // courir est gratuit, seul le sprint consomme
   { const cur = me.v || 0, rate = Math.abs(tgtV) > Math.abs(cur) ? (G.sprint ? 16 : 22) : 26; me.v = cur + clamp(tgtV - cur, -rate * dt, rate * dt); if (G.inside) me.v = tgtV; }
   const speed = me.v;
   if ((me.jy || 0) > 0) { me.vy -= 15 * dt; me.jy += me.vy * dt; if (me.jy <= 0) { me.jy = 0; me.vy = 0; } }
@@ -3993,7 +4004,7 @@ function updateMe(dt) {
   const water = !G.inside && isWater(me.x, me.z);
   if (water) {
     if (!G.swimming) { G.swimming = true; me.jy = 0; me.vy = 0; sfx.splash(); if (!P.swimTip) { P.swimTip = true; help("Tu nages. Rejoins un quai ou la plage pour sortir de l'eau : tu te hisses tout seul.", 5); } }
-    me.x -= Math.sin(me.h) * speed * dt * (G.energy > 5 ? 0.55 : 0.7); me.z -= Math.cos(me.h) * speed * dt * (G.energy > 5 ? 0.55 : 0.7);
+    { const sl = G.sprintMax ? 0.12 : G.sprint ? 0.25 : (G.energy > 5 ? 0.5 : 0.7); me.x -= Math.sin(me.h) * speed * dt * sl; me.z -= Math.cos(me.h) * speed * dt * sl; }
     if (false) {
     if (G.energy <= 0) { G.swimming = false; fade(() => { const a = Math.atan2(me.z, me.x); me.x = Math.cos(a) * (SHORE - 12); me.z = Math.sin(a) * (SHORE - 12); me.x = clamp(me.x, -SHORE + 12, SHORE - 12); me.z = clamp(me.z, -SHORE + 12, SHORE - 12); G.energy = 40; }); help("Tu as coulé… Un maître-nageur t'a ramené sur la plage."); }
     }
@@ -4317,7 +4328,7 @@ function storyStart() {
 }
 function storyCheck(force) {
   const k = storyStep(); if (!k) return; const st = STORY_STEPS[k];
-  if (force || (st.done && st.done())) { stat("mission-" + k); P.storyI = (P.storyI || 0) + 1; saveNow(); G.gpsDest = null;
+  if (force || (st.done && st.done())) { stat("mission-" + k); G.emailAfterMission = (P.playS || 0) + 7; P.storyI = (P.storyI || 0) + 1; saveNow(); G.gpsDest = null;
     const nk = storyStep(); if (nk) setTimeout(storyStart, 2500); else setTimeout(() => notify("gold", "<b>Tu as lancé la machine.</b> À partir d'ici, c'est quartier libre : chaque journée où tu reviens, tu avances. C'est ça, <b>Constancy</b>.", 9), 2500); }
 }
 function startKebab(courses) {
@@ -4657,6 +4668,55 @@ function useJoker() { if (!G.stars || P.jokers <= 0) return; P.jokers--; G.stars
 const screen = $("screen");
 function show(html, cls = "") { screen.className = cls; screen.innerHTML = html; screen.classList.remove("hidden"); const f = screen.querySelector("[data-focus]"); if (f) f.focus({ preventScroll: true }); }
 function hideScreen() { screen.classList.add("hidden"); screen.innerHTML = ""; }
+/* ---------- e-mail des joueurs → Kit (formulaire « Constancy · Joueurs ») ---------- */
+const KIT_FORM = ""; // identifiant du formulaire Kit (vide = on garde l'adresse en attente sur le téléphone)
+const EMAIL_GATE_S = 120;
+const GFORM = "https://docs.google.com/forms/d/e/1FAIpQLSfgcY6KTadD9c1LdzIL3WmtBz8ZlVWjpta8SI4ibkqrQ_5P-g/formResponse"; // Google Form de secours (réponses → Google Sheet)
+const GFORM_ENTRY = "entry.705392280"; // secondes de jeu avant de demander l'e-mail
+function kitQueue() { try { return JSON.parse(localStorage.getItem("constancy-kitq") || "[]"); } catch (e) { return []; } }
+function kitSave(q) { try { localStorage.setItem("constancy-kitq", JSON.stringify(q)); } catch (e) {} }
+function kitSend(email) {
+  if (GFORM) { const b = new URLSearchParams(); b.append(GFORM_ENTRY, email);
+    return fetch(GFORM, { method: "POST", body: b, mode: "no-cors" }); }
+  if (!KIT_FORM) return Promise.reject(new Error("no-form"));
+  const fd = new FormData(); fd.append("email_address", email); fd.append("tags[]", "jeu-constancy");
+  return fetch("https://app.kit.com/forms/" + KIT_FORM + "/subscriptions", { method: "POST", body: fd, mode: "no-cors" });
+}
+function kitFlush() { const q = kitQueue(); if (!q.length || !(KIT_FORM || GFORM) || navigator.onLine === false) return; const left = []; let n = q.length;
+  q.forEach(e => kitSend(e).then(() => { if (--n === 0) kitSave(left); }).catch(() => { left.push(e); if (--n === 0) kitSave(left); })); }
+const EMAIL_BONUS = 500, EMAIL_MAX_ASK = 3, EMAIL_SNOOZE_S = 420;
+function emailMoment(dt) { // le bon moment : juste après une mission, ou quand le joueur souffle (arrêté), sinon au plus tard à 4 min
+  if (P.email || CREATOR || G.emailGate || G.mode !== "play" || G.entering || G.inside) return;
+  if ((P.emailAsks || 0) >= EMAIL_MAX_ASK) return;
+  P.playS = (P.playS || 0) + dt; const t = P.playS;
+  if (t < (P.emailNext || 150)) return;
+  const still = G.onFoot ? (G.me.speed || G.me.v || 0) < 0.6 : Math.abs((G.car && G.car.v) || 0) < 1;
+  G.emailStill = still ? (G.emailStill || 0) + dt : 0;
+  const afterMission = G.emailAfterMission && t > G.emailAfterMission;
+  if (afterMission || G.emailStill > 2.5 || t > (P.emailNext || 150) + 90) { G.emailAfterMission = 0; openEmailGate(); }
+}
+function openEmailGate() {
+  if (G.emailGate) return; G.emailGate = true; P.emailAsks = (P.emailAsks || 0) + 1; setMode("email"); stat("ecran-email-" + P.emailAsks);
+  const perk = (ic, b, t) => `<div style="display:flex;gap:12px;align-items:flex-start"><span style="flex:0 0 34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:rgba(255,63,164,.16);border:1px solid rgba(255,63,164,.4);font-size:17px">${ic}</span><span style="font-size:14px;line-height:1.4;color:#dcd8e2"><b style="color:#fff">${b}</b><br>${t}</span></div>`;
+  show(`<div class="panel" style="gap:16px"><div class="kicker" style="color:#ff6fbf">Accès anticipé · Bêta</div>
+    <h2>Joue les prochaines versions avant tout le monde.</h2>
+    <div class="card" style="gap:14px;background:linear-gradient(160deg,rgba(255,63,164,.10),rgba(120,70,255,.08) 60%,rgba(14,13,18,.92));border-color:rgba(255,63,164,.35)">
+      ${perk("🎮", "Les nouvelles bêtas en avant-première", "Nouveaux quartiers, véhicules et missions : Tu les testes avant leur sortie.")}
+      ${perk("💾", "Ta progression gardée", "Ton perso, ton cash et ta série restent liés à ton adresse.")}
+      ${perk("🎁", "+$" + fmt(EMAIL_BONUS) + " offerts tout de suite", "Un bonus de bienvenue, versé dans ton compte en jeu.")}
+    </div>
+    <input id="em" class="linkbox" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="ton@email.com" data-focus style="-webkit-user-select:text;user-select:text;text-align:left;margin:0;font-size:16px;padding:14px">
+    <div id="emErr" class="note" style="color:#ff6b8a;min-height:16px;margin-top:-8px"></div>
+    <button class="btn pink" id="emGo" type="button" style="margin-top:-6px">Je veux l'accès anticipé</button>
+    <button class="btn alt" id="emLater" type="button" style="font-size:15px;padding:11px">Plus tard</button>
+    <p class="note" style="opacity:.75;margin:0;text-align:center">Un e-mail seulement quand une nouvelle version sort. Jamais de spam · Désinscription en 1 clic.</p></div>`, "mail");
+  const inp = $("em"), go = () => { const v = (inp.value || "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(v)) { $("emErr").textContent = "Vérifie ton adresse e-mail."; return; }
+    P.email = v; addCash(EMAIL_BONUS); saveNow(); stat("email-ok"); const q = kitQueue(); q.push(v); kitSave(q); kitFlush();
+    G.emailGate = false; resume(); celebrate(4); notify("gold", "<b>Tu es sur la liste.</b> Tu recevras la prochaine bêta avant tout le monde. <b style=\"color:var(--cash)\">+$" + fmt(EMAIL_BONUS) + "</b> versés.", 6); };
+  on("emGo", go); inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+  on("emLater", () => { stat("email-plus-tard"); P.emailNext = (P.playS || 0) + EMAIL_SNOOZE_S; saveNow(); G.emailGate = false; resume(); });
+}
 function setMode(m) {
   G.mode = m; const play = m === "play";
   $("hud").classList.toggle("hidden", !G.started);
@@ -4794,7 +4854,8 @@ function addInstallButton() {
     const pt = document.createElement("div"); pt.className = "ptr tr"; pt.textContent = "⬈"; screen.appendChild(pt);
   }
   if (!E.mobile && !installEvt) { const b0 = document.createElement("button"); b0.className = "btn alt"; b0.type = "button"; b0.textContent = "Jouer sur mon téléphone"; panel.insertBefore(b0, panel.querySelector(".note")); b0.addEventListener("click", () => installGuide()); return; }
-  const b = document.createElement("button"); b.className = "btn alt"; b.type = "button"; b.textContent = E.app ? `Ouvrir dans ${E.ios ? "Safari" : "Chrome"}` : "Installer l'appli (gratuit)"; panel.insertBefore(b, panel.querySelector(".note"));
+  const b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = E.app ? `Ouvrir dans ${E.ios ? "Safari" : "Chrome"}` : "📲 Installer l'appli gratuite"; b.style.cssText = "background:linear-gradient(135deg,#ff2d55,#ff4fc8);color:#fff;border:0;box-shadow:0 0 24px rgba(255,79,200,.45)";
+  { const first = panel.querySelector(".btn"); panel.insertBefore(b, first || panel.querySelector(".note")); }
   b.addEventListener("click", async () => {
     if (installEvt && !E.app) { stat("installation-directe"); installEvt.prompt(); try { await installEvt.userChoice; } catch (e) {} installEvt = null; return; }
     installGuide();
@@ -4897,6 +4958,7 @@ function welcomeBack() {
     <button class="btn" id="wgo" data-focus type="button">C'est parti</button></div>`);
   G.pendingHelp = null; on("shareS", shareStreak); on("wgo", startPlayHome);
 }
+setTimeout(kitFlush, 4000); window.addEventListener("online", kitFlush);
 function startPlayHome() { G.homeStart = true; startPlay(); }
 function startPlay() {
   if (!G.statDay || G.statDay !== P.day) { G.statDay = P.day; stat(P.day === 1 ? "partie-lancee" : "retour-jour-" + Math.min(P.day, 30)); }
@@ -5271,6 +5333,7 @@ function loop(now) {
     if (beam && (G.onFoot || !carMesh || (G.ride && (isPlane(G.ride.kind) || G.ride.kind === "bateau")))) beam.visible = false;
     if (G.wantExit && !G.onFoot && !G.entering) { G.car.v *= Math.pow(0.004, dt); if (Math.abs(G.car.v) < 4) { G.car.v = 0; G.wantExit = false; toggleCar(); } } else if (G.onFoot) G.wantExit = false;
     updateReminders(dt);
+    emailMoment(dt);
     G.feedT = (G.feedT || 0) + dt; if (G.feedT > 125) { G.feedT = 0; feedAuto(); }
     G.offerT = (G.offerT || 0) + dt; G.vtcT = (G.vtcT == null ? 90 : G.vtcT) - dt; G.voisT = (G.voisT == null ? 60 : G.voisT) - dt; if (G.offerT > 5) { G.offerT = 0; if (!storyStep() || P.day > 1) offerDaily(); offerVtc(); offerVoisin(); }
     updateDoorClose(dt);

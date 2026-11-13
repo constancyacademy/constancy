@@ -4521,11 +4521,14 @@ function titleScreen() {
   show(`<div class="panel"><div class="kicker">${CREATOR ? "Mode créateur · tout débloqué" : "Bêta · accès anticipé"}</div><div class="logo" id="logoTap">Constancy</div>
     <div class="tag">Livreur aujourd'hui.<br><em>Empire demain.</em></div>
     <p class="lead">Tu pars de zéro. Fauché, une voiture qui tient avec du scotch, pas un muscle. Mission après mission, jour après jour, tu fais de ton perso une légende.</p>
-    ${saved ? `<button class="btn" id="cont" data-focus type="button">Continuer · jour ${saved.day} · $${fmt(saved.cash)}</button><button class="btn alt" id="newg" type="button">Nouvelle partie</button>` : `<button class="btn" id="newg" data-focus type="button">Lancer ma partie</button>`}
+    ${saved ? `<button class="btn" id="cont" data-focus type="button">Continuer · jour ${saved.day} · $${fmt(saved.cash)}</button><button class="btn alt" id="newg" type="button">Nouvelle partie</button>` : `<button class="btn" id="quick" data-focus type="button">Jouer maintenant</button><button class="btn alt" id="newg" type="button">Créer mon perso d'abord</button>`}
     <button class="btn alt" id="tcodeBtn" type="button" style="font-size:14px">J'ai un code de partie</button>
     <p class="note">Téléphone : pose ton pouce en bas de l'écran et glisse vers le haut pour avancer, vers le bas pour reculer, sur les côtés pour tourner. Ordinateur : flèches ou ZQSD, Espace pour freiner, F pour sortir de la voiture, Maj pour sprinter à pied. Sur téléphone, pousse le doigt au-delà du rond pour sprinter.</p></div>`);
   on("cont", () => { audioInit(); P = Object.assign(freshSave(saved.objective, saved.muscle), saved); P.counts = P.counts || {}; if (P.jokers == null) P.jokers = 2; dailyReturn(); startPlay(); });
   on("newg", () => { audioInit(); saved ? confirmNew() : createAvatar(); });
+  on("quick", () => { // démarrage en un toucher : perso par défaut, objectif « plus de cash », premier palier ; tout reste modifiable plus tard
+    audioInit(); stat("demarrage-rapide"); pickObj = "cash"; pickMus = look.gender === "femme" ? "fessiers" : "bras"; pickTier = 0;
+    P = freshSave(pickObj, pickMus); P.look = Object.assign({}, look); P.goal = { type: pickObj, tier: 0, base: 0 }; saveNow(); startPlay(); });
   on("tcodeBtn", () => openTransfer(true));
   addInstallButton();
   // la musique démarre au premier contact (les navigateurs bloquent le son avant)

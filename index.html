@@ -632,6 +632,12 @@ function coo(vol) {
   o.type = "sine"; o.frequency.setValueAtTime(380, t); o.frequency.exponentialRampToValueAtTime(290, t + 0.5); lfo.frequency.value = 22; lg.gain.value = vol * 0.6; lfo.connect(lg); lg.connect(g.gain);
   g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.06); g.gain.linearRampToValueAtTime(0, t + 0.55); o.connect(g); g.connect(c.destination); o.start(t); lfo.start(t); o.stop(t + 0.6); lfo.stop(t + 0.6);
 }
+function bark(vol, big) { // aboiement synthétisé : « wouf wouf »
+  const c = SND.ctx; if (!c || !SND.on || vol < 0.01) return; const t0 = c.currentTime, n = Math.random() < .6 ? 2 : 1;
+  for (let k = 0; k < n; k++) { const t = t0 + k * 0.22, o = c.createOscillator(), f = c.createBiquadFilter(), g = c.createGain(), f0 = (big ? 230 : 420) * (0.9 + Math.random() * 0.2);
+    o.type = "sawtooth"; o.frequency.setValueAtTime(f0 * 1.25, t); o.frequency.exponentialRampToValueAtTime(f0 * 0.7, t + 0.13); f.type = "bandpass"; f.frequency.value = big ? 700 : 1100; f.Q.value = 1.2;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.001, t + 0.16); o.connect(f); f.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.18); }
+}
 function ambientEvents(pos, inCity) {
   if (!pos || G.inside) return; const f = 1 / 60, day = nightK < 0.45;
   if (inCity > 0.6 && Math.random() < f / 22) { let best = 1e9; traffic.forEach(a => { const d = Math.hypot(a.x - pos.x, a.z - pos.z); if (d < best) best = d; }); if (best < 90) horn(clamp(1 - best / 90, 0, 1) * 0.09); }
@@ -2969,7 +2975,11 @@ function updateLife(dt) {
   life.gulls.forEach(gl => { gl.a += gl.s * dt; gl.mesh.position.set(Math.cos(gl.a) * gl.r, gl.y + Math.sin(T * 0.8 + gl.ph) * 2, Math.sin(gl.a) * gl.r); gl.mesh.rotation.set(0, -gl.a + (gl.s < 0 ? Math.PI : 0), gl.s < 0 ? 0.3 : -0.3, "YXZ"); });
   life.sharks.forEach(sh => { seaStep(sh, dt); sh.mesh.position.set(Math.cos(sh.a) * sh.r, -0.6, Math.sin(sh.a) * sh.r); sh.mesh.rotation.y = -sh.a + (sh.s < 0 ? Math.PI : 0); });
   life.dolphins.forEach(d => { seaStep(d, dt); const j = Math.sin(T * 1.6 + d.ph); d.mesh.position.set(Math.cos(d.a) * d.r, -0.9 + Math.max(0, j) * 3.2, Math.sin(d.a) * d.r); d.mesh.rotation.set(-Math.cos(T * 1.6 + d.ph) * 0.7, -d.a, 0, "YXZ"); });
-  life.dogs.forEach(dg => { const pm = dg.ped.mesh; dg.mesh.visible = pm.visible; if (!pm.visible) return; const h = pm.rotation.y; dg.mesh.position.set(pm.position.x - Math.sin(h) * 1.6 + Math.cos(h) * 0.7, pm.position.y, pm.position.z - Math.cos(h) * 1.6 - Math.sin(h) * 0.7); dg.mesh.rotation.y = h; });
+  life.dogs.forEach(dg => { const pm = dg.ped.mesh; dg.mesh.visible = pm.visible; if (!pm.visible) return; const h = pm.rotation.y; dg.mesh.position.set(pm.position.x - Math.sin(h) * 1.6 + Math.cos(h) * 0.7, pm.position.y, pm.position.z - Math.cos(h) * 1.6 - Math.sin(h) * 0.7); dg.mesh.rotation.y = h;
+    // il aboie quand tu passes tout près (en voiture qui roule, ou à pied en courant)
+    const tg = target(), dd = Math.hypot(dg.mesh.position.x - tg.x, dg.mesh.position.z - tg.z), fast = G.onFoot ? (G.me.v || 0) > 3 : Math.abs(G.car.v) > 4;
+    if (dd < 6 && fast && (!dg.barkT || performance.now() - dg.barkT > 15000)) { dg.barkT = performance.now(); dg.big = dg.big ?? Math.random() < .4; bark(0.22 * (1 - dd / 8), dg.big); dg.look = 1.2; }
+    if (dg.look > 0) { dg.look -= 1 / 60; dg.mesh.rotation.y = Math.atan2(tg.x - dg.mesh.position.x, tg.z - dg.mesh.position.z); } });
   boats.forEach(b => { seaStep(b, dt); b.mesh.position.set(Math.cos(b.a) * b.r, -0.2 + Math.sin(performance.now() / 700 + b.r) * 0.15, Math.sin(b.a) * b.r); b.mesh.rotation.y = -b.a + (b.s > 0 ? 0 : Math.PI); });
   joggers.forEach(j => { j.t += j.s * dt; const [x, z, h] = squarePath(j.t, j.r); j.mesh.position.set(x, 0, z); j.mesh.rotation.y = h + (j.s < 0 ? Math.PI : 0); animHuman(j.mesh, 3.2, dt); const o = target(); lodSync(j.mesh, Math.hypot(x - o.x, z - o.z), 3.2, dt); });
 }

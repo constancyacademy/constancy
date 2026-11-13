@@ -2549,7 +2549,7 @@ function buildWorld() {
 
   // mer, sable, sol
   // mer : eau turquoise près du sable, bleu profond au large, vagues, reflets du soleil, écume qui va et vient
-  sea = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.ShaderMaterial({
+  sea = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), new THREE.ShaderMaterial({
     uniforms: { time: { value: 0 }, shore: { value: SHORE }, sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunCol: { value: new THREE.Color(1, .9, .7) }, skyCol: { value: new THREE.Color(0.6, 0.8, 1) },
       fogColor: { value: new THREE.Color() }, fogNear: { value: 160 }, fogFar: { value: 620 }, lightK: { value: 1 } },
     vertexShader: "varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }",
@@ -3431,7 +3431,7 @@ function applySky(h) {
   lampGlowMat.opacity = nightK * 0.95; if (lampPoolMat) lampPoolMat.opacity = nightK * 0.42 * (1 + WX.wet * 0.5); bulbMat.color.setRGB(0.47 + nightK * 0.53, 0.44 + nightK * 0.5, 0.4 + nightK * 0.3);
   const su = sea.material.uniforms; su.sunDir.value.copy(sd); su.sunCol.value.copy(skyMat.uniforms.sunCol.value); su.skyCol.value.copy(skyMat.uniforms.top.value).lerp(skyMat.uniforms.bottom.value, 0.5);
   if (FX.cloudMat) { FX.cloudMat.color.setRGB(0.35 + day * 0.65, 0.33 + day * 0.62, 0.38 + day * 0.6).lerp(new THREE.Color(1, 0.62, 0.45), Math.max(0, 0.45 - day) * (1 - nightK) * 1.4); FX.cloudMat.opacity = 0.45 + day * 0.4; }
-  { const cy = camera ? camera.position.y : 0, away = camera && camera.position.z < -HALF - 120 ? 1.7 : 1, fk = Math.max(away, 1 + Math.min(3.2, Math.max(0, cy - 8) / 40)); scene.fog.near = 160 * fk; scene.fog.far = 620 * fk; }
+  { const cy = camera ? camera.position.y : 0, away = camera && camera.position.z < -HALF - 120 ? 1.7 : 1, fk = Math.max(away, 1 + Math.min(3.2, Math.max(0, cy - 8) / 40)); scene.fog.near = Math.min(160 * fk, 520); scene.fog.far = Math.min(620 * fk, 1180); }
   su.fogColor.value.copy(scene.fog.color); su.fogNear.value = scene.fog.near; su.fogFar.value = scene.fog.far; su.lightK.value = 0.3 + day * 0.7;
   applyWeatherSky(day);
   if (FW.flash) hemi.intensity += FW.flash * 0.4;
@@ -3785,7 +3785,7 @@ function updatePlane(dt) {
     else c.v *= Math.pow(0.7, dt);
     c.h -= inp.side * (G.ride.kind === "airbus" ? 0.55 : 1.1) * dt * clamp(c.v / 2.5, -1, 1) * (Math.abs(c.v) < 0.3 && thr > 0 ? 0 : 1); if (Math.abs(c.v) < 4 && Math.abs(inp.side) > 0.2 && thr > 0.05) c.v = Math.max(c.v, 3);
     c.alt = gh; c.pitch += (0 - c.pitch) * Math.min(1, dt * 5); c.roll += (0 - c.roll) * Math.min(1, dt * 5);
-    if (c.v > 29 && thr > 0.55 && !isWater(c.x, c.z)) { c.alt = gh + 0.8; c.pitch = 0.16; if (!G.flyHint) { G.flyHint = true; help("<b>Décollage !</b> Haut = monter · bas = descendre · côtés = virer. Pour atterrir : descends doucement au-dessus d'une piste, ou touche SORTIR (pilote automatique).", 7); } sfx.door && 0; }
+    if (c.v > 29 && thr > 0.55 && !isWater(c.x, c.z)) { c.alt = gh + 0.8; c.pitch = 0.16; if (!G.flyHint) { G.flyHint = true; help("<b>Décollage !</b> Haut = monter · bas = descendre · côtés = virer. Pour atterrir : descends doucement au-dessus d'une piste, ou touche SORTIR pour sauter en parachute.", 7); } sfx.door && 0; }
   } else {
     const cruise = 46 * (tb ? 1.6 : 1);
     c.v += (cruise - c.v) * Math.min(1, dt * 0.7);
@@ -3980,6 +3980,7 @@ function jump() {
 }
 // à pied : haut = avancer, côtés = tourner, rond poussé tout en haut = sprint (jauge d'énergie)
 function updateMe(dt) {
+  if (G.para) return updateParachute(dt);
   if (SCOPE.on) { if (!scopeNear()) toggleScope(); G.me.speed = 0; return; }
   const me = G.me, inp = input();
   // sprint : pousser le doigt (ou la souris) bien au-delà du rond, ou Maj au clavier ; dans le rond on court vite sans fatigue
@@ -4050,7 +4051,34 @@ function makeDoor(mesh) {
 }
 function updateDoorClose(dt) { const D = G.doorClose; if (!D) return; D.t += dt; D.door.rotation.y = Math.max(0, 1.15 - D.t * 3.5); if (D.t > 0.45) { if (D.door.parent) D.door.parent.remove(D.door); G.doorClose = null; } }
 /* vue à la première personne : volant dans les mains */
-let cockpit = null;
+let cockpit = null, pCockpit = null;
+function buildPlaneCockpit() {
+  pCockpit = new THREE.Group();
+  const black = new THREE.MeshPhongMaterial({ color: 0x15161a, shininess: 20 }), grey = new THREE.MeshLambertMaterial({ color: 0x3a3d44 }), frame = new THREE.MeshLambertMaterial({ color: 0xd9dbe0 });
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.62, 0.5), black); panel.position.set(0, -0.74, -1.25); panel.rotation.x = -0.35; pCockpit.add(panel);
+  const glare = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.08, 0.42), grey); glare.position.set(0, -0.42, -1.2); pCockpit.add(glare);
+  const cv = document.createElement("canvas"); cv.width = 1024; cv.height = 200; const tx = new THREE.CanvasTexture(cv);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.5), new THREE.MeshBasicMaterial({ map: tx })); scr.position.set(0, -0.7, -1.0); scr.rotation.x = -0.35; pCockpit.add(scr);
+  pCockpit.userData.scr = { cv, tx, last: "" };
+  // manche (yoke) en forme de corne
+  const yoke = new THREE.Group(); yoke.position.set(-0.5, -0.78, -0.8); pCockpit.add(yoke);
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.35, 8), grey); col.rotation.x = Math.PI / 2; col.position.z = -0.18; yoke.add(col);
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.05, 0.05), black); yoke.add(bar);
+  [-1, 1].forEach(sd => { const h = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.2, 0.06), black); h.position.set(sd * 0.23, 0.08, 0); yoke.add(h); });
+  pCockpit.userData.yoke = yoke;
+  // montants de verrière et arceau
+  [-1, 1].forEach(sd => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.7, 0.06), frame); m.position.set(sd * 1.45, 0.05, -1.05); m.rotation.set(-0.45, 0, sd * -0.28); pCockpit.add(m); });
+  const arc = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.06, 0.08), frame); arc.position.set(0, 0.78, -0.72); pCockpit.add(arc);
+  pCockpit.visible = false; camera.add(pCockpit);
+}
+function drawPlaneScreen() {
+  const S = pCockpit.userData.scr, c = G.car, kmh = Math.round(Math.abs(c.v) * 3.6), alt = Math.max(0, Math.round((c.alt || 0) - planeGround(c.x, c.z))), hdg = ((Math.round(-c.h * 180 / Math.PI) % 360) + 360) % 360;
+  const key = kmh + "|" + alt + "|" + hdg; if (key === S.last) return; S.last = key;
+  const x = S.cv.getContext("2d"); x.fillStyle = "#06080c"; x.fillRect(0, 0, 1024, 200);
+  const box = (cx, lbl, val, unit) => { x.strokeStyle = "rgba(120,200,255,.5)"; x.lineWidth = 3; x.strokeRect(cx - 150, 22, 300, 156); x.fillStyle = "#8fd3ff"; x.font = "600 26px Inter, sans-serif"; x.textAlign = "center"; x.fillText(lbl, cx, 58); x.fillStyle = "#fff"; x.font = "700 64px Inter, sans-serif"; x.fillText(val, cx, 128); x.fillStyle = "#8fd3ff"; x.font = "500 24px Inter, sans-serif"; x.fillText(unit, cx, 164); };
+  box(180, "VITESSE", kmh, "km/h"); box(512, "ALTITUDE", alt, "m"); box(844, "CAP", hdg + "°", "boussole");
+  S.tx.needsUpdate = true;
+}
 function buildCockpit() {
   cockpit = new THREE.Group();
   const black = new THREE.MeshPhongMaterial({ color: 0x101013, shininess: 18 }), soft = new THREE.MeshLambertMaterial({ color: 0x1c1b20 }), leather = new THREE.MeshPhongMaterial({ color: 0x17161a, shininess: 30, specular: 0x2a2a2a }), alu = new THREE.MeshPhongMaterial({ color: 0x9aa0a8, shininess: 100, specular: 0xffffff }), accent = new THREE.MeshBasicMaterial({ color: 0xff2d55 });
@@ -4157,14 +4185,26 @@ function updateCamera(dt, follow) {
       camera.position.set(k.p[0], k.p[1], k.p[2]); camera.lookAt(k.t[0], k.t[1], k.t[2]); if (k.roll) camera.rotateZ(k.roll);
       if (k.fov && camera.fov !== k.fov) { camera.fov = k.fov; camera.updateProjectionMatrix(); }
       sky.position.copy(camera.position); sun.position.set(k.t[0] - 160, 220, k.t[2] + 100); sun.target.position.set(k.t[0], 0, k.t[2]);
-      if (cockpit) cockpit.visible = false; if (carMesh && !G.onFoot) carMesh.visible = true; if (meMesh && G.onFoot) meMesh.visible = true;
+      if (cockpit) cockpit.visible = false; if (pCockpit) pCockpit.visible = false; if (carMesh && !G.onFoot) carMesh.visible = true; if (meMesh && G.onFoot) meMesh.visible = true;
       return;
     }
   }
   { const bf = (window.innerWidth < window.innerHeight ? 74 : 62) + (G.tbOn && !G.onFoot ? 12 : 0) + (G.sprintMax && G.onFoot ? 10 : 0); if (Math.abs(camera.fov - bf) > 0.05) { camera.fov += (bf - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); } }
   const fpv = follow && G.fpv && !G.onFoot && G.ride.kind !== "none" && carMesh;
-  if (cockpit) cockpit.visible = !!fpv && !(RIDES[G.ride.kind] && !RIDES[G.ride.kind].car);
-  if (carMesh) carMesh.visible = !(fpv && cockpit.visible);
+  const fpvPlane = !!fpv && isPlane(G.ride.kind);
+  if (pCockpit) pCockpit.visible = fpvPlane;
+  if (cockpit) cockpit.visible = !!fpv && !fpvPlane && !(RIDES[G.ride.kind] && !RIDES[G.ride.kind].car);
+  if (carMesh) carMesh.visible = !(fpv && (cockpit.visible || fpvPlane));
+  if (fpvPlane) {
+    const c = G.car, big = G.ride.kind === "airbus", fwd = big ? 15 : 1.6, up = big ? 4.4 : 1.55;
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-(c.pitch || 0), c.h, -(c.roll || 0), "YXZ"));
+    const off = new THREE.Vector3(0, up, fwd).applyQuaternion(q); camera.position.set(c.x + off.x, (c.alt || 0) + off.y, c.z + off.z);
+    camera.quaternion.copy(q).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI));
+    camera.rotateX(-0.06);
+    pCockpit.userData.yoke.rotation.set((c.pitch || 0) * 0.6, 0, (c.roll || 0) * 0.8); drawPlaneScreen();
+    sky.position.copy(camera.position); sun.position.set(c.x - 160, 220, c.z + 100); sun.target.position.set(c.x, 0, c.z);
+    return;
+  }
   if (fpv) {
     const c = G.car, fx = Math.sin(c.h), fz = Math.cos(c.h), two = RIDES[G.ride.kind] && !RIDES[G.ride.kind].car;
     camera.position.set(c.x + fx * (two ? 0.2 : 0.1) + Math.cos(c.h) * (two ? 0 : 0.45), (two ? 1.9 : 1.6) + GH(c.x, c.z), c.z + fz * (two ? 0.2 : 0.1) - Math.sin(c.h) * (two ? 0 : 0.45));
@@ -4195,6 +4235,11 @@ function updateCamera(dt, follow) {
     sky.position.copy(camera.position); sun.position.set(c.x - 160, c.alt + 220, c.z + 100); sun.target.position.set(c.x, c.alt, c.z);
     return;
   }
+  if (foot && G.para) {
+    const me = G.me, tx = me.x - Math.sin(me.h) * 11, tz = me.z - Math.cos(me.h) * 11, ty = G.para.alt + 5, k = G.snapCam ? 1 : 1 - Math.exp(-dt * 3); G.snapCam = false;
+    camera.position.x += (tx - camera.position.x) * k; camera.position.y += (ty - camera.position.y) * k; camera.position.z += (tz - camera.position.z) * k;
+    camera.lookAt(me.x + Math.sin(me.h) * 6, G.para.alt - 1, me.z + Math.cos(me.h) * 6); sky.position.copy(camera.position); sun.position.set(me.x - 160, 220, me.z + 100); sun.target.position.set(me.x, 0, me.z); return;
+  }
   // 3 vues : proche et basse (caméra à hauteur de coffre, qui regarde légèrement vers le haut = contre-plongée), moyenne, lointaine ; à pied aussi un chouïa en contre-plongée ; la 4e est la vue intérieure (cockpit)
   const cv = G.camView || 0, sv = Math.abs(G.car.v), VC = [[6.9 + sv * 0.045, 1.6 + sv * 0.004, 2.2, 16], [9.2 + sv * 0.06, 2.05 + sv * 0.01, 2.1, 13], [13.5 + sv * 0.08, 3.4 + sv * 0.02, 1.9, 10]][Math.min(cv, 2)], VF = [[4.3, 1.62, 1.82, 4], [6.2, 2.0, 1.85, 5], [9, 3.0, 1.8, 4]][Math.min(cv, 2)];
   const h = foot ? o.h : G.car.h, back = G.inside ? 4.6 : foot ? VF[0] : VC[0], up = G.inside ? 3 : foot ? VF[1] : VC[1];
@@ -4219,16 +4264,53 @@ function nearestRide() {
   traffic.forEach(a => { const d = Math.hypot(G.me.x - a.x, G.me.z - a.z); if (a.mesh.visible && d < Math.max(4.5, (a.hl || 2) + 2.2) && d < bd) { bd = d; best = { own: false, kind: "voiture", r: a, traffic: true }; } });
   return best;
 }
+let paraMesh = null;
+function startParachute() {
+  const c = G.car, k = G.ride.kind;
+  G.ghost = { mesh: carMesh, kind: k, x: c.x, z: c.z, alt: c.alt, h: c.h, v: Math.max(30, c.v), pitch: c.pitch || 0, roll: c.roll || 0, home: G.rideHome || { x: AP.x0 + 60, z: AP.rz, h: Math.PI / 2 }, t: 0 };
+  carMesh = null; G.ride = { kind: "none" }; G.onFoot = true; G.turbo = false; G.tbOn = false; G.fpv = false;
+  G.me.x = c.x - Math.sin(c.h) * 6; G.me.z = c.z - Math.cos(c.h) * 6; G.me.h = c.h; G.me.v = 0; G.me.jy = 0; G.swimming = false;
+  G.para = { alt: c.alt - 2, open: 0 }; meMesh.visible = true; resetPose(); G.snapCam = true; sfx.door();
+  if (!paraMesh) {
+    paraMesh = new THREE.Group();
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(3.4, 24, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0xff3fa4, side: THREE.DoubleSide })); dome.scale.y = 0.42; paraMesh.add(dome);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(3.42, 24, 4, 0, Math.PI * 2, 0, Math.PI / 6), new THREE.MeshLambertMaterial({ color: 0xf6f2ee, side: THREE.DoubleSide })); cap.scale.y = 0.42; paraMesh.add(cap);
+    const lineM = new THREE.LineBasicMaterial({ color: 0x2a2a2a }); const pts = [];
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * 3.3, 0, Math.sin(a) * 3.3), new THREE.Vector3(0, -3.6, 0)); }
+    paraMesh.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), lineM)); scene.add(paraMesh);
+  }
+  paraMesh.visible = true; paraMesh.scale.setScalar(0.2);
+  stat("parachute"); help("<b>Saut en parachute !</b> Dirige-toi avec le joystick et pose-toi où tu veux. L'avion, lui, file finir sa course à la mer.", 6);
+}
+function updateParachute(dt) {
+  const me = G.me, Pp = G.para, inp = input(); Pp.open = Math.min(1, Pp.open + dt * 1.6); paraMesh.scale.setScalar(0.2 + Pp.open * 0.8);
+  me.h -= inp.side * 1.1 * dt; const v = 4 + Math.max(0, inp.fwd) * 5; me.x += Math.sin(me.h) * v * dt; me.z += Math.cos(me.h) * v * dt;
+  Pp.alt -= (Pp.open < 1 ? 14 : inp.fwd < -0.3 ? 2.6 : 5.2) * dt;
+  const water = isWater(me.x, me.z), ground = water ? -0.6 : GH(me.x, me.z) + 0.25;
+  meMesh.position.set(me.x, Pp.alt, me.z); meMesh.rotation.set(0, me.h, -inp.side * 0.15, "YXZ"); animHuman(meMesh, 0, dt);
+  paraMesh.position.set(me.x, Pp.alt + 4.2, me.z); paraMesh.rotation.set(0, me.h, -inp.side * 0.12);
+  if (Pp.alt <= ground) { G.para = null; paraMesh.visible = false; me.jy = 0; me.vy = 0; collide(me, 0.6, true); G.snapCam = true; sfx.step && sfx.step();
+    help(water ? "Amerrissage ! Nage jusqu'à la plage." : "<b>Atterrissage réussi.</b> Bien joué.", 4); stat("parachute-pose"); }
+}
+function updateGhost(dt) {
+  const g = G.ghost; if (!g) return; g.t += dt;
+  g.pitch += (-0.32 - g.pitch) * Math.min(1, dt * 0.8); g.roll *= Math.pow(0.4, dt);
+  // il s'éloigne vers le large (la mer entoure la ville)
+  const out = Math.atan2(g.x, g.z + 450); let dh = out - g.h; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); g.h += clamp(dh, -0.4 * dt, 0.4 * dt);
+  g.x += Math.sin(g.h) * g.v * dt * Math.cos(g.pitch); g.z += Math.cos(g.h) * g.v * dt * Math.cos(g.pitch); g.alt += Math.sin(g.pitch) * g.v * dt;
+  g.mesh.rotation.order = "YXZ"; g.mesh.position.set(g.x, g.alt, g.z); g.mesh.rotation.set(-g.pitch, g.h, -g.roll);
+  const gh = isWater(g.x, g.z) ? -0.6 : planeGround(g.x, g.z);
+  if (g.alt <= gh + 0.5 || g.t > 60) {
+    FX.mat.uniforms.col.value.setHex(isWater(g.x, g.z) ? 0xe8f6ff : 0xcfc6b8); for (let q = 0; q < 120; q++) { const a = Math.random() * 6.28, sp = 2 + Math.random() * 8; emitDust(g.x + Math.cos(a) * 3, gh + 0.6, g.z + Math.sin(a) * 3, Math.cos(a) * sp, Math.random() * 7, Math.sin(a) * sp); }
+    if (isWater(g.x, g.z) && sfx.splash) sfx.splash();
+    const hm = g.home; g.mesh.rotation.set(0, hm.h, 0); g.mesh.position.set(hm.x, GH(hm.x, hm.z), hm.z); rentals.push({ kind: g.kind, mesh: g.mesh, x: hm.x, z: hm.z, h: hm.h, plane: true });
+    G.ghost = null; feedPost("pig", "Un avion sans pilote vient de finir sa course dans la mer. Le pilote ? Il est descendu en parachute, tranquille. L'appareil est déjà de retour au hangar.");
+  }
+}
 function toggleCar() {
   if (G.mode !== "play" || G.entering) return;
   if (!G.onFoot) {
-    if (isPlane(G.ride.kind) && G.car.alt > planeGround(G.car.x, G.car.z) + 0.8) { // en vol : pilote automatique jusqu'à la piste la plus proche (on ne reste jamais coincé dans l'avion)
-      if (G.autoLand) return; G.autoLand = true; help("<b>Pilote automatique.</b> Atterrissage sur la piste la plus proche…", 3); stat("atterrissage-auto");
-      fade(() => { const c = G.car, dAP = Math.hypot(c.x - (AP.x0 + AP.x1) / 2, c.z - AP.rz), dPad = Math.hypot(c.x - (PAD.x0 + PAD.x1) / 2, c.z - (PAD.z0 + PAD.z1) / 2);
-        if (dAP <= dPad) { c.x = AP.x0 + 60; c.z = AP.rz; c.h = Math.PI / 2; } else { c.x = (PAD.x0 + PAD.x1) / 2; c.z = PAD.z1 - 20; c.h = Math.PI; }
-        c.alt = planeGround(c.x, c.z); c.v = 0; c.pitch = 0; c.roll = 0; G.turbo = false; G.tbOn = false; G.snapCam = true; G.autoLand = false;
-        if (carMesh) { carMesh.rotation.set(0, c.h, 0); carMesh.position.set(c.x, c.alt, c.z); } help("Posé. Touche <b>SORTIR</b> pour descendre.", 4); });
-      return; }
+    if (isPlane(G.ride.kind) && G.car.alt > planeGround(G.car.x, G.car.z) + 0.8) { startParachute(); return; }
     // en roulant : on freine automatiquement puis on descend (plus besoin de s'arrêter soi-même)
     if (Math.abs(G.car.v) > 4) { G.wantExit = true; return; }
     G.wantExit = false;
@@ -5352,7 +5434,7 @@ function loop(now) {
   updateSound();
   for (let i = 0; i < ANIMATED.length; i++) { const g = ANIMATED[i]; if (!g.visible || !g.parent) continue; const gp = g.parent.isScene ? g.position : g.parent.position; if (gp.distanceToSquared(camera.position) < 160000 && (g.parent.isScene || g.parent.visible)) g.userData.mixer.update(dt); }
   if (mamieMesh && mamieMesh.userData.q && G.started) setClip(mamieMesh, G.alerts.mamieActive && !G.mission ? "Waving" : "Idle_Talking_Loop");
-  updateGlare(dt); updateGuideArrow(dt); updateRadio(); updateNightSky(dt); if ((loop.cf = (loop.cf || 0) + 1) % 15 === 0) cullChunks(); updateDinos(dt); updateWild(dt); updateSpin(dt); updateFx(dt); updateWeather(dt); updateFireworks(dt); updateUfo(dt); sea.material.uniforms.time.value = now / 1000; sea.position.y = -0.62 + Math.sin(now / 1000 * 0.6) * 0.1; syncAllRigs(dt); renderer.render(scene, camera);
+  updateGlare(dt); updateGuideArrow(dt); updateRadio(); updateNightSky(dt); if ((loop.cf = (loop.cf || 0) + 1) % 15 === 0) cullChunks(); updateDinos(dt); updateWild(dt); updateSpin(dt); updateFx(dt); updateWeather(dt); updateFireworks(dt); updateUfo(dt); updateGhost(dt); sea.material.uniforms.time.value = now / 1000; sea.position.y = -0.62 + Math.sin(now / 1000 * 0.6) * 0.1; sea.position.x = Math.round(camera.position.x / 20) * 20; sea.position.z = Math.round(camera.position.z / 20) * 20; syncAllRigs(dt); renderer.render(scene, camera);
 }
 
 /* ============ Commandes ============ */
@@ -5429,7 +5511,7 @@ if (!renderer || typeof THREE === "undefined" || !THREE.BufferGeometryUtils) {
 } else {
   show(`<div class="panel"><div class="logo">Constancy</div><p class="lead">Chargement de la ville…</p></div>`);
   const fontsReady = document.fonts && document.fonts.load ? Promise.race([Promise.all([document.fonts.load("86px 'EB Garamond'"), document.fonts.load("italic 24px 'EB Garamond'"), document.fonts.load("500 190px 'EB Garamond'")]), new Promise(ok => setTimeout(ok, 4000))]).catch(() => {}) : Promise.resolve();
-  Promise.all([loadHumans(), loadMedia(), fontsReady]).then(() => { buildWorld(); drawMapBase(); buildCockpit(); resize(); titleScreen(); requestAnimationFrame(loop); });
+  Promise.all([loadHumans(), loadMedia(), fontsReady]).then(() => { buildWorld(); drawMapBase(); buildCockpit(); buildPlaneCockpit(); resize(); titleScreen(); requestAnimationFrame(loop); });
 }
 })();
 </script>

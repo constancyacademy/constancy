@@ -2789,21 +2789,28 @@ function tlState(axis, t) { // "g" vert, "a" orange, "r" rouge pour l'axe x ou z
 function tlNow() { return (P ? P.dayT : 0) * 1.0; }
 function buildTrafficLights() {
   const pole = new THREE.MeshLambertMaterial({ color: 0x24252b }), box = new THREE.MeshLambertMaterial({ color: 0x17181c });
-  const lens = new THREE.CircleGeometry(0.115, 14), N = (NB - 1) * (NB - 1) * 2 * 2 * 3;
+  const lens = new THREE.CircleGeometry(0.16, 16), N = (NB - 1) * (NB - 1) * 2 * 2 * 3;
+  TL.halo = new THREE.InstancedMesh(new THREE.CircleGeometry(0.4, 18), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.38, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), N); TL.halo.frustumCulled = false; scene.add(TL.halo);
+  const icon = walk => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"); x.fillStyle = "#000"; x.fillRect(0, 0, 64, 64); x.fillStyle = "#fff"; x.beginPath(); x.arc(32, 12, 6, 0, 7); x.fill(); x.lineWidth = 7; x.lineCap = "round"; x.strokeStyle = "#fff"; x.beginPath(); x.moveTo(32, 20); x.lineTo(32, 38); if (walk) { x.moveTo(32, 38); x.lineTo(22, 56); x.moveTo(32, 38); x.lineTo(42, 54); x.moveTo(32, 25); x.lineTo(21, 34); x.moveTo(32, 25); x.lineTo(43, 31); } else { x.moveTo(29, 38); x.lineTo(29, 57); x.moveTo(35, 38); x.lineTo(35, 57); x.moveTo(28, 23); x.lineTo(26, 38); x.moveTo(36, 23); x.lineTo(38, 38); } x.stroke(); const t = new THREE.CanvasTexture(c); return t; };
+  const PN = (NB - 1) * (NB - 1) * 2 * 2, pg = new THREE.PlaneGeometry(0.34, 0.34);
+  TL.pedR = new THREE.InstancedMesh(pg, new THREE.MeshBasicMaterial({ map: icon(false) }), PN); TL.pedG = new THREE.InstancedMesh(pg, new THREE.MeshBasicMaterial({ map: icon(true) }), PN); [TL.pedR, TL.pedG].forEach(im => { im.frustumCulled = false; scene.add(im); }); TL.pedList = []; let pn = 0;
   TL.inst = new THREE.InstancedMesh(lens, new THREE.MeshBasicMaterial({ color: 0xffffff }), N); TL.inst.frustumCulled = false; scene.add(TL.inst);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1); let n = 0;
   for (let i = 1; i < NB; i++) for (let j = 1; j < NB; j++) for (const sg of [1, -1]) {
     const x = rc(i) + sg * (ROAD / 2 + 0.9), z = rc(j) + sg * (ROAD / 2 + 0.9);
-    addGeo(pole, new THREE.CylinderGeometry(0.09, 0.12, 4.4, 8), x, 0.25 + 2.2, z); addGeo(box, new THREE.BoxGeometry(0.42, 1.15, 0.42), x, 0.25 + 4.85, z); addProp(x, z, 0.18);
+    addGeo(pole, new THREE.CylinderGeometry(0.09, 0.12, 4.4, 8), x, 0.25 + 2.2, z); addGeo(box, new THREE.BoxGeometry(0.5, 1.35, 0.5), x, 0.25 + 4.85, z); addProp(x, z, 0.18);
+    [["x", 0, -sg], ["z", -sg, 0]].forEach(([axis, fx, fz]) => { addGeo(box, new THREE.BoxGeometry(fx ? 0.16 : 0.42, 0.86, fz ? 0.16 : 0.42), x + fx * 0.12, 0.25 + 2.9, z + fz * 0.12); [[TL.pedR, 3.1], [TL.pedG, 2.7]].forEach(([im, y]) => { v.set(x + fx * 0.205, 0.25 + y, z + fz * 0.205); e.set(0, fx ? (fx > 0 ? Math.PI / 2 : -Math.PI / 2) : (fz > 0 ? 0 : Math.PI), 0); q.setFromEuler(e); m.compose(v, q, one); im.setMatrixAt(pn, m); }); TL.pedList.push({ axis }); pn++; });
     [["x", sg, 0], ["z", 0, sg]].forEach(([axis, fx, fz]) => { // face tournée vers les voitures qui arrivent sur cet axe
-      ["r", "a", "g"].forEach((c, k) => { v.set(x + fx * 0.215, 0.25 + 5.2 - k * 0.36, z + fz * 0.215); e.set(0, fx ? (fx > 0 ? Math.PI / 2 : -Math.PI / 2) : (fz > 0 ? 0 : Math.PI), 0); q.setFromEuler(e); m.compose(v, q, one); TL.inst.setMatrixAt(n, m); TL.list.push({ axis, c }); n++; }); });
+      ["r", "a", "g"].forEach((c, k) => { v.set(x + fx * 0.255, 0.25 + 5.27 - k * 0.42, z + fz * 0.255); e.set(0, fx ? (fx > 0 ? Math.PI / 2 : -Math.PI / 2) : (fz > 0 ? 0 : Math.PI), 0); q.setFromEuler(e); m.compose(v, q, one); TL.inst.setMatrixAt(n, m); v.set(x + fx * 0.27, 0.25 + 5.27 - k * 0.42, z + fz * 0.27); m.compose(v, q, one); TL.halo.setMatrixAt(n, m); TL.list.push({ axis, c }); n++; }); });
   }
-  TL.inst.count = n; updateTrafficLights(true);
+  TL.inst.count = n; TL.halo.count = n; TL.pedR.count = TL.pedG.count = TL.pedList.length; updateTrafficLights(true);
 }
-const TL_ON = { r: new THREE.Color(0xff2a2a), a: new THREE.Color(0xffb020), g: new THREE.Color(0x2bff7a) }, TL_OFF = new THREE.Color(0x1d1f24);
+const TL_ON = { r: new THREE.Color(0xff2a2a), a: new THREE.Color(0xffb020), g: new THREE.Color(0x2bff7a) }, TL_OFF = new THREE.Color(0x2a2c33), TL_BLACK = new THREE.Color(0x000000), TL_PEDG = new THREE.Color(0x3dff8a), TL_PEDR = new THREE.Color(0xff3b3b), TL_DIM = new THREE.Color(0x1a1b20);
 function updateTrafficLights(force) {
   if (!TL.inst) return; const t = tlNow(), ph = tlState("x", t) + tlState("z", t); if (ph === TL.phase && !force) return; TL.phase = ph;
-  TL.list.forEach((l, k) => TL.inst.setColorAt(k, tlState(l.axis, t) === l.c ? TL_ON[l.c] : TL_OFF)); TL.inst.instanceColor.needsUpdate = true;
+  TL.list.forEach((l, k) => { const on = tlState(l.axis, t) === l.c; TL.inst.setColorAt(k, on ? TL_ON[l.c] : TL_OFF); TL.halo.setColorAt(k, on ? TL_ON[l.c] : TL_BLACK); }); TL.inst.instanceColor.needsUpdate = true; TL.halo.instanceColor.needsUpdate = true;
+  // piétons : vert pour traverser une rue quand ses voitures sont au rouge
+  TL.pedList.forEach((pl, k) => { const go = tlState(pl.axis, t) === "r"; TL.pedG.setColorAt(k, go ? TL_PEDG : TL_DIM); TL.pedR.setColorAt(k, go ? TL_DIM : TL_PEDR); }); TL.pedG.instanceColor.needsUpdate = true; TL.pedR.instanceColor.needsUpdate = true;
 }
 // conducteurs de la circulation : silhouette simple (une seule pièce), visible à travers les vitres
 let DRIVER_M = null;

@@ -4851,8 +4851,47 @@ const GFORM = "https://docs.google.com/forms/d/e/1FAIpQLSfgcY6KTadD9c1LdzIL3WmtB
 const GFORM_ENTRY = "entry.705392280"; // secondes de jeu avant de demander l'e-mail
 function kitQueue() { try { return JSON.parse(localStorage.getItem("constancy-kitq") || "[]"); } catch (e) { return []; } }
 function kitSave(q) { try { localStorage.setItem("constancy-kitq", JSON.stringify(q)); } catch (e) {} }
+/* ---------- parrainage, classement, partage ---------- */
+const GF_E = { parrain: "entry.688121763", pseudo: "entry.415682369", score: "entry.281678234", joueur: "entry.113707315" };
+const BOARD_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTX4iTUNnJJN-v7R7cuecuzh0bfvdbmxq7tzEOJbWF0qKukHIeZ5Vy2j1hawOLvjHIv1uDt41DNiU18/pub?gid=1610824857&single=true&output=csv";
+const GAME_URL = "https://constancyacademy.github.io/constancy/", REF_BONUS = 500, FRIEND_BONUS = 500, SHARE_BONUS = 200;
+try { const r = new URLSearchParams(location.search).get("p"); if (r && /^[a-z0-9]{6,12}$/.test(r)) localStorage.setItem("constancy-ref", r); } catch (e) {}
+function pid() { if (!P) return ""; if (!P.pid) { P.pid = Math.random().toString(36).slice(2, 10); saveNow && saveNow(); } return P.pid; }
+function refCode() { try { const r = localStorage.getItem("constancy-ref"); return r && P && r !== P.pid ? r : ""; } catch (e) { return ""; } }
+function pseudo() { const v = ((P && P.pseudo) || "").replace(/[<>"&]/g, "").trim().slice(0, 16); return v || ("Joueur " + pid().slice(0, 4).toUpperCase()); }
+function sendScore() { if (!P || !P.email || !GFORM || navigator.onLine === false) return; P.scoreAt = P.playS || 0; const b = new URLSearchParams(); b.append(GF_E.pseudo, pseudo()); b.append(GF_E.score, String(Math.round(P.xp || 0))); b.append(GF_E.joueur, pid()); fetch(GFORM, { method: "POST", body: b, mode: "no-cors" }).catch(() => {}); }
+function csvRows(t) { return t.split(/\r?\n/).map(l => { const out = []; let cur = "", q = false; for (const ch of l) { if (ch === '"') q = !q; else if (ch === "," && !q) { out.push(cur); cur = ""; } else cur += ch; } out.push(cur); return out; }); }
+async function fetchBoard() { const t = await fetch(BOARD_CSV + "&t=" + Date.now()).then(r => r.text()); const rows = csvRows(t), top = [], par = {};
+  rows.forEach(r => { if (r[0] && r[0] !== "pseudo" && r[1] && !isNaN(+r[1])) top.push({ n: r[0], s: +r[1] }); if (r[3] && r[3] !== "parrain" && r[4] && !isNaN(+r[4])) par[r[3]] = +r[4]; }); return { top, par }; }
+function checkReferrals(par) { if (!P || !P.pid) return; const n = par[P.pid] || 0, paid = P.filleulsPaid || 0; if (n > paid) { const k = n - paid; P.filleulsPaid = n; addCash(REF_BONUS * k); saveNow(); stat("parrainage-recompense"); celebrate(4);
+  notify("gold", `<b>${k > 1 ? k + " amis ont" : "Un ami a"} rejoint Constancy grâce à toi.</b> <b style="color:var(--cash)">+$${fmt(REF_BONUS * k)}</b> versés. Continue : Chaque ami inscrit te rapporte $${fmt(REF_BONUS)}.`, 8); } }
+function refreshReferrals() { if (!P || !P.pid || !P.email) return; fetchBoard().then(b => checkReferrals(b.par)).catch(() => {}); }
+async function shareGame() {
+  const url = GAME_URL + "?p=" + pid(), text = "Pas le temps d'attendre GTA 6 ? Joue à Constancy, la ville où ta régularité fait le score. Gratuit, dans le navigateur :";
+  let ok = false; try { if (navigator.share) { await navigator.share({ title: "Constancy", text, url }); ok = true; } else { await navigator.clipboard.writeText(text + " " + url); ok = true; help("<b>Lien copié.</b> Colle-le à tes amis (SMS, Insta, Snap…).", 5); } } catch (e) { ok = false; }
+  if (ok) { stat("partage-jeu"); const today = new Date().toDateString(); if (P.shareDay !== today) { P.shareDay = today; addCash(SHARE_BONUS); saveNow(); notify("gold", `<b>Merci pour le partage !</b> <b style="color:var(--cash)">+$${fmt(SHARE_BONUS)}</b>. Et chaque ami qui crée sa sauvegarde avec ton lien : <b>+$${fmt(REF_BONUS)}</b> pour toi.`, 7); } }
+}
+function openShare(fromMenu) {
+  setMode("menu"); const url = GAME_URL + "?p=" + pid();
+  show(`<div class="panel"><div class="kicker" style="color:#ff6fbf">Parrainage</div><h2>Invite tes amis. Gagnez tous les deux.</h2>
+    <div class="card" style="gap:10px"><p class="lead" style="margin:0">🎁 <b>+$${fmt(REF_BONUS)}</b> pour toi à chaque ami qui crée sa sauvegarde avec ton lien.<br>🤝 <b>+$${fmt(FRIEND_BONUS)}</b> offerts à ton ami dès son arrivée.<br>📲 <b>+$${fmt(SHARE_BONUS)}</b> chaque jour où tu partages.</p></div>
+    <input class="linkbox" readonly value="${url}" style="font-size:13px">
+    <button class="btn pink" id="shGo" type="button">Partager mon lien</button>
+    <p class="note" style="margin:0">Amis parrainés : <b>${P.filleulsPaid || 0}</b> · Les récompenses arrivent dès qu'ils sont inscrits.</p>
+    <button class="btn alt" id="shBack" type="button">${fromMenu ? "Retour" : "Plus tard"}</button></div>`, "mail");
+  on("shGo", () => shareGame()); on("shBack", () => fromMenu ? openMenu() : resume());
+}
+async function openBoard() {
+  setMode("menu"); show(`<div class="panel"><div class="kicker">Classement Constancy</div><h2>Qui est le plus régulier ?</h2><div class="card" id="bdList"><p class="note">Chargement…</p></div><button class="btn alt" id="bdBack" type="button">Retour</button></div>`, "mail"); on("bdBack", openMenu);
+  if (P.email) sendScore();
+  try { const b = await fetchBoard(); checkReferrals(b.par); const me = pseudo(), myS = Math.round(P.xp || 0); const list = b.top.slice(0, 20);
+    const el = $("bdList"); if (!el) return;
+    el.innerHTML = (list.length ? list.map((r, i) => `<div style="display:flex;justify-content:space-between;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.08);${r.n === me ? "color:#ff6fbf;font-weight:800" : ""}"><span>${i < 3 ? ["🥇", "🥈", "🥉"][i] : (i + 1) + "."} ${r.n.replace(/</g, "")}</span><span>${fmt(r.s)}</span></div>`).join("") : `<p class="note">Sois le premier du classement !</p>`)
+      + `<p class="note" style="margin-top:10px">Toi : <b>${me}</b> · ${fmt(myS)} points Constancy${P.email ? "" : " · Crée ta sauvegarde pour apparaître au classement."}</p><p class="note" style="opacity:.7">Les points montent chaque jour où tu reviens jouer. Mise à jour toutes les quelques minutes.</p>`;
+  } catch (e) { const el = $("bdList"); if (el) el.innerHTML = `<p class="note">Classement indisponible pour l'instant. Réessaie dans un moment.</p>`; }
+}
 function kitSend(email) {
-  if (GFORM) { const b = new URLSearchParams(); b.append(GFORM_ENTRY, email);
+  if (GFORM) { const b = new URLSearchParams(); b.append(GFORM_ENTRY, email); const ref = refCode(); if (ref) b.append(GF_E.parrain, ref); b.append(GF_E.pseudo, pseudo()); b.append(GF_E.joueur, pid()); b.append(GF_E.score, String(Math.round((P && P.xp) || 0)));
     return fetch(GFORM, { method: "POST", body: b, mode: "no-cors" }); }
   if (!KIT_FORM) return Promise.reject(new Error("no-form"));
   const fd = new FormData(); fd.append("email_address", email); fd.append("tags[]", "jeu-constancy");
@@ -4861,6 +4900,12 @@ function kitSend(email) {
 function kitFlush() { const q = kitQueue(); if (!q.length || !(KIT_FORM || GFORM) || navigator.onLine === false) return; const left = []; let n = q.length;
   q.forEach(e => kitSend(e).then(() => { if (--n === 0) kitSave(left); }).catch(() => { left.push(e); if (--n === 0) kitSave(left); })); }
 const EMAIL_BONUS = 500, EMAIL_MAX_ASK = 3, EMAIL_SNOOZE_S = 420;
+function socialTick() {
+  if (!P || G.mode !== "play") return; const t = P.playS || 0;
+  if (P.email && t - (P.scoreAt || 0) > 240) sendScore();
+  if (P.email && !P.sharePrompt && t > 540 && !G.entering && !G.inside && !G.para && !G.ufoRide) { P.sharePrompt = 1; saveNow(); stat("ecran-parrainage"); openShare(false); }
+  if (!P.refWelcome && refCode() && t > 20) { P.refWelcome = 1; addCash(FRIEND_BONUS); saveNow(); stat("bienvenue-filleul"); notify("gold", `<b>Un ami t'a invité.</b> Cadeau de bienvenue : <b style="color:var(--cash)">+$${fmt(FRIEND_BONUS)}</b>. Bienvenue à Constancy City.`, 7); }
+}
 function emailMoment(dt) { // le bon moment : juste après une mission, ou quand le joueur souffle (arrêté), sinon au plus tard à 4 min
   if (P.email || CREATOR || G.emailGate || G.mode !== "play" || G.entering || G.inside) return;
   P.playS = (P.playS || 0) + dt; const t = P.playS;
@@ -4883,12 +4928,13 @@ function openEmailGate() {
       ${perk("🎁", "+$" + fmt(EMAIL_BONUS) + " offerts tout de suite", "Un bonus de bienvenue, versé dans ton compte en jeu.")}
     </div>
     <input id="em" class="linkbox" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="ton@email.com" data-focus style="-webkit-user-select:text;user-select:text;text-align:left;margin:0;font-size:16px;padding:14px">
+    <input id="emPs" class="linkbox" type="text" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="Ton pseudo (classement)" style="-webkit-user-select:text;user-select:text;text-align:left;margin:-6px 0 0;font-size:16px;padding:14px">
     <div id="emErr" class="note" style="color:#ff6b8a;min-height:16px;margin-top:-8px"></div>
     <button class="btn pink" id="emGo" type="button" style="margin-top:-6px">Sauvegarder et continuer</button>
     <p class="note" style="opacity:.75;margin:0;text-align:center">Un e-mail seulement quand une nouvelle version sort. Jamais de spam · Désinscription en 1 clic.</p></div>`, "mail");
   const inp = $("em"), go = () => { const v = (inp.value || "").trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(v)) { $("emErr").textContent = "Vérifie ton adresse e-mail."; return; }
-    P.email = v; addCash(EMAIL_BONUS); saveNow(); stat("email-ok"); const q = kitQueue(); q.push(v); kitSave(q); kitFlush();
+    { const ps = ($("emPs") && $("emPs").value || "").replace(/[<>"&]/g, "").trim().slice(0, 16); if (ps) P.pseudo = ps; } pid(); P.email = v; addCash(EMAIL_BONUS); saveNow(); stat("email-ok"); if (refCode()) stat("inscription-parrainee"); const q = kitQueue(); q.push(v); kitSave(q); kitFlush();
     G.emailGate = false; resume(); celebrate(4); notify("gold", "<b>Tu es sur la liste.</b> Tu recevras la prochaine bêta avant tout le monde. <b style=\"color:var(--cash)\">+$" + fmt(EMAIL_BONUS) + "</b> versés.", 6); };
   on("emGo", go); inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
 }
@@ -5134,7 +5180,7 @@ function welcomeBack() {
   G.pendingHelp = null; on("shareS", shareStreak); on("wgo", startPlayHome);
 }
 setTimeout(kitFlush, 4000); window.addEventListener("online", kitFlush);
-function startPlayHome() { G.homeStart = true; startPlay(); }
+function startPlayHome() { G.homeStart = true; startPlay(); setTimeout(refreshReferrals, 8000); }
 function startPlay() {
   if (!G.statDay || G.statDay !== P.day) { G.statDay = P.day; stat(P.day === 1 ? "partie-lancee" : "retour-jour-" + Math.min(P.day, 30)); }
   if (CREATOR) creatorBoost(); setTimeout(updateLevelBadge, 0);
@@ -5419,12 +5465,13 @@ function openMenu() {
     ${timelineHtml()}
     <p class="note">Objectif : ${OBJ[P.objective].label}. Ta progression est sauvegardée sur cet appareil.</p>
     <button class="btn" id="res" data-focus type="button">Reprendre</button>
+    <div class="row" style="font-size:0"><button class="btn pink" id="shareM" type="button" style="font-size:16px">🎁 Inviter un ami</button><button class="btn alt" id="boardM" type="button" style="font-size:16px">🏆 Classement</button></div>
     ${SIGNUP_URL ? `<a class="btn pink" href="${SIGNUP_URL}" target="_blank" rel="noopener">Recevoir les prochaines versions</a>` : ""}
     <div class="row" style="font-size:0"><button class="btn alt" id="sndT" type="button" style="font-size:16px">${SND.on ? "Son : activé" : "Son : coupé"}</button><button class="btn alt" id="guideT" type="button" style="font-size:16px">Revoir le guide</button></div>
     <button class="btn alt" id="transf" type="button">Transférer ma partie</button>
     <button class="btn alt" id="credits" type="button">Crédits</button>
     <button class="btn alt" id="stopG" type="button">Arrêter la partie</button><button id="quitHidden" type="button" hidden></button></div>`);
-  on("res", resume); on("stopG", stopMenu); on("shareS", shareStreak);
+  on("res", resume); on("stopG", stopMenu); on("shareS", shareStreak); on("shareM", () => openShare(true)); on("boardM", openBoard);
   on("sndT", () => { $("soundBtn").click(); const b = $("sndT"); if (b) b.textContent = SND.on ? "Son : activé" : "Son : coupé"; });
   on("guideT", () => { resume(); startGuide(true); });
   on("transf", () => openTransfer(false));
@@ -5509,7 +5556,7 @@ function loop(now) {
     if (beam && (G.onFoot || !carMesh || (G.ride && (isPlane(G.ride.kind) || G.ride.kind === "bateau")))) beam.visible = false;
     if (G.wantExit && !G.onFoot && !G.entering) { G.car.v *= Math.pow(0.004, dt); if (Math.abs(G.car.v) < 4) { G.car.v = 0; G.wantExit = false; toggleCar(); } } else if (G.onFoot) G.wantExit = false;
     updateReminders(dt);
-    emailMoment(dt);
+    if (P.email && G.mode === "play" && !CREATOR) P.playS = (P.playS || 0) + dt; emailMoment(dt); if ((G.socT = (G.socT || 0) + dt) > 5) { G.socT = 0; socialTick(); }
     G.feedT = (G.feedT || 0) + dt; if (G.feedT > 125) { G.feedT = 0; feedAuto(); }
     G.offerT = (G.offerT || 0) + dt; G.vtcT = (G.vtcT == null ? 90 : G.vtcT) - dt; G.voisT = (G.voisT == null ? 60 : G.voisT) - dt; if (G.offerT > 5) { G.offerT = 0; if (!storyStep() || P.day > 1) offerDaily(); offerVtc(); offerVoisin(); }
     updateDoorClose(dt);

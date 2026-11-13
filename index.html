@@ -2186,6 +2186,17 @@ function buildSupertall(cx, cz, F, mat, i, j) {
   setBoxes(i, j, [[cx - F / 2, cz - F / 2, cx + F / 2, cz + F / 2, sy]]);
   const l = label("Tour Constancy", "#f2f0ec"); l.position.set(cx, base + 12, cz + F / 2 + 2); l.scale.set(18, 4.5, 1); scene.add(l);
   TOWER.x = cx; TOWER.z = cz;
+  // entrée du quartier de prestige : monolithe en marbre noir, lettres dorées, éclairé par le bas
+  { const zS = cz + BLOCK / 2 + 1.9, marble = new THREE.MeshPhongMaterial({ color: 0x0c0c10, shininess: 140, specular: 0x8a8aa0 }), gold = new THREE.MeshPhongMaterial({ color: 0xc9a24a, shininess: 120, specular: 0xfff1c0, emissive: 0x2a1c00 });
+    const cvs = document.createElement("canvas"); cvs.width = 1400; cvs.height = 300; const x2 = cvs.getContext("2d"); x2.fillStyle = "#0c0c10"; x2.fillRect(0, 0, 1400, 300);
+    const gr = x2.createLinearGradient(0, 40, 0, 220); gr.addColorStop(0, "#f6e3a1"); gr.addColorStop(0.5, "#c9a24a"); gr.addColorStop(1, "#8a6a22");
+    x2.fillStyle = gr; x2.textAlign = "center"; x2.font = "500 150px 'EB Garamond', Garamond, serif"; x2.fillText("CONSTANCY", 700, 175); x2.font = "italic 400 56px 'EB Garamond', Garamond, serif"; x2.fillText("Quartier Prestige", 700, 260);
+    x2.strokeStyle = "#c9a24a"; x2.lineWidth = 4; x2.strokeRect(24, 18, 1352, 264);
+    const tx2 = new THREE.CanvasTexture(cvs), face = new THREE.MeshBasicMaterial({ map: tx2 });
+    addGeo(marble, new THREE.BoxGeometry(15, 3.4, 0.9), cx, 0.25 + 1.95, zS); addGeo(gold, new THREE.BoxGeometry(15.4, 0.22, 1.1), cx, 0.25 + 0.15, zS); addGeo(gold, new THREE.BoxGeometry(15.4, 0.16, 1.1), cx, 0.25 + 3.7, zS);
+    [1, -1].forEach(sd => { const f = new THREE.Mesh(new THREE.PlaneGeometry(14.2, 3.04), face); f.position.set(cx, 0.25 + 1.95, zS + sd * 0.46); f.rotation.y = sd > 0 ? 0 : Math.PI; scene.add(f); });
+    const gt2 = glowTexture(); [-6, -2, 2, 6].forEach(dx => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: gt2, color: 0xffd58a, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending })); sp.position.set(cx + dx, 0.6, zS + 0.9); sp.scale.set(2.4, 2.4, 1); scene.add(sp); });
+    [-5, 0, 5].forEach(dx => addProp(cx + dx, zS, 2.6)); }
 }
 const TOWER = { x: 0, z: 0 };
 // arrêter la partie : changer d'objectif (on garde tout) ou recommencer de zéro

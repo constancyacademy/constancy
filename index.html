@@ -4524,7 +4524,7 @@ function titleScreen() {
     ${saved ? `<button class="btn" id="cont" data-focus type="button">Continuer · jour ${saved.day} · $${fmt(saved.cash)}</button><button class="btn alt" id="newg" type="button">Nouvelle partie</button>` : `<button class="btn" id="quick" data-focus type="button">Jouer maintenant</button><button class="btn alt" id="newg" type="button">Créer mon perso d'abord</button>`}
     <button class="btn alt" id="tcodeBtn" type="button" style="font-size:14px">J'ai un code de partie</button>
     <p class="note">Téléphone : pose ton pouce en bas de l'écran et glisse vers le haut pour avancer, vers le bas pour reculer, sur les côtés pour tourner. Ordinateur : flèches ou ZQSD, Espace pour freiner, F pour sortir de la voiture, Maj pour sprinter à pied. Sur téléphone, pousse le doigt au-delà du rond pour sprinter.</p></div>`);
-  on("cont", () => { audioInit(); P = Object.assign(freshSave(saved.objective, saved.muscle), saved); P.counts = P.counts || {}; if (P.jokers == null) P.jokers = 2; dailyReturn(); startPlay(); });
+  on("cont", () => { audioInit(); P = Object.assign(freshSave(saved.objective, saved.muscle), saved); P.counts = P.counts || {}; if (P.jokers == null) P.jokers = 2; dailyReturn(); if (G.newDay) welcomeBack(); else startPlay(); });
   on("newg", () => { audioInit(); saved ? confirmNew() : createAvatar(); });
   on("quick", () => { // démarrage en un toucher : perso par défaut, objectif « plus de cash », premier palier ; tout reste modifiable plus tard
     audioInit(); stat("demarrage-rapide"); pickObj = "cash"; pickMus = look.gender === "femme" ? "fessiers" : "bras"; pickTier = 0;
@@ -4726,10 +4726,18 @@ function intro() {
   on("go", startPlay);
 }
 function dailyReturn() {
-  const t = todayStr(); if (P.lastDate === t) return;
+  const t = todayStr(); if (P.lastDate === t) return; G.newDay = true;
   if (P.lastDate === yesterdayStr()) { P.streakDays = (P.streakDays || 1) + 1; const bonus = Math.min(1000, 150 * P.streakDays); P.cash += bonus; G.pendingHelp = `Tu reviens ${P.streakDays} jours d'affilée. Prime de retour : <b style="color:var(--cash)">+$${fmt(bonus)}</b>`; }
   else { P.streakDays = 1; G.pendingHelp = "Ça faisait longtemps. Ta série repart de zéro. Reviens demain pour la prime de retour."; }
   P.lastDate = t; saveNow();
+}
+// écran de retour (nouveau jour réel) : la série, le calendrier, le défi du jour. Comme une appli d'habitudes, mais dans le jeu
+function welcomeBack() {
+  G.newDay = false; stat("ecran-retour"); const n = P.streakDays || 1; { const t = todayStr(); if (!P.playDates) { P.playDates = []; for (let k = Math.min(60, n) - 1; k >= 1; k--) P.playDates.push(dstr(new Date(Date.now() - k * 864e5))); } if (!P.playDates.includes(t)) P.playDates.push(t); }
+  show(`<div class="panel"><div class="kicker">${n > 1 ? `Jour ${n} d'affilée` : "Te revoilà"}</div><h2>${n > 1 ? "Tu es revenu. C'est ça, la Constancy." : "Nouveau départ. Ça compte aussi."}</h2>
+    <p class="lead">${G.pendingHelp || ""}</p>${streakCard()}${dailyCard()}
+    <button class="btn" id="wgo" data-focus type="button">C'est parti</button></div>`);
+  G.pendingHelp = null; on("shareS", shareStreak); on("wgo", startPlay);
 }
 function startPlay() {
   if (!G.statDay || G.statDay !== P.day) { G.statDay = P.day; stat(P.day === 1 ? "partie-lancee" : "retour-jour-" + Math.min(P.day, 30)); }

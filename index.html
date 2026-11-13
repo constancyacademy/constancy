@@ -531,6 +531,15 @@ function startLoopAs(name, key) { const c = SND.ctx; if (!c || SND.loops[name] |
 function chirp(vol = 0.05) { const c = SND.ctx; if (!c || !SND.on) return; const t = c.currentTime, f0 = 2400 + Math.random() * 1800, n = 2 + Math.floor(Math.random() * 3);
   for (let i = 0; i < n; i++) { const o = c.createOscillator(), g = c.createGain(), st = t + i * (0.09 + Math.random() * 0.05); o.type = "sine"; o.frequency.setValueAtTime(f0, st); o.frequency.exponentialRampToValueAtTime(f0 * (1.25 + Math.random() * 0.4), st + 0.07); g.gain.setValueAtTime(0, st); g.gain.linearRampToValueAtTime(vol, st + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, st + 0.09); o.connect(g); g.connect(c.destination); o.start(st); o.stop(st + 0.1); } }
 function thump(vol = 0.3) { const c = SND.ctx; if (!c || !SND.on || vol < 0.01) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain(); o.type = "sine"; o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(32, t + 0.3); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.5); }
+function bell(vol = 0.2) { const c = SND.ctx; if (!c || !SND.on || vol < 0.004) return; const t = c.currentTime, f0 = 174;
+  [[0.5, 0.9, 5.5], [1, 0.8, 4.2], [1.19, 0.5, 3], [1.5, 0.32, 2.4], [2, 0.42, 2], [2.74, 0.2, 1.3], [3.4, 0.12, 0.9], [4.13, 0.07, 0.6]].forEach(([r, a, d]) => {
+    const o = c.createOscillator(), g = c.createGain(); o.type = "sine"; o.frequency.value = f0 * r * (1 + (Math.random() - 0.5) * 0.004);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol * a, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.05); });
+}
+function clink(vol = 0.04) { const c = SND.ctx; if (!c || !SND.on || vol < 0.003) return; const t0 = c.currentTime, n = Math.random() < 0.35 ? 2 : 1;
+  for (let i = 0; i < n; i++) { const t = t0 + i * (0.07 + Math.random() * 0.06), f = 2600 + Math.random() * 2800, d = 0.12 + Math.random() * 0.25;
+    [[1, 1], [2.71, 0.35], [4.1, 0.15]].forEach(([r, a]) => { const o = c.createOscillator(), g = c.createGain(); o.type = "sine"; o.frequency.value = f * r; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol * a, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + d / r); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.05); }); }
+}
 function audioInit() {
   if (SND.ctx) { if (SND.ctx.state === "suspended") SND.ctx.resume(); return; }
   try {
@@ -1703,7 +1712,42 @@ function zoneOf(i, j, dist, r) {
   return "mixed";
 }
 const SHOPS = [["CAFÉ", "#f4e9d8", "#2a1d16"], ["PHARMACIE", "#ffffff", "#0f6b3a"], ["BOULANGERIE", "#3a2414", "#f3d9a4"], ["BARBER SHOP", "#ffffff", "#141414"], ["TACOS 24/7", "#ffd23f", "#b3122e"], ["LAVERIE", "#0f2c4f", "#e9f3ff"], ["FLEURISTE", "#ffffff", "#c2457a"], ["PIZZERIA", "#ffffff", "#1d5e2f"]];
-let SHOP_M = null, SHOP_G = null;
+let SHOP_M = null, SHOP_G = null, VIT_M = null, VIT_G = null;
+const SHOP_W = [3, 2.2, 3, 1.6, 1.8, 0.35, 1.8, 2], SHOP_WT = SHOP_W.reduce((a, b) => a + b, 0);
+function shopPick(u) { let t = u * SHOP_WT; for (let k = 0; k < SHOP_W.length; k++) { t -= SHOP_W[k]; if (t < 0) return k; } return 0; }
+function vitrines() {
+  if (VIT_M) return; const RH = 192, c = document.createElement("canvas"); c.width = 512; c.height = RH * SHOPS.length; const g = c.getContext("2d");
+  const R = (a, b) => a + Math.random() * (b - a);
+  const shelf = (y0, col) => { g.fillStyle = col; g.fillRect(40, y0, 432, 5); };
+  SHOPS.forEach(([t], k) => {
+    const y = k * RH; g.save(); g.beginPath(); g.rect(0, y, 512, RH); g.clip();
+    const warm = { "CAFÉ": ["#ffd9a0", "#8a5a33"], "PHARMACIE": ["#f4fff8", "#cfe9dc"], "BOULANGERIE": ["#ffe2a8", "#b8792f"], "BARBER SHOP": ["#fff1dc", "#6b4a3a"], "TACOS 24/7": ["#ffe066", "#d2462a"], "LAVERIE": ["#e8f4ff", "#9fb8cc"], "FLEURISTE": ["#fff4f0", "#e9c9cf"], "PIZZERIA": ["#ffd08a", "#9c3b22"] }[t];
+    const gr = g.createLinearGradient(0, y, 0, y + RH); gr.addColorStop(0, warm[0]); gr.addColorStop(1, warm[1]); g.fillStyle = gr; g.fillRect(0, y, 512, RH);
+    if (t === "BOULANGERIE") { shelf(y + 70, "#6b4320"); shelf(y + 128, "#6b4320");
+      for (let i = 0; i < 9; i++) { g.save(); g.translate(60 + i * 46, y + 50); g.rotate(-0.9); g.fillStyle = "#d58f3c"; g.beginPath(); g.ellipse(0, 0, 30, 7, 0, 0, 6.28); g.fill(); g.strokeStyle = "#f6d29a"; g.lineWidth = 2; for (let s2 = -18; s2 < 20; s2 += 10) { g.beginPath(); g.moveTo(s2, -4); g.lineTo(s2 + 6, 4); g.stroke(); } g.restore(); }
+      for (let i = 0; i < 10; i++) { const x = 58 + i * 42, yy = y + 112; g.fillStyle = "#e3a14b"; g.beginPath(); g.arc(x, yy, 14, Math.PI, 0); g.fill(); g.fillStyle = "#c27a2c"; g.fillRect(x - 15, yy - 2, 30, 3); }
+      for (let i = 0; i < 6; i++) { const x = 70 + i * 72, yy = y + 162; g.fillStyle = ["#f7e1c4", "#6b2c1d", "#f29fb8", "#fff2d6"][i % 4]; g.fillRect(x - 24, yy - 22, 48, 22); g.fillStyle = "#c0122c"; g.beginPath(); g.arc(x, yy - 26, 5, 0, 6.28); g.fill(); } }
+    else if (t === "PHARMACIE") { for (let r2 = 0; r2 < 3; r2++) { shelf(y + 58 + r2 * 46, "#c9d6d0"); for (let i = 0; i < 18; i++) { g.fillStyle = ["#3dbb6b", "#2f7bd9", "#f2f2f2", "#e94e5b", "#f6c945"][(i + r2 * 3) % 5]; g.fillRect(44 + i * 24, y + 22 + r2 * 46, 18, 36); } }
+      g.fillStyle = "#18c45a"; g.fillRect(232, y + 150, 48, 16); g.fillRect(248, y + 134, 16, 48); }
+    else if (t === "CAFÉ") { g.fillStyle = "#2a1d16"; g.fillRect(300, y + 26, 170, 74); g.fillStyle = "#f4e9d8"; g.font = "bold 18px Inter, Arial"; ["ESPRESSO 2", "CAPPUCCINO 3", "CROISSANT 1,5"].forEach((m, i) => g.fillText(m, 312, y + 50 + i * 22));
+      g.fillStyle = "#5a3a22"; g.fillRect(20, y + 120, 472, 50); for (let i = 0; i < 7; i++) { g.fillStyle = "#fff"; g.fillRect(40 + i * 62, y + 104, 18, 16); g.fillStyle = "#3a2414"; g.fillRect(43 + i * 62, y + 106, 12, 4); }
+      for (let i = 0; i < 4; i++) { g.fillStyle = "rgba(255,200,120,.9)"; g.beginPath(); g.arc(60 + i * 70, y + 28, 10, 0, 6.28); g.fill(); } }
+    else if (t === "BARBER SHOP") { for (let i = 0; i < 3; i++) { const x = 80 + i * 150; g.fillStyle = "#cfe3ff"; g.fillRect(x - 40, y + 24, 80, 70); g.fillStyle = "#111"; g.fillRect(x - 28, y + 110, 56, 40); g.fillRect(x - 8, y + 150, 16, 30); g.fillStyle = "#7a1010"; g.fillRect(x - 30, y + 96, 60, 16); }
+      for (let s2 = 0; s2 < 8; s2++) { g.fillStyle = s2 % 2 ? "#d0182c" : "#2346c8"; g.fillRect(488, y + 20 + s2 * 20, 14, 10); } }
+    else if (t === "TACOS 24/7") { g.fillStyle = "#1a1a1a"; g.fillRect(30, y + 20, 452, 70); g.fillStyle = "#ffd23f"; g.font = "bold 22px Inter, Arial"; ["TACOS XL  8", "BOWL  9", "FRITES  3"].forEach((m, i) => g.fillText(m, 44 + i * 150, y + 62));
+      g.fillStyle = "#b3122e"; g.fillRect(20, y + 128, 472, 64); g.fillStyle = "#f3e2c0"; for (let i = 0; i < 6; i++) g.fillRect(50 + i * 72, y + 110, 40, 18); }
+    else if (t === "LAVERIE") { for (let i = 0; i < 6; i++) { const x = 60 + i * 78; g.fillStyle = "#f2f6fa"; g.fillRect(x - 32, y + 70, 64, 100); g.fillStyle = "#33495e"; g.beginPath(); g.arc(x, y + 124, 22, 0, 6.28); g.fill(); g.fillStyle = "#7fb4ff"; g.beginPath(); g.arc(x, y + 124, 15, 0, 6.28); g.fill(); } }
+    else if (t === "FLEURISTE") { for (let i = 0; i < 9; i++) { const x = 46 + i * 52, yy = y + 150; g.fillStyle = "#3c6e3a"; g.fillRect(x - 18, yy, 36, 34); for (let f = 0; f < 14; f++) { g.fillStyle = ["#ff3d8b", "#ffd23f", "#ffffff", "#c2457a", "#ff7a3d", "#9b5cff"][(i + f) % 6]; g.beginPath(); g.arc(x + R(-20, 20), yy - R(4, 70), R(5, 9), 0, 6.28); g.fill(); } } }
+    else if (t === "PIZZERIA") { g.fillStyle = "#4a2a1a"; g.beginPath(); g.arc(256, y + 140, 92, Math.PI, 0); g.fill(); g.fillStyle = "#ff8a2a"; g.beginPath(); g.arc(256, y + 140, 56, Math.PI, 0); g.fill(); g.fillStyle = "#ffd36e"; g.beginPath(); g.arc(256, y + 140, 30, Math.PI, 0); g.fill();
+      for (let i = 0; i < 2; i++) { const x = i ? 430 : 80; g.fillStyle = "#e8c07a"; g.beginPath(); g.arc(x, y + 70, 34, 0, 6.28); g.fill(); g.fillStyle = "#c8341e"; g.beginPath(); g.arc(x, y + 70, 28, 0, 6.28); g.fill(); for (let f = 0; f < 6; f++) { g.fillStyle = "#f7f0d0"; g.beginPath(); g.arc(x + R(-18, 18), y + 70 + R(-18, 18), 5, 0, 6.28); g.fill(); } } }
+    // reflets de la vitre, montants et porte
+    const rf = g.createLinearGradient(0, y, 512, y + RH); rf.addColorStop(0, "rgba(255,255,255,0)"); rf.addColorStop(0.42, "rgba(255,255,255,0)"); rf.addColorStop(0.5, "rgba(255,255,255,.22)"); rf.addColorStop(0.58, "rgba(255,255,255,0)"); g.fillStyle = rf; g.fillRect(0, y, 512, RH);
+    g.fillStyle = "#15161a"; g.fillRect(0, y, 512, 8); g.fillRect(0, y + RH - 8, 512, 8); g.fillRect(0, y, 8, RH); g.fillRect(504, y, 8, RH); g.fillRect(338, y, 6, RH);
+    g.restore();
+  });
+  const tx = new THREE.CanvasTexture(c); tx.anisotropy = 4; VIT_M = new THREE.MeshBasicMaterial({ map: tx, color: 0xd2d2d2 });
+  VIT_G = SHOPS.map((_, k) => { const g2 = new THREE.PlaneGeometry(6, 2.5), uv = g2.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, (SHOPS.length - 1 - k + uv.getY(i)) / SHOPS.length); return g2; });
+}
 function shopSigns() {
   if (SHOP_M) return; const c = document.createElement("canvas"); c.width = 1024; c.height = 64 * SHOPS.length; const g = c.getContext("2d");
   SHOPS.forEach(([t, fg, bg], k) => { const y = k * 64; g.fillStyle = bg; g.fillRect(0, y, 1024, 64); g.fillStyle = fg; g.font = "bold 40px Inter, Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
@@ -1713,10 +1757,11 @@ function shopSigns() {
   SHOP_G = SHOPS.map((_, k) => { const g2 = new THREE.PlaneGeometry(6, 0.75), uv = g2.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, (SHOPS.length - 1 - k + uv.getY(i)) / SHOPS.length); return g2; });
 }
 function addShopSign(x, z, w, d, base, faces, r) {
-  shopSigns();
-  faces.forEach(([nx, nz]) => { if (r() < .35) return; const k = Math.floor(r() * SHOPS.length), len = Math.min(nx ? d : w, 8) * 0.8, sc = len / 6;
+  shopSigns(); vitrines();
+  faces.forEach(([nx, nz]) => { if (r() < .35) return; const k = shopPick(r()), len = Math.min(nx ? d : w, 8) * 0.8, sc = len / 6;
     const px = x + nx * ((nx ? w : 0) / 2 + 0.07), pz = z + nz * ((nz ? d : 0) / 2 + 0.07), ry = nx ? (nx > 0 ? Math.PI / 2 : -Math.PI / 2) : (nz > 0 ? 0 : Math.PI);
-    addGeo(SHOP_M, SHOP_G[k], px, base + 4.25, pz, ry, sc, sc * 1.1, 1); });
+    addGeo(SHOP_M, SHOP_G[k], px, base + 4.25, pz, ry, sc, sc * 1.1, 1);
+    addGeo(VIT_M, VIT_G[k], px + nx * 0.01, base + 1.75, pz + nz * 0.01, ry, sc, 1, 1); });
 }
 function buildingDetail(x0, z0, w, d, h, base, r) {
   const D = districtMats(), floors = Math.floor((h - 4) / 3.3);
@@ -2042,6 +2087,72 @@ function boomFW(vol, d) {
   if (d < 450) for (let q = 0; q < 14; q++) { const st = t + 0.35 + Math.random() * 1.1, cs = c.createBufferSource(); cs.buffer = SND.popB; const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 2500; const cg = c.createGain(); cg.gain.value = vol * 0.25 * Math.random(); cs.connect(hp); hp.connect(cg); cg.connect(c.destination); cs.start(st, 0, 0.03); }
 }
 /* ============ Sportifs en plein air : bootcamp de jumping jacks, squats, pompes (plage et street workout) ============ */
+const GUING = { list: [], people: [], clinkT: 0 };
+function buildGuinguettes() {
+  const C = HQ.clips && HQ.clips.m;
+  const wood = new THREE.MeshLambertMaterial({ color: 0x9a6a44 }), dark = new THREE.MeshLambertMaterial({ color: 0x3a2416 }), white = new THREE.MeshLambertMaterial({ color: 0xf3ece0 }), pinkM = new THREE.MeshLambertMaterial({ color: 0xff4fa3, emissive: 0x551133 });
+  const bottleM = [0x2f8f4e, 0x7a3b12, 0xd8e8ff, 0xff4fa3].map(c => new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.25 }));
+  const spots = [
+    { x: HALF + 22, z: bC(5), sx: 1, sz: 0, n: "Guinguette · Le Constant" },
+    { x: -HALF - 22, z: bC(11), sx: -1, sz: 0, n: "Beach Bar · Flamingo" },
+    { x: bC(4), z: HALF + 22, sx: 0, sz: 1, n: "Terrasse · Sunset" },
+    { x: bC(10), z: HALF + 22, sx: 0, sz: 1, n: "Le Petit Phare" }
+  ].filter(s => !onAirport(s.x, s.z) && !onHighway(s.x, s.z) && !inRiverBand(s.z) && !onNorth(s.x, s.z));
+  const glowT = glowTexture();
+  spots.forEach((S, si) => {
+    const ry = Math.atan2(S.sx, S.sz), y0 = Math.max(0, beachH(S.x, S.z)) + 0.02;
+    const at = (a, b) => [S.x + S.sx * a + S.sz * b, S.z + S.sz * a - S.sx * b];
+    const box = (m, w, h, d, a, b, y) => { const [x, z] = at(a, b); addGeo(m, new THREE.BoxGeometry(w, h, d), x, y0 + y, z, ry); };
+    const cyl = (m, r1, r2, h, a, b, y, seg = 10) => { const [x, z] = at(a, b); addGeo(m, new THREE.CylinderGeometry(r1, r2, h, seg), x, y0 + y, z); };
+    box(wood, 16, 0.3, 11, 0, 0, 0.15);                       // plancher
+    box(dark, 6, 1.1, 1.1, -3.6, 0, 0.85); box(white, 6.4, 0.12, 1.5, -3.6, 0, 1.46); // comptoir
+    box(pinkM, 6.2, 0.18, 0.05, -3.02, 0, 1.2);                // liseré néon du comptoir
+    box(dark, 6, 2.2, 0.4, -5.2, 0, 1.4);                      // étagère du fond
+    for (let k = 0; k < 10; k++) cyl(bottleM[k % 4], 0.07, 0.08, 0.38, -5.0, -2.6 + k * 0.58, 2.7, 6);
+    [[-5, -7.5], [-5, 7.5], [5, -7.5], [5, 7.5]].forEach(([a, b]) => cyl(wood, 0.1, 0.12, 3.6, a, b, 1.95, 6));
+    // tables hautes et tabourets
+    const tables = [[0, -5], [0.5, -1.2], [0, 3], [3, -3.4], [3.2, 1.2], [2.8, 5.4]];
+    tables.forEach(([a, b]) => { cyl(white, 0.55, 0.55, 0.06, a, b, 1.08); cyl(dark, 0.06, 0.06, 0.8, a, b, 0.68, 6); [0.9, -0.9].forEach(o => { cyl(dark, 0.2, 0.2, 0.06, a + o * 0.3, b + o, 0.72, 8); cyl(dark, 0.04, 0.04, 0.5, a + o * 0.3, b + o, 0.48, 5); }); });
+    // guirlandes lumineuses qui pendent entre les poteaux
+    const warm = [], pink = [];
+    const strand = (a0, b0, a1, b1) => { for (let k = 0; k <= 14; k++) { const t = k / 14, [x, z] = at(a0 + (a1 - a0) * t, b0 + (b1 - b0) * t); (k % 3 === 1 ? pink : warm).push(x, y0 + 3.7 - Math.sin(Math.PI * t) * 0.7, z); } };
+    strand(-5, -7.5, 5, -7.5); strand(-5, 7.5, 5, 7.5); strand(-5, -7.5, -5, 7.5); strand(5, -7.5, 5, 7.5); strand(-5, -7.5, 5, 7.5); strand(-5, 7.5, 5, -7.5);
+    const mk = (arr, col, size) => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(arr), 3)); const pm = new THREE.PointsMaterial({ size, map: glowT, color: col, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true }); pm.userData.base = new THREE.Color(col); NEON.mats.push(pm); const pts = new THREE.Points(g, pm); scene.add(pts); return pts; };
+    const p1 = mk(warm, 0xffc46b, 1.5), p2 = mk(pink, 0xff4fc8, 1.7);
+    // halo chaud au sol
+    const [gx, gz] = at(0, 0), glow = new THREE.Mesh(new THREE.PlaneGeometry(22, 16), new THREE.MeshBasicMaterial({ map: glowT, color: 0xffa860, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+    glow.rotation.x = -Math.PI / 2; glow.rotation.z = ry; glow.position.set(gx, y0 + 0.33, gz); scene.add(glow);
+    const sg = label(S.n, "#ff4fa3"), [lx, lz] = at(-5.2, 0); sg.position.set(lx, y0 + 5.4, lz); sg.scale.set(7, 1.75, 1); scene.add(sg);
+    GUING.list.push({ x: gx, z: gz, pts: [p1, p2], glow });
+    if (!C) return;
+    // le barman et des petits groupes qui discutent autour des tables, verre à la main
+    const people = [[-2.6, 0.6, true, -1], [-2.6, -1.8, false, -1]];
+    tables.forEach(([a, b], ti) => { const n = ti % 3 === 0 ? 3 : 2; for (let q = 0; q < n; q++) { const ang = q / n * Math.PI * 2 + ti; people.push([a + Math.cos(ang) * 0.95, b + Math.sin(ang) * 0.95, ti < 2 && q === 0, [a, b]]); } });
+    people.forEach(([a, b, day, look], qi) => {
+      const f = (qi + si) % 2 === 0, h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x111114, 0x34e0ff, 0xf6c945, 0xeadfcf, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: f, shorts: qi % 3 === 0, sleeve: 0.25 }));
+      const [x, z] = at(a, b); h.position.set(x, y0 + 0.3, z);
+      if (look === -1) { const [bx, bz] = at(-4.6, b); h.position.set(bx, y0 + 0.3, bz); const [tx, tz] = at(0, b); h.rotation.y = Math.atan2(tx - bx, tz - bz); }
+      else { const [tx, tz] = at(look[0], look[1]); h.rotation.y = Math.atan2(tx - x, tz - z); }
+      scene.add(h); setClip(h, qi % 2 ? "Idle_Talking_Loop" : "Idle_Loop", 0.85 + Math.random() * 0.3); h.userData.manual = true; h.userData.day = !!day;
+      if (look !== -1) giveDrink(h); h.visible = false; GUING.people.push(h);
+    });
+  });
+}
+function updateGuing(dt) {
+  if (!GUING.list.length) return; const me = target(), nk = nightK; let near = 1e9;
+  GUING.list.forEach(g => { const d = Math.hypot(me.x - g.x, me.z - g.z); near = Math.min(near, d); g.glow.material.opacity = nk * 0.42; g.pts.forEach(p => { p.visible = d < 1100; }); });
+  const on = nk > 0.45;
+  GUING.people.forEach(h => { h.visible = (on || h.userData.day) && Math.hypot(me.x - h.position.x, me.z - h.position.z) < 170; if (h.userData.cup) h.userData.cup.visible = h.visible; });
+  if (on && near < 48 && G.mode === "play") { GUING.clinkT -= dt; if (GUING.clinkT <= 0) { GUING.clinkT = rand(0.35, 2.2); clink(0.055 * (1 - near / 48) + 0.004); } }
+}
+// cloche de l'église de Saint-Constant : elle sonne les heures (on l'entend dans la campagne)
+const BELL = { x: -170, z: -1120, lastH: -1, n: 0, next: 0, vol: 0 };
+function updateBell(dt) {
+  if (!P || G.mode !== "play") return; const h = Math.floor(hourNow());
+  if (BELL.lastH < 0) { BELL.lastH = h; return; }
+  if (h !== BELL.lastH) { BELL.lastH = h; const me = target(), d = Math.hypot(me.x - BELL.x, me.z - BELL.z); if (d < 950 && !G.inside) { BELL.n = (h % 12) || 12; BELL.next = 0; BELL.vol = 0.24 * Math.pow(1 - d / 950, 1.5) + 0.012; } }
+  if (BELL.n > 0) { BELL.next -= dt; if (BELL.next <= 0) { bell(BELL.vol); BELL.n--; BELL.next = 2.2; } }
+}
 function buildExercisers() {
   const C = HQ.clips && HQ.clips.m; if (!C) return;
   const groups = [
@@ -2802,7 +2913,7 @@ function buildWorld() {
   const mentor = makeHuman({ shirt: 0x1d2a44, pants: 0x1d2a44, skin: 0xc68a5e, hair: 0x111111 }); mentor.position.set(HALF + 34, 0.6, bC(5)); mentor.rotation.y = -Math.PI / 2; scene.add(mentor); if (mentor.userData.q) { mentor.position.y = 0.6; setClip(mentor, "Idle_Talking_Loop"); }
 
   buildTrafficLights(); buildTraffic(); buildPeds(); buildLife(); buildRentals(); buildRoofNeons();
-  PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeInterior(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildUfo();
+  PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeInterior(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildGuinguettes(); buildUfo();
   ownMark = makeBeacon(new THREE.Color(0xffffff)); ownMark.userData.col.scale.set(0.5, 0.35, 0.5); ownMark.userData.col.position.y = 12;
   const ol = label("Ta voiture", "#ffffff"); ol.scale.set(9, 2.2, 1); ol.position.y = 6; ownMark.add(ol); ownMark.visible = false; scene.add(ownMark);
   const mlab = label("Mamie", LM.mamie.color); mlab.scale.set(8, 2, 1); mlab.position.set(LM.mamie.x - 4, 4, bMax(0) - 2); scene.add(mlab);
@@ -2909,11 +3020,21 @@ const SKINS = [0xf2cfb3, 0xd9a47e, 0xa86b45, 0x6e4a33, 0xf0c8a8], SHIRTS = [0x1f
 // niveau de détail : au-delà de 30 m, un passant est dessiné en version légère (bien plus fluide, invisible à l'œil à cette distance)
 function lodFor(h, opt) { const l = makeHumanLegacy(Object.assign({}, opt, { lite: true })); l.visible = false; scene.add(l); h.userData.lod = l; return l; }
 function lodSync(h, d, speed, dt, far = 30) { const l = h.userData.lod; if (!l) return; if (d > far && h.visible) { h.visible = false; l.visible = true; l.position.copy(h.position); l.rotation.y = h.rotation.y; animHuman(l, speed, dt); } else l.visible = false; }
+// un verre à la main (cocktail rose, bière, eau pétillante…), visible le soir
+function giveDrink(h) {
+  const cup = new THREE.Group(), glass = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.038, 0.15, 8), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, roughness: 0.08 }));
+  const liq = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.036, 0.09, 8), new THREE.MeshBasicMaterial({ color: pick([0xff3d8b, 0xffb347, 0x7cf3ff, 0xc0122c, 0xffe38a]) })); liq.position.y = -0.025; cup.add(glass, liq);
+  let hand = null; h.traverse(b => { if (!hand && b.isBone && /hand_?r$/i.test(b.name)) hand = b; });
+  if (hand) { h.updateMatrixWorld(true); const sc = hand.getWorldScale(new THREE.Vector3()); cup.scale.set(1 / sc.x, 1 / sc.y, 1 / sc.z); cup.position.set(0, 0.09 / sc.y, 0.03 / sc.z); hand.add(cup); }
+  else if (h.userData.aR) { h.userData.aR.add(cup); cup.position.set(0, -0.84, 0.07); }
+  else return null;
+  cup.visible = false; h.userData.cup = cup; return cup;
+}
 function buildPeds() {
   for (let k = 0; k < 36; k++) {
     const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = bodyVar(makeHuman(opt)); scene.add(h); lodFor(h, opt);
     const i = Math.floor(rand(0, NB)); let j = Math.floor(rand(0, NB)); if (j === RIVER_J) j = RIVER_J - 1;
-    peds.push({ mesh: h, i, j, t: rand(0, 144), speed: rand(1.3, 2.2) * (Math.random() < .5 ? 1 : -1), dodge: 0 });
+    peds.push({ mesh: h, i, j, t: rand(0, 144), speed: rand(1.3, 2.2) * (Math.random() < .5 ? 1 : -1), dodge: 0, nh: k % 5 < 3, cup: k % 5 >= 3 && k % 2 === 0 ? giveDrink(h) : null });
   }
 }
 function pedPos(p) {
@@ -3114,6 +3235,7 @@ function updateBirds(dt) {
 }
 function updateLife(dt) {
   if (G.mode === "play") { updatePigeons(dt); updateBirds(dt); }
+  updateGuing(dt); updateBell(dt);
   planes.forEach(p => { p.a += p.s * dt; p.mesh.position.set(Math.cos(p.a) * p.r, p.y, Math.sin(p.a) * p.r); p.mesh.rotation.set(0, -p.a + (p.s < 0 ? Math.PI : 0), p.s < 0 ? 0.25 : -0.25, "YXZ"); });
   const T = performance.now() / 1000;
   if (life.heli) { const h = life.heli; h.a += 0.09 * dt; h.mesh.position.set(Math.cos(h.a) * h.r, h.y + Math.sin(T * 0.5) * 3, Math.sin(h.a) * h.r); h.mesh.rotation.set(0, -h.a, -0.12, "YXZ"); }
@@ -3459,7 +3581,8 @@ function updateWorldLife(dt) {
   const me = target();
   updateLife(dt);
   traffic.forEach(a => { a.mesh.visible = Math.hypot(a.x - me.x, a.z - me.z) < 190; });
-  peds.forEach(p => { p.mesh.visible = Math.hypot(p.mesh.position.x - me.x, p.mesh.position.z - me.z) < 95; });
+  const fewPeds = nightK > 0.6; // la nuit, la ville se vide : il reste surtout ceux qui sortent boire un verre
+  peds.forEach(p => { p.mesh.visible = !(p.nh && fewPeds) && Math.hypot(p.mesh.position.x - me.x, p.mesh.position.z - me.z) < 95; if (p.cup) p.cup.visible = nightK > 0.45; });
   joggers.forEach(j => { j.mesh.visible = Math.hypot(j.mesh.position.x - me.x, j.mesh.position.z - me.z) < 110; });
   traffic.forEach(a => {
     // s'arrête si le joueur est juste devant
@@ -3499,6 +3622,7 @@ function updateWorldLife(dt) {
   peds.forEach(p => { if (p.mesh.visible) blockBy(p.mesh.position.x, p.mesh.position.z); });
   joggers.forEach(j => { if (j.mesh.visible) blockBy(j.mesh.position.x, j.mesh.position.z); });
   peds.forEach(p => {
+    if (p.nh && fewPeds && !(p.photo > 0)) { if (p.mesh.userData.lod) p.mesh.userData.lod.visible = false; return; }
     if (p.photo > 0 && !p.photoDone) { animHuman(p.mesh, 0, dt); return; }
     p.t += p.speed * dt;
     const q = pedPos(p), dx = q.x - me.x, dz = q.z - me.z, d = Math.hypot(dx, dz);
@@ -4170,7 +4294,7 @@ function makeDoor(mesh) {
   const glass = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.45, 1.2), new THREE.MeshPhongMaterial({ color: 0x0c1220, shininess: 90 })); glass.position.set(0, 0.6, -0.75); hinge.add(glass);
   return hinge;
 }
-function updateDoorClose(dt) { const D = G.doorClose; if (!D) return; D.t += dt; D.door.rotation.y = Math.max(0, 1.15 - D.t * 3.5); if (D.t > 0.45) { if (D.door.parent) D.door.parent.remove(D.door); G.doorClose = null; } }
+function updateDoorClose(dt) { const D = G.doorClose; if (!D) return; D.t += dt; D.door.rotation.y = clamp(1.15 - Math.max(0, D.t) * 3.5, 0, 1.15); if (D.t > 0.45) { if (D.door.parent) D.door.parent.remove(D.door); G.doorClose = null; } }
 /* vue à la première personne : volant dans les mains */
 let cockpit = null, pCockpit = null;
 function buildPlaneCockpit() {
@@ -4443,6 +4567,8 @@ function toggleCar() {
     G.wantExit = false;
     const c = G.car, k = G.ride.kind, two = RIDES[k] && !RIDES[k].car;
     c.v = 0;
+    // en descendant : la portière s'ouvre, on sort, elle se referme derrière nous
+    if (carMesh && !two && !(RIDES[k] && (RIDES[k].plane || RIDES[k].boat))) { if (G.doorClose && G.doorClose.door.parent) G.doorClose.door.parent.remove(G.doorClose.door); const dr = makeDoor(carMesh); dr.rotation.y = 1.15; G.doorClose = { door: dr, t: -0.45 }; }
     if (k === "own") G.parked = { mesh: carMesh, x: c.x, z: c.z, h: c.h };
     else rentals.push({ kind: k, mesh: carMesh, x: c.x, z: c.z, h: c.h });
     if (two) carMesh.position.y = 0.25;
@@ -5572,7 +5698,7 @@ function gate() {
 
 /* ============ Boucle ============ */
 let last = performance.now();
-window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
+window.__W = () => ({ GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
 window.__X = () => ({ life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);

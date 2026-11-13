@@ -3390,10 +3390,11 @@ function updateHud(dt) {
   $("quitBtn").classList.toggle("hidden", !M);
   if (M) {
     box.classList.remove("hidden");
-    const mk = M.type + Math.ceil(M.time) + Math.round(M.catch || 0) + "|" + (M.i || 0) + "|" + Math.round(M.prog || 0) + "|" + (M.stage || 0);
+    const mk = M.type + Math.ceil(M.time) + Math.round(M.catch || 0) + "|" + (M.i || 0) + "|" + Math.round(M.prog || 0) + "|" + (M.stage || 0) + "|" + (M.done || 0) + (M.carry ? "c" : "");
     if (mk !== lastMissionKey) {
       lastMissionKey = mk;
-      box.innerHTML = M.type === "vtc" ? `<div class="k">Mission · course VTC</div><div class="t">${M.stage ? "vers la destination" : "récupère le client"}</div><div class="s">${M.stage ? "En douceur : chaque choc coûte une étoile" : "Arrête-toi au point blanc"}</div>`
+      box.innerHTML = M.type === "voisin" ? `<div class="k">Mission · aider un voisin</div><div class="t">${M.carry ? "vers sa porte" : "prends un carton"}</div><div class="s">Carton ${Math.min(M.done + 1, 3)} sur 3 · à pied</div>`
+        : M.type === "vtc" ? `<div class="k">Mission · course VTC</div><div class="t">${M.stage ? "vers la destination" : "récupère le client"}</div><div class="s">${M.stage ? "En douceur : chaque choc coûte une étoile" : "Arrête-toi au point blanc"}</div>`
         : M.type === "run" ? `<div class="k">Mission · routine du matin</div><div class="t">à ton rythme</div><div class="s">Point ${Math.min(M.i + 1, M.pts.length)} sur ${M.pts.length} · à pied</div>`
         : M.type === "club" ? `<div class="k">Mission · club de course</div><div class="t">cours avec eux</div><div class="s">Reste près du groupe</div><div class="catch"><i style="width:${clamp(M.prog / 40 * 100, 0, 100)}%"></i></div>`
         : M.type === "livraison"
@@ -3405,6 +3406,7 @@ function updateHud(dt) {
   let sub;
   if (M && M.type === "livraison") sub = `Suis le point <b style="color:${COL.business}">violet</b> sur la carte.`;
   else if (M && M.type === "mamie") sub = `Rattrape le voleur en <b style="color:${COL.env}">vert</b> et reste collé à lui.`;
+  else if (M && M.type === "voisin") sub = M.carry ? `Porte le carton jusqu'à la porte (point <b>blanc</b>).` : `Va chercher un carton au point <b>blanc</b>.`;
   else if (M && M.type === "vtc") sub = M.stage ? `Dépose le client au point <b>blanc</b>.` : `Récupère le client au point <b>blanc</b>.`;
   else if (M && M.type === "run") sub = G.onFoot ? `Cours jusqu'au point <b>blanc</b>.` : `Gare-toi près du point <b>blanc</b> et descends.`;
   else if (M && M.type === "club") sub = G.onFoot ? `Reste près du groupe de coureurs.` : `Descends et rejoins le groupe à pied.`;
@@ -4305,6 +4307,15 @@ function endMission(ok) {
     if (ok) { const gain = Math.round((140 + lvl(P.biz) * 30) * P.mult * (M.time > 0 ? 1.25 : 1) * (WX.rain > 0.3 ? 1.2 : 1)); addCash(gain); P.biz += Math.round(6 * P.mult); P.deliveries++; P.counts.livraison = (P.counts.livraison || 0) + 1; sfx.win(); storyCheck(); help(`Livraison réussie${WX.rain > 0.3 ? " sous la pluie" : ""}. <b style="color:var(--cash)">+$${fmt(gain)}</b>`); }
     else { sfx.fail(); help("Trop tard. Le client a annulé. Retente au Dépôt."); }
   }
+  if (M.type === "voisin") {
+    destBeacon.visible = false; if (VOIS.carry) { VOIS.carry.visible = false; VOIS.carry = null; }
+    setTimeout(() => { if (G.mission && G.mission.type === "voisin") return; VOIS.man.visible = false; VOIS.boxes.forEach(b => { b.visible = false; }); }, ok ? 25000 : 500);
+    if (ok) { P.mindset += Math.round(5 * P.mult); P.statut += Math.round(3 * P.mult); addXP(90); P.counts.voisin = (P.counts.voisin || 0) + 1; P.helped = (P.helped || 0) + 1; sfx.win(); stat("aide-voisin");
+      if (VOIS.man) setClip(VOIS.man, "Idle_Talking_Loop");
+      help(`<b>Cartons livrés.</b> Le voisin te serre la main. Il ne t'a rien donné : C'est justement pour ça que ça compte. <b style="color:var(--gold)">+Mindset · +Statut</b>`, 7);
+      setTimeout(() => feedPost(P.helped > 1 ? "ville" : "mamie", P.helped > 1 ? `${P.helped}e voisin aidé par le livreur du quartier. Les petits gestes réguliers font les bonnes villes. 🤝` : "Un jeune a porté les cartons de mon voisin jusqu'à chez lui. Sans rien demander. Ça existe encore. ❤️", { toast: true }), 3000); }
+    G.mission = null; saveNow(); return;
+  }
   if (M.type === "vtc") {
     destBeacon.visible = false;
     if (ok && M.stage === 1) { const hits = (G.bumps || 0) - (M.b0 || 0), stars = Math.max(1, 5 - hits - ((P.dirt || 0) > 0.6 ? 1 : 0)), pay = Math.round((90 + stars * 25) * P.mult); addCash(pay); P.biz += Math.round(4 * P.mult); P.counts.vtc = (P.counts.vtc || 0) + 1; addXP(50 + stars * 8); sfx.win();
@@ -4331,6 +4342,31 @@ function endMission(ok) {
 const RING = HALF + 9; // boucle du front de mer (celle des joggeurs)
 function ringT(x, z) { // position (0..4) la plus proche sur la boucle
   let best = 0, bd = 1e9; for (let k = 0; k < 400; k++) { const t = k / 100, [px, pz] = squarePath(t, RING), d = Math.hypot(px - x, pz - z); if (d < bd) { bd = d; best = t; } } return best;
+}
+// ---------- mission « aider un voisin » : porter ses cartons jusqu'à sa porte, sans rien attendre en retour
+const VOIS = { man: null, boxes: [], carry: null };
+function voisInit() {
+  if (VOIS.man || !HQ.ready) return !!VOIS.man; const opt = { skin: pick(SKINS), shirt: 0xc9b28a, pants: 0x3d405b, hair: 0x9a9a9a, lite: true }; VOIS.man = makeHuman(opt); VOIS.man.visible = false; scene.add(VOIS.man);
+  const bm = new THREE.MeshLambertMaterial({ color: 0xb98a55 }), g = new THREE.BoxGeometry(0.55, 0.42, 0.45); for (let k = 0; k < 7; k++) { const b = new THREE.Mesh(g, bm); b.visible = false; scene.add(b); VOIS.boxes.push(b); } return true;
+}
+function offerVoisin() {
+  if (!P || G.mission || G.inside || !G.onFoot || G.mode !== "play" || !G.started || storyStep()) return; if ((G.voisT || 0) > 0) return; if (!voisInit()) return;
+  const o = G.me, sp = streetSpot(o); if (!sp) return; G.voisT = 220 + Math.random() * 160;
+  const [ax, az, r] = sp, dir = [Math.cos(r), Math.sin(r)], sg = Math.random() < .5 ? 1 : -1, bx = ax + dir[0] * 10 * sg, bz = az + dir[1] * 10 * sg;
+  VOIS.man.position.set(ax + dir[0] * 1.2 * -sg, 0.25, az + dir[1] * 1.2 * -sg); VOIS.man.rotation.y = Math.atan2(o.x - ax, o.z - az); VOIS.man.visible = true; setClip(VOIS.man, "Idle_Talking_Loop");
+  VOIS.boxes.forEach((b, k) => { b.visible = k < 3; b.position.set(ax + (k % 2) * 0.3, 0.46 + k * 0.42, az); b.rotation.y = k * 0.3; });
+  G.mission = { type: "voisin", a: [ax, az], b: [bx, bz], left: 3, done: 0, carry: false, time: 9999 }; destBeacon.position.set(ax, 0, az); destBeacon.visible = true; sfx.ping();
+  notify("gold", `<b>Un voisin galère avec ses cartons.</b> Aide-le : Porte les 3 cartons jusqu'à sa porte (point blanc). Il ne paiera rien. Ce n'est pas la question.`, 8);
+}
+function updateVoisin(dt) {
+  const M = G.mission; destBeacon.userData.ring.rotation.z += dt; if (!G.onFoot) { if (!M.hintT || performance.now() - M.hintT > 12000) { M.hintT = performance.now(); help("Ça se fait <b>à pied</b> : descends de la voiture.", 3); } return; }
+  const o = G.me, t = M.carry ? M.b : M.a, d = Math.hypot(o.x - t[0], o.z - t[1]);
+  if (VOIS.carry) { const h = o.h || 0; VOIS.carry.position.set(o.x + Math.sin(h) * 0.42, 1.05, o.z + Math.cos(h) * 0.42); VOIS.carry.rotation.y = h; }
+  if (d < 1.9) {
+    if (!M.carry) { const b = VOIS.boxes[M.left - 1]; VOIS.carry = b; M.carry = true; destBeacon.position.set(M.b[0], 0, M.b[1]); sfx.ping(); help(`Carton ${M.done + 1} sur 3. Porte-le jusqu'à la porte.`, 2.5); }
+    else { const b = VOIS.carry; VOIS.carry = null; M.carry = false; M.left--; b.position.set(M.b[0] + (M.done % 2) * 0.3, 0.46 + M.done * 0.42, M.b[1]); b.rotation.y = M.done * 0.4; M.done++; sfx.ping();
+      if (M.left <= 0) { endMission(true); return; } destBeacon.position.set(M.a[0], 0, M.a[1]); help(`Plus que ${M.left}.`, 2); }
+  }
 }
 function offerVtc() {
   if (!P || G.mission || G.inside || G.onFoot || !carMesh || G.mode !== "play" || !G.started || storyStep()) return;
@@ -4368,6 +4404,7 @@ function updateMission(dt) {
       const q = M.pts[M.i]; destBeacon.position.set(q[0], 0, q[1]); help(`Point ${M.i} sur ${M.pts.length - 1}. Continue, à ton rythme.`, 2.5); }
     return;
   }
+  if (M.type === "voisin") { updateVoisin(dt); return; }
   if (M.type === "vtc") {
     destBeacon.userData.ring.rotation.z += dt; const c = G.car;
     if (M.stage === 0 && !G.onFoot && Math.hypot(c.x - M.px, c.z - M.pz) < 9) { if (Math.abs(c.v) < 2.5) { M.stage = 1; let x, z, k = 0; do { x = rc(Math.floor(rand(1, NB))); z = rc(Math.floor(rand(1, NB))); k++; } while ((Math.hypot(x - c.x, z - c.z) < 220 || Math.hypot(x - c.x, z - c.z) > 480) && k < 60);
@@ -5013,7 +5050,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
@@ -5030,7 +5067,7 @@ function loop(now) {
     if (G.wantExit && !G.onFoot && !G.entering) { G.car.v *= Math.pow(0.004, dt); if (Math.abs(G.car.v) < 4) { G.car.v = 0; G.wantExit = false; toggleCar(); } } else if (G.onFoot) G.wantExit = false;
     updateReminders(dt);
     G.feedT = (G.feedT || 0) + dt; if (G.feedT > 125) { G.feedT = 0; feedAuto(); }
-    G.offerT = (G.offerT || 0) + dt; G.vtcT = (G.vtcT == null ? 90 : G.vtcT) - dt; if (G.offerT > 5) { G.offerT = 0; if (!storyStep() || P.day > 1) offerDaily(); offerVtc(); }
+    G.offerT = (G.offerT || 0) + dt; G.vtcT = (G.vtcT == null ? 90 : G.vtcT) - dt; G.voisT = (G.voisT == null ? 60 : G.voisT) - dt; if (G.offerT > 5) { G.offerT = 0; if (!storyStep() || P.day > 1) offerDaily(); offerVtc(); offerVoisin(); }
     updateDoorClose(dt);
     if (G.inside) checkInterior(); else { checkZones(); updatePolice(dt); }
     updateMission(dt); if (G.mode === "play") checkGoal();

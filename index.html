@@ -2771,7 +2771,7 @@ function buildTraffic() {
     if (special === "car_police" || special === "ambulance") mesh.userData.patrol = special;
     if (MODELS[model] && model !== "bus" && model !== "firetruck") { const hgt = MODELS[model].size.y, dr = makeDriver(); dr.position.set(0.44, Math.max(0.05, hgt - 1.32), -0.1); mesh.add(dr); }
     const a = agent(mesh, special === "bus" ? rand(9, 11) : rand(12, 18), [Math.floor(rand(0, NB + 1)), Math.floor(rand(0, NB + 1))], special === "bus" || special === "firetruck" ? 6 : 3.6);
-    a.x = rc(a.from[0]); a.z = rc(a.from[1]); traffic.push(a);
+    a.model = model; a.x = rc(a.from[0]); a.z = rc(a.from[1]); traffic.push(a);
     if (MODELS[model] && MODELS[model].size) { const S = MODELS[model].size, L = Math.max(S.x, S.z), W = Math.min(S.x, S.z); if (L > 2.5 && L < 15) { a.hl = L / 2 - 0.1; a.hw = clamp(W / 2 - 0.25, 0.55, 1.2); } }
   }
 }
@@ -4170,7 +4170,7 @@ function nearestRide() {
   if (G.parked) { const d = Math.hypot(G.me.x - G.parked.x, G.me.z - G.parked.z); if (d < 5 && d < bd) { bd = d; best = { own: true, kind: "own" }; } }
   rentals.forEach(r => { const d = Math.hypot(G.me.x - r.x, G.me.z - r.z), lim = RIDES[r.kind].big ? 18 : RIDES[r.kind].plane ? 8 : RIDES[r.kind].boat ? 7 : RIDES[r.kind].car ? 4.5 : 3; if (d < lim && d < bd) { bd = d; best = { own: false, kind: r.kind, r }; } });
   // une voiture de la circulation arrêtée à côté de toi : tu peux la louer à son conducteur
-  traffic.forEach(a => { const d = Math.hypot(G.me.x - a.x, G.me.z - a.z); if (a.mesh.visible && d < 4.5 && d < bd) { bd = d; best = { own: false, kind: "voiture", r: a, traffic: true }; } });
+  traffic.forEach(a => { const d = Math.hypot(G.me.x - a.x, G.me.z - a.z); if (a.mesh.visible && d < Math.max(4.5, (a.hl || 2) + 2.2) && d < bd) { bd = d; best = { own: false, kind: "voiture", r: a, traffic: true }; } });
   return best;
 }
 function toggleCar() {

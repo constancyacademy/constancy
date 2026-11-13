@@ -4377,7 +4377,7 @@ function snapPhoto() {
   if (!renderer) return; renderer.render(scene, camera); const src = renderer.domElement, W = src.width, H = src.height, c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d"); x.drawImage(src, 0, 0);
   const s = Math.min(W, H) / 390, gr = x.createLinearGradient(0, H - 120 * s, 0, H); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,.55)"); x.fillStyle = gr; x.fillRect(0, H - 120 * s, W, 120 * s);
   x.fillStyle = "#fff"; x.font = `italic ${Math.round(34 * s)}px "EB Garamond", Georgia, serif`; x.fillText("Constancy", 20 * s, H - 44 * s);
-  x.fillStyle = "rgba(255,255,255,.82)"; x.font = `600 ${Math.round(12.5 * s)}px Inter, system-ui, sans-serif`; x.fillText(`Jour ${P.streakDays || 1} d'affilée · constancyacademy.netlify.app`, 20 * s, H - 22 * s);
+  x.fillStyle = "rgba(255,255,255,.82)"; x.font = `600 ${Math.round(12.5 * s)}px Inter, system-ui, sans-serif`; x.fillText(`Jour ${P.streakDays || 1} d'affilée · constancyacademy.github.io/constancy`, 20 * s, H - 22 * s);
   const fl = $("pFlash"); fl.style.transition = "none"; fl.style.opacity = 0.9; requestAnimationFrame(() => { fl.style.transition = "opacity .45s"; fl.style.opacity = 0; }); sfx.ping(); stat("photo-prise");
   c.toBlob(async b => { if (!b) return; const f = new File([b], "constancy-photo.png", { type: "image/png" });
     try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: "Constancy", text: "Pris dans Constancy, le jeu où ta régularité fait le score." }); stat("photo-partagee"); return; } } catch (e) { return; }

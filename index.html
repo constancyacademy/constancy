@@ -1154,7 +1154,7 @@ function makeHumanQ(o) {
       const mat = m.material.clone();
       if (sk.tex) mat.map = sk.tex;
       mat.userData.u = {
-        cShirt: { value: lin(o.shirt) }, cPants: { value: lin(o.pants) }, cShoes: { value: lin(o.shoes || 0xeeeeee) }, cPrint: { value: lin(o.print || o.shirt) }, cSkin: { value: sk.tint },
+        cShirt: { value: lin(o.shirt) }, cPants: { value: lin(o.pants) }, cShoes: { value: lin(o.shoes || SHOES[Math.floor(Math.random() * SHOES.length)]) }, cPrint: { value: lin(o.print || o.shirt) }, cSkin: { value: sk.tint },
         cCut: { value: new THREE.Vector4(o.sleeve != null ? o.sleeve : 0.43, o.shorts ? 0.55 : 0.095, o.suit ? 1 : 0, 0) }
       };
       mat.onBeforeCompile = hqCloth; mat.roughness = 0.62; m.material = mat;
@@ -1717,7 +1717,7 @@ function buildDistrictBlock(i, j, cx, cz, F, dist, r, M) {
     addGeo(D.poolEdge, new THREE.CylinderGeometry(0.5, 0.7, 2.4, 10), cx, base + 1.2, cz);
     for (let k = 0; k < 7; k++) palm(cx + (r() - .5) * (F - 6), cz + (r() - .5) * (F - 6), r);
     grassTufts(cx, cz, F - 1, F - 1, 120, r, base + 0.1, (x, z) => Math.abs(x - cx) < 2.2 || Math.abs(z - cz) < 2.2 || Math.hypot(x - cx, z - cz) < 5.5, 0.3);
-    [[-8, 4], [8, -4], [4, 8], [-4, -8]].forEach(([ox, oz]) => { BENCHES.push({ x: cx + ox, z: cz + oz, y: base + 0.05, alongX: Math.abs(ox) < Math.abs(oz), face: Math.abs(ox) < Math.abs(oz) ? Math.atan2(0, Math.sign(oz)) : Math.atan2(Math.sign(ox), 0) }); if (!addModelGeo("bench", cx + ox, base + 0.05, cz + oz, Math.abs(ox) > Math.abs(oz) ? Math.PI / 2 : 0)) addGeo(D.path, new THREE.BoxGeometry(2.4, 0.5, 0.8), cx + ox, base + 0.4, cz + oz); });
+    [[-8, 4], [8, -4], [4, 8], [-4, -8]].forEach(([ox, oz]) => { BENCHES.push({ x: cx + ox, z: cz + oz, y: base + 0.05, alongX: Math.abs(ox) < Math.abs(oz), face: Math.abs(ox) < Math.abs(oz) ? Math.PI : -Math.PI / 2 }); /* le banc garde l'orientation du modèle */ if (!addModelGeo("bench", cx + ox, base + 0.05, cz + oz, Math.abs(ox) > Math.abs(oz) ? Math.PI / 2 : 0)) addGeo(D.path, new THREE.BoxGeometry(2.4, 0.5, 0.8), cx + ox, base + 0.4, cz + oz); });
     setBoxes(i, j, [[cx, cz, 4.6]]);
     return;
   }
@@ -2772,7 +2772,7 @@ function buildTraffic() {
     if (MODELS[model] && MODELS[model].size) { const S = MODELS[model].size, L = Math.max(S.x, S.z), W = Math.min(S.x, S.z); if (L > 2.5 && L < 15) { a.hl = L / 2 - 0.1; a.hw = clamp(W / 2 - 0.25, 0.55, 1.2); } }
   }
 }
-const SKINS = [0xf2cfb3, 0xd9a47e, 0xa86b45, 0x6e4a33, 0xf0c8a8], SHIRTS = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0xffffff, 0x1a535c, 0xff9f1c, 0x9b5de5, 0x2ec4b6, 0xf15bb5, 0x00bbf9], PANTS = [0x1d3557, 0x2b2d42, 0xe0d8c3, 0x3d405b, 0x111111], HAIRS = [0x111111, 0x3b2314, 0x8a5a2b, 0xd9b77a, 0x222222];
+const SKINS = [0xf2cfb3, 0xd9a47e, 0xa86b45, 0x6e4a33, 0xf0c8a8], SHIRTS = [0x1f2a44, 0x161616, 0xeeeeea, 0x8a8d91, 0x5b6236, 0x6b1f2a, 0xc8b79a, 0x3d5a80, 0x2f4f3a, 0xa9c4e0, 0x9c4a32, 0x2b2b2b, 0xd9d4c7, 0x47506a, 0xb3402f], PANTS = [0x2a3a55, 0x4a6688, 0x151515, 0xb09e7c, 0x5a5d62, 0x1d2738, 0x33405a, 0x6b6153], SHOES = [0xeeeeee, 0x1a1a1a, 0x5a3d2b, 0xd8d4cc, 0x2b2b2b], HAIRS = [0x111111, 0x3b2314, 0x8a5a2b, 0xd9b77a, 0x222222];
 // niveau de détail : au-delà de 30 m, un passant est dessiné en version légère (bien plus fluide, invisible à l'œil à cette distance)
 function lodFor(h, opt) { const l = makeHumanLegacy(Object.assign({}, opt, { lite: true })); l.visible = false; scene.add(l); h.userData.lod = l; return l; }
 function lodSync(h, d, speed, dt) { const l = h.userData.lod; if (!l) return; if (d > 30 && h.visible) { h.visible = false; l.visible = true; l.position.copy(h.position); l.rotation.y = h.rotation.y; animHuman(l, speed, dt); } else l.visible = false; }
@@ -3112,7 +3112,7 @@ function updateDispute(dt) {
   if (d < 35) { DISP.t -= dt; if (DISP.t <= 0) { DISP.i++; DISP.t = 2.4; if (DISP.i >= DISP.script.length + 2) { DISP.ok = false; DISP.wait = 90 + Math.random() * 60; return; }
       const calm = DISP.i >= DISP.script.length - 2; DISP.pair.forEach(h => setClip(h, calm ? "Idle_Loop" : "Idle_Talking_Loop", calm ? 1 : 1.7));
       if (DISP.i === DISP.script.length - 1 && !G.dispSeen) { G.dispSeen = true; stat("dispute-reconciliation"); } }
-    const k = DISP.i; if (k >= 0 && k < DISP.script.length) { const sp = DISP.bub[k % 2], h = DISP.pair[k % 2]; bubbleText(sp, DISP.script[k], k < DISP.script.length - 2); sp.position.set(h.position.x, 2.55, h.position.z); sp.visible = true; } }
+    const k = DISP.i; if (k >= 0 && k < DISP.script.length) { const sp = DISP.bub[k % 2], h = DISP.pair[k % 2]; bubbleText(sp, DISP.script[k], k < DISP.script.length - 2); sp.position.set(h.position.x, 2.3, h.position.z); sp.visible = true; } }
   if (!G.onFoot && carMesh) DISP.pair.forEach(h => { const dx = G.car.x - h.position.x, dz = G.car.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 2.4) { const n = dc || 1; G.car.x += dx / n * (2.4 - dc); G.car.z += dz / n * (2.4 - dc); G.car.v = 0; } });
   else if (G.onFoot) DISP.pair.forEach(h => { const dx = G.me.x - h.position.x, dz = G.me.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 0.75) { const n = dc || 1; G.me.x += dx / n * (0.75 - dc); G.me.z += dz / n * (0.75 - dc); } });
 }

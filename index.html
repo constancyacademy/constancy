@@ -354,8 +354,8 @@ const MT = { x: 0, z: -2050, R: 520, peak: 255 };
 const CS = { cx: -40, cz: -1065, rx: 720, rz: 505 };
 const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 // aéroport (plateforme gagnée sur la mer, au sud) et aérodrome taillé au pied de la montagne
-const AP = { x0: -270, x1: 270, z0: 412, z1: 515, rz: 490 };
-const onAirport = (x, z) => x > AP.x0 && x < AP.x1 && z > AP.z0 && z < AP.z1;
+const AP = { x0: -270, x1: 270, zg: 412, z0: 482, z1: 585, rz: 560, gx: 0 }; // zg : début de la plateforme (parking, accès) · z0 : début de la zone avions, derrière le grillage
+const onAirport = (x, z) => x > AP.x0 && x < AP.x1 && z > AP.zg && z < AP.z1;
 const PAD = { x0: 300, x1: 332, z0: -1330, z1: -1170, h: 2.2 };
 function padMask(x, z) { const dx = Math.max(PAD.x0 - x, 0, x - PAD.x1), dz = Math.max(PAD.z0 - z, 0, z - PAD.z1); return 1 - sstep(0, 16, Math.hypot(dx, dz)); }
 function mtnH(x, z) { const m = padMask(x, z), h = mtnH0(x, z); return m > 0 ? h * (1 - m) + PAD.h * m : h; }
@@ -2310,7 +2310,7 @@ function buildSwash() {
   const N = 900, J = [-24, -18, -14, -11, -9, -7.5, -6, -4.5, -3, -1, 1, 3], pos = [], dd = [], an = [], idx = [];
   for (let k = 0; k <= N; k++) {
     const a = k / N * Math.PI * 2, cx = Math.cos(a), cz = Math.sin(a), u = Math.pow(Math.pow(Math.abs(cx), 6) + Math.pow(Math.abs(cz), 6), 1 / 6), ed = shoreEdge(cx, cz);
-    J.forEach(j => { const r = (ed + j) / u, x = cx * r, z = cz * r, hide = x > AP.x0 - 4 && x < AP.x1 + 4 && z > AP.z0 - 4; pos.push(x, hide ? -6 : Math.max(beachH(x, z), -0.62) + 0.06, z); dd.push(j); an.push(a); });
+    J.forEach(j => { const r = (ed + j) / u, x = cx * r, z = cz * r, hide = x > AP.x0 - 4 && x < AP.x1 + 4 && z > AP.zg - 4; pos.push(x, hide ? -6 : Math.max(beachH(x, z), -0.62) + 0.06, z); dd.push(j); an.push(a); });
   }
   const M = J.length;
   for (let k = 0; k < N; k++) for (let j = 0; j < M - 1; j++) { const a = k * M + j, b = a + M; idx.push(a, b, a + 1, a + 1, b, b + 1); }
@@ -3300,7 +3300,7 @@ function updateDirt(dt) {
   if (carMesh && (G.dirtMesh !== carMesh || Math.abs((G.dirtShown || 0) - P.dirt) > 0.02)) { G.dirtMesh = carMesh; G.dirtShown = P.dirt; applyDirt(carMesh, G.ride && G.ride.kind === "own" ? P.dirt : 0); }
 }
 function updateWorldLife(dt) {
-  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateCrossers(dt); updateSitters(dt); updateMechanics(dt); updateFoodTruck(); updateCats(dt); updateDispute(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
+  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateCrossers(dt); updateSitters(dt); updateMechanics(dt); updateFoodTruck(); updateAirportGate(dt); updateCats(dt); updateDispute(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
   const cxp = camera.position.x, czp = camera.position.z;
   for (let i = 0; i < rentals.length; i++) { const r = rentals[i]; r.mesh.visible = (r.x - cxp) ** 2 + (r.z - czp) ** 2 < 52900; }
   const me = target();
@@ -3547,7 +3547,7 @@ function drawMapBase() {
   // la rivière, coupée par les ponts
   g.fillStyle = "#2bb3b4"; g.fillRect(MO - SHORE - 60, MO + RZ0, (SHORE + 60) * 2, RZ1 - RZ0); g.fillStyle = "#3a3940"; for (let k = 0; k <= NB; k++) g.fillRect(MO + rc(k) - ROAD / 2, MO + RZ0, ROAD, RZ1 - RZ0);
   g.fillStyle = "#9a7650"; g.fillRect(MO + HALF + 17, MO + bC(5) - 3, 46, 6);
-  g.fillStyle = "#b8b6b0"; g.fillRect(MO + AP.x0, MO + AP.z0, AP.x1 - AP.x0, AP.z1 - AP.z0); g.fillStyle = "#3a3940"; g.fillRect(MO + AP.x0 + 20, MO + AP.rz - 12, AP.x1 - AP.x0 - 40, 24);
+  g.fillStyle = "#b8b6b0"; g.fillRect(MO + AP.x0, MO + AP.zg, AP.x1 - AP.x0, AP.z1 - AP.zg); g.fillStyle = "#3a3940"; g.fillRect(MO + AP.x0 + 20, MO + AP.rz - 12, AP.x1 - AP.x0 - 40, 24);
   g.fillStyle = "#3a3940"; g.fillRect(MO + PAD.x0 + 4, MO + PAD.z0, PAD.x1 - PAD.x0 - 8, PAD.z1 - PAD.z0);
 }
 function drawMinimap() {
@@ -3679,7 +3679,10 @@ function collide0Terrain(o, swim) {
   let hit = false;
   // bord de l'eau : la voiture s'arrête au rivage, à la nage on peut aller jusqu'au large (limite plus loin)
   if (onHighway(o.x, o.z)) { if (o.z < HW.z0 - 30 && o.z > HW.z1 + 10) { const lx = HW.x - 7.2, rx = HW.x + 7.2; if (o.x < lx) { o.x = lx; hit = true; } if (o.x > rx) { o.x = rx; hit = true; } } return hit; }
-  if (onAirport(o.x, o.z) || (o.x > AP.x0 + 1 && o.x < AP.x1 - 1 && o.z > AP.z0 - 30 && o.z < AP.z1)) { if (o.z > AP.z1 - 2) { o.z = AP.z1 - 2; hit = true; } if (o.z > AP.z0 + 2) { if (o.x < AP.x0 + 2) { o.x = AP.x0 + 2; hit = true; } if (o.x > AP.x1 - 2) { o.x = AP.x1 - 2; hit = true; } } return hit; }
+  if (onAirport(o.x, o.z) || (o.x > AP.x0 + 1 && o.x < AP.x1 - 1 && o.z > AP.zg - 30 && o.z < AP.z1)) { if (o.z > AP.z1 - 2) { o.z = AP.z1 - 2; hit = true; }
+    // grillage entre le parking et la zone avions : on passe par l'entrée voitures (barrière) ou par le portillon piétons
+    { const fz = AP.z0 - 3, inCar = Math.abs(o.x - AP.gx) < 5.6, inPed = o === G.me && Math.abs(o.x - (AP.gx + 11)) < 1.3; if (!inCar && !inPed && Math.abs(o.z - fz) < 1.1 && !(G.car && o === G.car && G.ride && RIDES[G.ride.kind] && RIDES[G.ride.kind].plane && G.car.alt > 2)) { o.z = o.z < fz ? fz - 1.1 : fz + 1.1; hit = true; } }
+    if (o.z > AP.zg + 2) { if (o.x < AP.x0 + 2) { o.x = AP.x0 + 2; hit = true; } if (o.x > AP.x1 - 2) { o.x = AP.x1 - 2; hit = true; } } return hit; }
   const dm = Math.hypot(o.x - MT.x, o.z - MT.z), cm = csMask(o.x, o.z);
   if (o.z < -470 && (dm < MT.R * 1.3 || cm < 1.2)) { // campagne et montagne : on reste sur la terre ferme (sauf à la nage)
     if (!swim && landH(o.x, o.z) < -0.2 && slideBack(o, (x, z) => landH(x, z) >= -0.2)) return hit;
@@ -3755,7 +3758,7 @@ function buildingTop(x, z) {
 function buildAirports(r) {
   const conc = new THREE.MeshLambertMaterial({ color: 0xc9c6bf, map: imgTex("pave", 40) }), wallM = new THREE.MeshLambertMaterial({ color: 0xa9a59c });
   const asph = new THREE.MeshLambertMaterial({ color: 0xffffff, map: imgTex("asphalt", 60) || null }), white = new THREE.MeshBasicMaterial({ color: 0xf2f0ea }), yel = new THREE.MeshBasicMaterial({ color: 0xf2c94c });
-  const W = AP.x1 - AP.x0, D = AP.z1 - AP.z0, cx = (AP.x0 + AP.x1) / 2, cz = (AP.z0 + AP.z1) / 2;
+  const W = AP.x1 - AP.x0, D = AP.z1 - AP.zg, cx = (AP.x0 + AP.x1) / 2, cz = (AP.zg + AP.z1) / 2;
   addGeo(conc, new THREE.BoxGeometry(W, 0.4, D), cx, -0.18, cz);
   addGeo(wallM, new THREE.BoxGeometry(W, 6, 1.2), cx, -3, AP.z1); [AP.x0, AP.x1].forEach(x => addGeo(wallM, new THREE.BoxGeometry(1.2, 6, D), x, -3, cz));
   // piste : asphalte, axe pointillé, seuils, numéros
@@ -3783,6 +3786,7 @@ function buildAirports(r) {
   if (MODELS.plane_liner) { const lp = modelInstance("plane_liner"); lp.position.set(-60, 0, AP.z0 + 40); lp.rotation.y = Math.PI / 2; scene.add(lp); }
   // avions à prendre devant le hangar (et un sur l'aérodrome de la montagne)
   [[175, hz + 4, 0], [196, hz + 4, 0], [120, AP.z0 + 50, Math.PI / 2]].forEach(([x, z, h]) => { const mesh = makeRide("avion"); mesh.position.set(x, 0, z); mesh.rotation.y = h; scene.add(mesh); rentals.push({ kind: "avion", mesh, x, z, h, plane: true }); });
+  buildAirportLandside(asph, white, wallM, r);
   // aérodrome du Mont Constancy : piste taillée dans le flanc, manche à air, petit hangar
   const px = (PAD.x0 + PAD.x1) / 2, pz = (PAD.z0 + PAD.z1) / 2, L = PAD.z1 - PAD.z0;
   addGeo(asph, new THREE.BoxGeometry(16, 0.06, L - 6), px, PAD.h + 0.06, pz);
@@ -3793,6 +3797,41 @@ function buildAirports(r) {
   addGeo(wallM, new THREE.CylinderGeometry(0.12, 0.12, 7, 6), PAD.x0 - 1.5, PAD.h + 3.5, PAD.z1 - 8);
   const ml = label("Aérodrome du Mont", "#cfd8e6"); ml.position.set(PAD.x1 + 10, PAD.h + 12, PAD.z1 - 20); ml.scale.set(18, 4.5, 1); scene.add(ml);
   { const mesh = makeRide("avion"); mesh.position.set(px, PAD.h, PAD.z1 - 14); mesh.rotation.y = Math.PI; scene.add(mesh); rentals.push({ kind: "avion", mesh, x: px, z: PAD.z1 - 14, h: Math.PI, plane: true }); }
+}
+const APG = { arm: null, peds: [] };
+function buildAirportLandside(asph, white, wallM, r) {
+  const fz = AP.z0 - 3, gx = AP.gx, grass = new THREE.MeshLambertMaterial({ color: 0x5f8f4a }), hedge = new THREE.MeshLambertMaterial({ color: 0x3f6b35 });
+  // route d'accès depuis l'avenue centrale, jusqu'à la barrière puis jusqu'à l'aérogare
+  addGeo(asph, new THREE.BoxGeometry(13, 0.06, fz - AP.zg + 30), gx, 0.07, (AP.zg + fz + 30) / 2);
+  for (let z = AP.zg + 6; z < fz + 28; z += 7) addGeo(white, new THREE.BoxGeometry(0.25, 0.02, 3.5), gx, 0.11, z);
+  // parkings des deux côtés : places peintes, bandes de pelouse, haies, palmiers
+  [-1, 1].forEach(sd => { const x0 = gx + sd * 14, x1 = gx + sd * 150, pc = (x0 + x1) / 2, pw = Math.abs(x1 - x0);
+    addGeo(asph, new THREE.BoxGeometry(pw, 0.05, 48), pc, 0.065, AP.zg + 34);
+    for (let x = Math.min(x0, x1) + 3; x < Math.max(x0, x1) - 2; x += 3.2) [AP.zg + 17, AP.zg + 51].forEach(z => addGeo(white, new THREE.BoxGeometry(0.14, 0.02, 5), x, 0.1, z + (z > AP.zg + 30 ? -2.5 : 2.5)));
+    addGeo(grass, new THREE.BoxGeometry(pw, 0.12, 4), pc, 0.08, AP.zg + 6); addGeo(hedge, new THREE.BoxGeometry(pw - 6, 1.1, 1.2), pc, 0.6, AP.zg + 6);
+    addGeo(grass, new THREE.BoxGeometry(pw, 0.12, 6), pc, 0.08, fz - 6);
+    for (let x = Math.min(x0, x1) + 8; x < Math.max(x0, x1); x += 22) palm(x, fz - 6 + (r() - .5), r);
+    for (let x = Math.min(x0, x1) + 4; x < Math.max(x0, x1); x += 3.2 * 5) { [AP.zg + 19.5, AP.zg + 48.5].forEach(z => { if (r() < .55) { const mesh = makeRide("voiture"); const h = z < AP.zg + 30 ? Math.PI : 0, xx = x + 1.6; mesh.position.set(xx, 0, z); mesh.rotation.y = h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: xx, z, h }); } }); } });
+  for (let z = AP.zg + 8; z < fz - 6; z += 14) [-8.5, 8.5].forEach(dx => palm(gx + dx, z, r));
+  // grillage : poteaux, maille, câble haut ; ouvertures pour la route et le portillon piétons
+  const meshC = document.createElement("canvas"); meshC.width = meshC.height = 64; { const g = meshC.getContext("2d"); g.strokeStyle = "rgba(200,205,210,.9)"; g.lineWidth = 2; for (let k = -64; k < 128; k += 16) { g.beginPath(); g.moveTo(k, 0); g.lineTo(k + 64, 64); g.stroke(); g.beginPath(); g.moveTo(k + 64, 0); g.lineTo(k, 64); g.stroke(); } }
+  const tex = new THREE.CanvasTexture(meshC); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; const fenceM = new THREE.MeshLambertMaterial({ map: tex, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide }), postM = new THREE.MeshLambertMaterial({ color: 0x8d939c });
+  const seg = (a, b) => { if (b - a < 0.5) return; const g = new THREE.PlaneGeometry(b - a, 2.6); const m = new THREE.Mesh(g, fenceM); m.position.set((a + b) / 2, 1.3, fz); tex.repeat.set((b - a) / 1.6, 1.6); scene.add(m); m.material = fenceM.clone(); m.material.map = tex.clone(); m.material.map.needsUpdate = true; m.material.map.repeat.set((b - a) / 1.6, 1.6);
+    for (let x = a; x <= b + 0.01; x += 3) addGeo(postM, new THREE.BoxGeometry(0.09, 2.8, 0.09), x, 1.4, fz); addGeo(postM, new THREE.BoxGeometry(b - a, 0.06, 0.06), (a + b) / 2, 2.62, fz); };
+  seg(AP.x0 + 1, gx - 5.6); seg(gx + 5.6, gx + 9.7); seg(gx + 12.3, AP.x1 - 1);
+  // entrée voitures : guérite + barrière qui se lève ; portillon piétons
+  addGeo(new THREE.MeshPhongMaterial({ color: 0xf2f0ea }), new THREE.BoxGeometry(2.4, 2.6, 2.4), gx - 8, 1.3, fz - 2.5); addGeo(new THREE.MeshPhongMaterial({ color: 0x9fd3ff, shininess: 90 }), new THREE.BoxGeometry(2.45, 1.0, 2.45), gx - 8, 1.9, fz - 2.5); addGeo(roofCap(), new THREE.BoxGeometry(3, 0.25, 3), gx - 8, 2.75, fz - 2.5);
+  { const c = document.createElement("canvas"); c.width = 128; c.height = 16; const g = c.getContext("2d"); for (let k = 0; k < 8; k++) { g.fillStyle = k % 2 ? "#ffffff" : "#e0182d"; g.fillRect(k * 16, 0, 16, 16); }
+    const arm = new THREE.Group(), bar = new THREE.Mesh(new THREE.BoxGeometry(10.5, 0.14, 0.14), new THREE.MeshLambertMaterial({ map: new THREE.CanvasTexture(c) })); bar.position.x = 5.25; arm.add(bar); arm.position.set(gx - 5.4, 1.05, fz); scene.add(arm); APG.arm = arm;
+    addGeo(postM, new THREE.BoxGeometry(0.5, 1.1, 0.5), gx - 5.6, 0.55, fz); }
+  addGeo(postM, new THREE.BoxGeometry(0.12, 2.3, 0.12), gx + 9.7, 1.15, fz); addGeo(postM, new THREE.BoxGeometry(0.12, 2.3, 0.12), gx + 12.3, 1.15, fz); addGeo(postM, new THREE.BoxGeometry(2.6, 0.12, 0.12), gx + 11, 2.3, fz);
+  const pl = label("Aéroport · Parking", "#ff2d55"); pl.position.set(gx, 6.2, AP.zg + 8); pl.scale.set(15, 3.8, 1); scene.add(pl);
+  const gl = label("Entrée · Piétons →", "#cfd8e6"); gl.position.set(gx + 11, 4.2, fz - 0.4); gl.scale.set(9, 2.2, 1); scene.add(gl);
+}
+function updateAirportGate(dt) {
+  if (!APG.arm) return; const o = target(), near = Math.abs(o.x - AP.gx) < 9 && Math.abs(o.z - (AP.z0 - 3)) < 16 && !G.onFoot;
+  const tgt = near ? -1.35 : 0; APG.arm.rotation.z += (tgt - APG.arm.rotation.z) * Math.min(1, dt * 3);
+  if (near && !G.gateHint) { G.gateHint = true; help("La barrière se lève. <b>Aéroport</b> : les avions sont derrière le grillage.", 4); }
 }
 function roofCap() { return new THREE.MeshLambertMaterial({ color: 0x2a2a30 }); }
 // ---------- traces de pneus sur le bitume (freinage fort, virage serré, démarrage en trombe) et crissement des pneus
@@ -5151,7 +5190,7 @@ function gate() {
 /* ============ Boucle ============ */
 let last = performance.now();
 window.__W = () => ({ notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

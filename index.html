@@ -4227,7 +4227,8 @@ function updatePlane(dt) {
     else if (thr > 0) c.v = Math.min(vmax, c.v + (7 + (tb ? 9 : 0)) * thr * dt);
     else if (inp.fwd < 0) c.v = Math.max(-3, c.v - 12 * dt);
     else c.v *= Math.pow(0.7, dt);
-    c.h -= inp.side * (G.ride.kind === "airbus" ? 0.55 : 1.1) * dt * clamp(c.v / 2.5, -1, 1) * (Math.abs(c.v) < 0.3 && thr > 0 ? 0 : 1); if (Math.abs(c.v) < 4 && Math.abs(inp.side) > 0.2 && thr > 0.05) c.v = Math.max(c.v, 3);
+    c.ps = (c.ps || 0) + (inp.side - (c.ps || 0)) * Math.min(1, dt * 4); // roulage : la direction s'oriente progressivement, comme un volant
+    c.h -= c.ps * (G.ride.kind === "airbus" ? 0.78 : 1.15) * dt * clamp(c.v / 2.5, -1, 1) * (Math.abs(c.v) < 0.3 && thr > 0 ? 0 : 1); if (Math.abs(c.v) < 4 && Math.abs(inp.side) > 0.2 && thr > 0.05) c.v = Math.max(c.v, 3);
     c.alt = gh; c.pitch += (0 - c.pitch) * Math.min(1, dt * 5); c.roll += (0 - c.roll) * Math.min(1, dt * 5);
     if (c.v > 29 && thr > 0.55 && !isWater(c.x, c.z)) { c.alt = gh + 0.8; c.pitch = 0.16; if (!G.flyHint) { G.flyHint = true; help("<b>Décollage !</b> Haut = monter · bas = descendre · côtés = virer. Pour atterrir : descends doucement au-dessus d'une piste, ou touche SORTIR pour sauter en parachute.", 7); } sfx.door && 0; }
   } else {
@@ -4667,7 +4668,7 @@ function updateCamera(dt, follow) {
       return;
     }
   }
-  { const bf = (window.innerWidth < window.innerHeight ? 74 : 62) + (G.tbOn && !G.onFoot ? 12 : 0) + (G.sprintMax && G.onFoot ? 10 : 0); if (Math.abs(camera.fov - bf) > 0.05) { camera.fov += (bf - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); } }
+  { const bf = (window.innerWidth < window.innerHeight ? 74 : 62) + (G.tbOn && !G.onFoot ? 12 : 0) + (G.sprintMax && G.onFoot ? 10 : 0) + (!G.onFoot && G.ride && !isPlane(G.ride.kind) && !G.fpv ? clamp((Math.abs(G.car.v) - 12) / 40, 0, 1) * 9 : 0); if (Math.abs(camera.fov - bf) > 0.05) { camera.fov += (bf - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); } }
   const fpv = follow && G.fpv && !G.onFoot && G.ride.kind !== "none" && carMesh;
   const fpvPlane = !!fpv && isPlane(G.ride.kind);
   if (pCockpit) pCockpit.visible = fpvPlane;

@@ -487,11 +487,11 @@ const SKIN_TONES = [0xf2cfb3, 0xc68a5e, 0x6e4a33];
 const GOALS = { livraison: { label: "Livraisons", color: COL.business }, salle: { label: "Séances", color: COL.physique }, mentor: { label: "Mentor", color: COL.mental }, mamie: { label: "Mamie", color: COL.env } };
 const CARS = [
   { id: "citadine", name: "Citadine rafistolée", price: 0,     max: 40, color: 0xcfc6b4, statut: 0 },
-  { id: "coupe",    name: "Coupé Néon",          price: 2500,  max: 52, color: 0xff3fa4, statut: 8 },
-  { id: "suv",      name: "SUV Noir Mat",        price: 6000,  max: 54, color: 0x1a1a20, statut: 15 },
-  { id: "gt",       name: "GT Sunset",           price: 15000, max: 68, color: 0xff7a2f, statut: 25 },
-  { id: "hyper",    name: "Hyper Gold",          price: 40000, max: 84, color: 0xf6c945, statut: 40 },
-  { id: "nacre",    name: "Constancy City",          price: 120000, max: 112, color: 0xf4f2ee, statut: 60 }
+  { id: "coupe",    name: "Coupé Néon",          price: 6000,  max: 52, color: 0xff3fa4, statut: 8 },
+  { id: "suv",      name: "SUV Noir Mat",        price: 15000,  max: 54, color: 0x1a1a20, statut: 15 },
+  { id: "gt",       name: "GT Sunset",           price: 45000, max: 68, color: 0xff7a2f, statut: 25 },
+  { id: "hyper",    name: "Hyper Gold",          price: 180000, max: 84, color: 0xf6c945, statut: 40 },
+  { id: "nacre",    name: "Constancy City",          price: 1000000, max: 112, color: 0xf4f2ee, statut: 60 }
 ];
 const QUIZ = [
   { q: "Tu te réveilles sans aucune motivation. Tu fais quoi ?", o: ["Je repousse à demain.", "Je fais une version réduite, mais je la fais.", "J'attends que l'envie revienne."], a: 1, e: "Les jours sans, tu baisses le volume. Tu ne lâches pas." },
@@ -981,7 +981,7 @@ function sculptBody(L, hyperish) {
     const e = Math.pow(Math.sin(Math.min(1, Math.min(t, 1 - t) / 0.05) * Math.PI / 2), 0.25); x *= e; y = mid + (y - mid) * e; // nez et poupe arrondis, fermés
     return [x, y, -half + t * L]; });
   // bulle de verre : goutte d'eau posée sur la caisse
-  const cab = loftGeo(36, 28, (t, a) => { const tt = 0.3 + t * 0.4, w = 0.6 * Math.pow(Math.sin(Math.PI * t), 0.55) * (1 - 0.18 * t), base = TOP(tt) - 0.02, hh = 0.36 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.8)), 0.7), c = Math.cos(a), s2 = Math.sin(a);
+  const cab = loftGeo(36, 28, (t, a) => { const tt = 0.3 + t * 0.4, w = 0.6 * Math.pow(Math.sin(Math.PI * t), 0.55) * (1 - 0.18 * t), base = TOP(tt) - 0.02, hh = 0.42 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.8)), 0.7), c = Math.cos(a), s2 = Math.sin(a);
     const e = Math.sqrt(Math.sin(Math.min(1, Math.min(t, 1 - t) / 0.06) * Math.PI / 2)); return [w * _se(c, 2.6) * e, s2 > 0 ? base + hh * _se(s2, 2.4) * e : base, -half + tt * L]; });
   return { body, cab, W, TOP };
 }
@@ -3290,8 +3290,9 @@ function trailPuff(x, y, z) {
   const i = CTRAIL.i = (CTRAIL.i + 1) % CTRAIL.n; CTRAIL.pos[i * 3] = x; CTRAIL.pos[i * 3 + 1] = y; CTRAIL.pos[i * 3 + 2] = z; CTRAIL.age[i] = 0;
 }
 function updateTrails(dt) {
-  if (!CTRAIL.pts) return; const k = 0.75 * (1 - nightK * 0.85);
-  for (let i = 0; i < CTRAIL.n; i++) { const a = CTRAIL.age[i] += dt; const v = a > 4.5 ? 0 : (1 - a / 4.5) * k; CTRAIL.col[i * 3] = v; CTRAIL.col[i * 3 + 1] = v; CTRAIL.col[i * 3 + 2] = v * 1.02; }
+  if (TRAIL_MAT) { const nk = nightK; TRAIL_MAT.color.setRGB(1, 1 - nk * 0.2, 1 - nk * 0.3); TRAIL_MAT.opacity = 0.8 + nk * 0.15; }
+  if (!CTRAIL.pts) return; const k = 0.75 + nightK * 0.2, nk2 = nightK;
+  for (let i = 0; i < CTRAIL.n; i++) { const a = CTRAIL.age[i] += dt; const v = a > 4.5 ? 0 : (1 - a / 4.5) * k; CTRAIL.col[i * 3] = v; CTRAIL.col[i * 3 + 1] = v * (1 - nk2 * 0.2); CTRAIL.col[i * 3 + 2] = v * (1.02 - nk2 * 0.32); }
   CTRAIL.pts.geometry.attributes.color.needsUpdate = true; CTRAIL.pts.geometry.attributes.position.needsUpdate = true;
 }
 function emitDust(x, y, z, vx, vz, size) {
@@ -3760,7 +3761,7 @@ let lineM_ref = null, mamieMesh = null;
 /* --- construction du monde --- */
 function buildWorld() {
   const r = mulberry(1911);
-  renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
+  renderer.setPixelRatio(PR_MAX());
   scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xbfe3ff, 160, 620);
   camera = new THREE.PerspectiveCamera(62, 1, 0.4, 2000);
@@ -4253,6 +4254,8 @@ function buildBeachStatic(r) {
   for (let k = 0; k < 2; k++) { const x = px + 5 + k * 1.2; addGeo(metal, new THREE.CylinderGeometry(0.1, 0.1, 1.2, 6), x, 0.6, pz - 1); addGeo(metal, new THREE.CylinderGeometry(0.1, 0.1, 1.2, 6), x, 0.6, pz + 1); addGeo(metal, new THREE.CylinderGeometry(0.06, 0.06, 2, 6), x, 1.2, pz, 0, 1, 1, 1, Math.PI / 2); }
 }
 function buildLife() {
+  window.__showcaseOn = () => { window.__showcase = true; FW.party = 9999; FW.next = 0; if (window.__scPlanes) return; window.__scPlanes = true;
+    [["plane_liner", HALF + 300, 120, -0.04], ["plane_small", HALF + 60, 90, 0.08], ["plane_liner", HALF + 700, 230, 0.025], ["plane_small", HALF + 220, 60, -0.06], ["plane_liner", HALF + 450, 170, 0.032]].forEach(([kind, r, y, sp], k) => { const p = makePlane(kind); if (kind === "plane_liner") p.traverse(o => { if (/^Wheel/i.test(o.name)) o.visible = false; }); scene.add(p); planes.push({ mesh: p, a: 1 + k * 1.3, r, y, s: sp }); }); };
   [["plane_liner", HALF + 380, 150, 0.035], ["plane_small", HALF + 120, 70, 0.07], ["plane_liner", HALF + 520, 190, -0.028]].forEach(([kind, r, y, sp], k) => { const p = makePlane(kind); if (kind === "plane_liner") p.traverse(o => { if (/^Wheel/i.test(o.name)) o.visible = false; }); scene.add(p); planes.push({ mesh: p, a: k * 2.1, r, y, s: sp }); }); // train rentré en vol
   // hélico au-dessus du centre-ville, mouettes près de la plage, requins et dauphins au large, chiens et chats en ville
   if (MODELS.heli) { const h = new THREE.Group(), hm = modelInstance("heli"); h.add(hm); addRotors(hm, "heli"); scene.add(h); life.heli = { mesh: h, a: 0, r: 170, y: 75 }; }
@@ -5423,8 +5426,8 @@ function updateCar(dt) {
     spinWheels(carMesh, c.v, -c.s * 0.5, dt);
     // le conducteur est visible derrière le volant (vue extérieure)
     if (meMesh && meMesh.userData.mixer && !(G.ride && RIDES[G.ride.kind] && (RIDES[G.ride.kind].plane || RIDES[G.ride.kind].boat))) {
-      const low = carMesh.userData.wheelR === 0.37, sx = low ? 0.38 : 0.44, sz = low ? -0.42 : -0.1, ch = Math.cos(c.h), sh = Math.sin(c.h);
-      meMesh.visible = !G.fpv; const pr = carParts(carMesh); if (pr.seatY == null) { let hgt = low ? 1.24 : 1.6; carMesh.traverse(o => { if (o.userData && o.userData.key && MODELS[o.userData.key]) hgt = MODELS[o.userData.key].size.y; }); pr.seatY = clamp(hgt - 1.97, low ? -0.74 : -0.55, 0.1); }
+      const low = carMesh.userData.wheelR === 0.37, sx = low ? 0.36 : 0.44, sz = low ? -0.15 : -0.1, ch = Math.cos(c.h), sh = Math.sin(c.h);
+      meMesh.visible = !G.fpv; const pr = carParts(carMesh); if (pr.seatY == null) { let hgt = low ? 1.24 : 1.6; carMesh.traverse(o => { if (o.userData && o.userData.key && MODELS[o.userData.key]) hgt = MODELS[o.userData.key].size.y; }); pr.seatY = low ? -0.86 : clamp(hgt - 1.97, -0.55, 0.1); }
       meMesh.position.set(c.x + ch * sx + sh * sz, gh + pr.seatY, c.z - sh * sx + ch * sz); meMesh.rotation.set(carMesh.rotation.x, c.h, 0, "YXZ");
       if (meMesh.userData.clip !== "Driving_Loop") setClip(meMesh, "Driving_Loop", 1, 0.05);
     }
@@ -5693,7 +5696,7 @@ const TSHOTS = [
   k => ({ p: [-140 + k * 120, 170, -1000 + k * 60], t: [0, 60, 0] }),
 ];
 function titleCam(dt) {
-  if (!TOWER.x && !PIER.x0) return false; TCAM.t += dt; const D = 7, i = Math.floor(TCAM.t / D) % TSHOTS.length, k = (TCAM.t % D) / D, sh = TSHOTS[i](k * k * (3 - 2 * k) * 0.6 + k * 0.4);
+  if (!TOWER.x && !PIER.x0) return false; if (!window.__showcase && window.__showcaseOn) window.__showcaseOn(); TCAM.t += dt; const D = 7, i = Math.floor(TCAM.t / D) % TSHOTS.length, k = (TCAM.t % D) / D, sh = TSHOTS[i](k * k * (3 - 2 * k) * 0.6 + k * 0.4);
   camera.position.set(sh.p[0], sh.p[1], sh.p[2]); camera.lookAt(sh.t[0], sh.t[1], sh.t[2]); const fv = window.innerWidth < window.innerHeight ? 70 : 55; if (camera.fov !== fv) { camera.fov = fv; camera.updateProjectionMatrix(); }
   sky.position.copy(camera.position); sun.position.set(sh.t[0] - 160, 220, sh.t[2] + 100); sun.target.position.set(sh.t[0], 0, sh.t[2]);
   if (!TCAM.fade) { TCAM.fade = document.createElement("div"); TCAM.fade.style.cssText = "position:fixed;inset:0;background:#05030a;pointer-events:none;z-index:1;opacity:0;transition:none"; document.body.appendChild(TCAM.fade); }
@@ -6095,7 +6098,7 @@ function updateNightSky(dt) {
   const sd = sea.material.uniforms.sunDir.value, mx = -sd.x * 0.8 + 0.3, my = Math.max(0.12, -sd.y * 0.9 + 0.25), mz = -sd.z * 0.8 - 0.3, ml = Math.hypot(mx, my, mz);
   NSKY.moon.position.set(cp.x + mx / ml * 1150, cp.y + my / ml * 1150, cp.z + mz / ml * 1150); NSKY.moon.material.opacity = clamp((nightK - 0.3) / 0.5, 0, 1) * (0.25 + 0.75 * clear) * (G.inside ? 0 : 1); NSKY.moon.visible = NSKY.moon.material.opacity > 0.01;
   // étoile filante de temps en temps
-  if (k > 0.5 && !NSKY.sh) { NSKY.next -= dt; if (NSKY.next <= 0) { NSKY.next = 6 + Math.random() * 14; const a = Math.random() * 6.28, el = 0.5 + Math.random() * 0.35, d = new THREE.Vector3(Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el)), side = new THREE.Vector3(-Math.sin(a), -0.35, Math.cos(a)).normalize();
+  if (k > 0.5 && !NSKY.sh) { NSKY.next -= dt; if (NSKY.next <= 0) { NSKY.next = window.__showcase ? 0.7 + Math.random() * 1.6 : 6 + Math.random() * 14; const a = Math.random() * 6.28, el = 0.5 + Math.random() * 0.35, d = new THREE.Vector3(Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el)), side = new THREE.Vector3(-Math.sin(a), -0.35, Math.cos(a)).normalize();
       NSKY.sh = { p: d.multiplyScalar(1100), v: side.multiplyScalar(900), t: 0 };
       if (G.mode === "play" && !P.shootSeen) { P.shootSeen = true; help("Une étoile filante. Pas besoin de faire un vœu : Tu as un plan. ✨", 5); stat("etoile-filante"); } } }
   if (NSKY.sh) { const S = NSKY.sh; S.t += dt; const head = S.p.clone().addScaledVector(S.v, S.t), tail = S.p.clone().addScaledVector(S.v, Math.max(0, S.t - 0.18)), A = NSKY.shoot.geometry.attributes.position;
@@ -6700,6 +6703,7 @@ function welcomeBack() {
 setTimeout(kitFlush, 4000); window.addEventListener("online", kitFlush);
 function startPlayHome() { G.homeStart = true; startPlay(); setTimeout(refreshReferrals, 8000); }
 function startPlay() {
+  window.__showcase = false; FW.party = 0;
   if (TCAM.fade) { TCAM.fade.remove(); TCAM.fade = null; } if (TCAM.car) { scene.remove(TCAM.car); TCAM.car = null; }
   if (!G.statDay || G.statDay !== P.day) { G.statDay = P.day; stat(P.day === 1 ? "partie-lancee" : "retour-jour-" + Math.min(P.day, 30)); }
   if (CREATOR) creatorBoost(); setTimeout(updateLevelBadge, 0);
@@ -7064,10 +7068,12 @@ function gate() {
 let last = performance.now();
 // post-traitement : bloom à demi-résolution, intensité selon l'heure (fort la nuit, léger le jour)
 const FXR = { comp: null, bloom: null, on: false, fail: false, k: -1 };
+function PR_MAX() { const fine = window.matchMedia && matchMedia("(pointer:fine)").matches; return Math.min(fine ? 2 : 1.5, window.devicePixelRatio || 1); }
+function PR_MIN() { const fine = window.matchMedia && matchMedia("(pointer:fine)").matches; return fine ? Math.min(1, PR_MAX()) : 0.75; }
 function fxInit() {
   if (FXR.comp || FXR.fail) return; try {
     if (!THREE.EffectComposer || !THREE.UnrealBloomPass) { FXR.fail = true; return; }
-    const w = window.innerWidth, h = window.innerHeight; FXR.comp = new THREE.EffectComposer(renderer); FXR.comp.addPass(new THREE.RenderPass(scene, camera));
+    const w = window.innerWidth, h = window.innerHeight; let rt; try { if (renderer.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget) { rt = new THREE.WebGLMultisampleRenderTarget(w, h, { format: THREE.RGBAFormat }); rt.samples = 4; } } catch (e) { rt = undefined; } FXR.comp = new THREE.EffectComposer(renderer, rt); FXR.comp.addPass(new THREE.RenderPass(scene, camera));
     FXR.bloom = new THREE.UnrealBloomPass(new THREE.Vector2(Math.max(2, w / 2), Math.max(2, h / 2)), 0.8, 0.55, 0.78); FXR.comp.addPass(FXR.bloom); fxSize(); FXR.on = !/[?&]nofx=1/.test(location.search);
   } catch (e) { FXR.fail = true; FXR.comp = null; } }
 function fxSize() { if (!FXR.comp) return; const w = window.innerWidth, h = window.innerHeight; FXR.comp.setPixelRatio(renderer.getPixelRatio()); FXR.comp.setSize(w, h); FXR.bloom.setSize(Math.max(2, Math.round(w * renderer.getPixelRatio() / 2)), Math.max(2, Math.round(h * renderer.getPixelRatio() / 2))); }
@@ -7102,7 +7108,7 @@ function loop(now) {
   if (!renderer) return;
   // résolution adaptative : si le téléphone peine (< 28 i/s), on baisse un peu la définition
   if (G.mode === "play" && !window.__virtOn) { const PF = loop.pf || (loop.pf = { t: 0, n: 0, pr: renderer.getPixelRatio() }); PF.t += (now - (PF.last || now)) / 1000; PF.last = now; PF.n++;
-    if (PF.t > 4) { const fps = PF.n / PF.t; if (fps < 40 && FXR.on) { FXR.on = false; FXR.auto = true; PF.n = 0; PF.t = 0; return; } if (fps < 42 && PF.pr <= 0.8 && !cv.classList.contains("nograde")) cv.classList.add("nograde"); if (fps < 50 && PF.pr > 0.8) { PF.pr = Math.max(0.75, PF.pr - 0.25); renderer.setPixelRatio(PF.pr); } else if (fps > 58 && PF.pr < Math.min(1.5, window.devicePixelRatio || 1) - 0.01) { PF.pr = Math.min(1.5, PF.pr + 0.25); renderer.setPixelRatio(PF.pr); } PF.t = 0; PF.n = 0; } }
+    if (PF.t > 4) { const fps = PF.n / PF.t, lo = PR_MIN(), hi = PR_MAX(); if (fps < 44 && FXR.on) { FXR.on = false; FXR.auto = true; PF.n = 0; PF.t = 0; return; } if (fps < 36 && PF.pr <= lo + 0.01 && !cv.classList.contains("nograde")) cv.classList.add("nograde"); if (fps < 40 && PF.pr > lo + 0.01) { PF.pr = Math.max(lo, PF.pr - 0.25); renderer.setPixelRatio(PF.pr); fxSize(); } else if (fps > 56 && PF.pr < hi - 0.01) { PF.pr = Math.min(hi, PF.pr + 0.25); renderer.setPixelRatio(PF.pr); fxSize(); } PF.t = 0; PF.n = 0; } }
   const playing = G.mode === "play";
   if (playing) {
     P.dayT += dt; const h = hourNow();

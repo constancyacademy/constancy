@@ -1,5 +1,5 @@
 // cache hors ligne : le jeu reste dispo sans réseau ; la page est toujours prise sur le réseau d'abord (mises à jour immédiates)
-const V = 'constancy-202611141853';
+const V = 'constancy-202611141930';
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(V).then(c => c.addAll(['./', './index.html', './manifest.webmanifest']))); });
 const A = 'constancy-assets'; // ressources lourdes (modèles, sons, textures) : gardées d'une version à l'autre, rafraîchies en arrière-plan
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V && k !== A).map(k => caches.delete(k)))).then(() => self.clients.claim())));

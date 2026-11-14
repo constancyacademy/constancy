@@ -3292,18 +3292,20 @@ function initFx() {
   // nuages : grands voiles doux en altitude, une seule instance de dessin
   const NP = 300, cg = new THREE.PlaneGeometry(1, 1), puffA = new THREE.InstancedBufferAttribute(new Float32Array(NP * 2), 2); cg.setAttribute("puff", puffA);
   FX.cloudMat = { color: new THREE.Color(1, 1, 1), opacity: 0.85 };
-  FX.cloudU = { map: { value: puffTexture() }, lit: { value: new THREE.Color(1, 1, 1) }, shade: { value: new THREE.Color(0.62, 0.64, 0.72) }, op: { value: 0.9 } };
+  const CT = new THREE.TextureLoader().load("assets/clouds_sheet.jpg"); CT.anisotropy = 4;
+  FX.cloudU = { sheet: { value: CT }, map: { value: puffTexture() }, lit: { value: new THREE.Color(1, 1, 1) }, shade: { value: new THREE.Color(0.62, 0.64, 0.72) }, op: { value: 0.9 } };
   const cm = new THREE.ShaderMaterial({ uniforms: FX.cloudU, transparent: true, depthWrite: false, fog: false,
-    vertexShader: "attribute vec2 puff; varying vec2 vUv; varying float vLow; varying float vFade; void main(){ vec4 c = modelMatrix * instanceMatrix * vec4(0.0,0.0,0.0,1.0); float s = length(instanceMatrix[0].xyz); vec4 mv = viewMatrix * c; mv.xy += position.xy * s; vUv = vec2(puff.y > 0.5 ? 1.0 - uv.x : uv.x, uv.y); vLow = puff.x; vFade = 1.0 - smoothstep(2300.0, 3100.0, length(mv.xyz)); gl_Position = projectionMatrix * mv; }",
-    fragmentShader: "uniform sampler2D map; uniform vec3 lit; uniform vec3 shade; uniform float op; varying vec2 vUv; varying float vLow; varying float vFade; void main(){ vec4 t = texture2D(map, vUv); float l = clamp(t.r * (1.0 - vLow * 0.42), 0.0, 1.0); vec3 col = mix(shade, lit, l); gl_FragColor = vec4(col, t.a * op * vFade); if (gl_FragColor.a < 0.004) discard; }" });
+    vertexShader: "attribute vec2 puff; varying vec2 vUv; varying float vLow; varying float vFade; varying float vR; void main(){ vR = puff.y; vec4 c = modelMatrix * instanceMatrix * vec4(0.0,0.0,0.0,1.0); float s = length(instanceMatrix[0].xyz); vec4 mv = viewMatrix * c; mv.xy += position.xy * s; vUv = uv; vLow = puff.x; vFade = 1.0 - smoothstep(2300.0, 3100.0, length(mv.xyz)); gl_Position = projectionMatrix * mv; }",
+    fragmentShader: "uniform sampler2D sheet; uniform vec3 lit; uniform vec3 shade; uniform float op; varying vec2 vUv; varying float vLow; varying float vFade; varying float vR; void main(){ float k = floor(vR * 3.999); vec2 q = vec2(mod(k, 2.0), floor(k / 2.0)) * 0.5; vec2 uv = q + (0.02 + clamp(vUv, 0.0, 1.0) * 0.96) * 0.5; vec3 t = texture2D(sheet, uv).rgb; float m = max(t.r, max(t.g, t.b)); float a = smoothstep(0.06, 0.5, m); vec3 col = mix(shade, lit, 0.55 + 0.45 * smoothstep(0.3, 0.9, m)) * (0.9 + 0.1 * m); gl_FragColor = vec4(col, a * op * vFade); if (gl_FragColor.a < 0.004) discard; }" });
   FX.clouds = new THREE.InstancedMesh(cg, cm, NP); FX.clouds.frustumCulled = false; FX.clouds.renderOrder = -1; FX.cloudData = [];
   let pi = 0; const mz = new THREE.Matrix4().makeScale(0, 0, 0); for (let k = 0; k < NP; k++) FX.clouds.setMatrixAt(k, mz);
-  for (let k = 0; k < 30 && pi < NP; k++) {
-    const W = rand(140, 330), base = rand(300, 430), cl = { x: rand(-1600, 1600), z: rand(-1600, 1600), puffs: [] }, n = Math.min(NP - pi, 6 + Math.floor(W / 40));
+  for (let k = 0; k < 46 && pi < NP; k++) {
+    const W = rand(180, 420), base = rand(300, 430), cl = { x: rand(-1600, 1600), z: rand(-1600, 1600), puffs: [] }, n = 0;
+    cl.puffs.push({ i: pi, ox: 0, oy: base + W * 0.25, oz: 0, s: W }); puffA.setXY(pi, 0, Math.random()); pi++;
     for (let q = 0; q < n; q++) { const u = (q / (n - 1)) * 2 - 1, edge = Math.abs(u), size = W * (0.55 - edge * 0.25) * rand(0.85, 1.15), py = base + size * (0.22 + (1 - edge) * 0.28) + rand(-4, 10);
       const low = clamp(1 - (py - base) / (W * 0.32), 0, 1); cl.puffs.push({ i: pi, ox: u * W * 0.5 + rand(-12, 12), oy: py, oz: rand(-W * 0.18, W * 0.18), s: size }); puffA.setXY(pi, low, Math.random()); pi++; }
     // une rangée de petites bouffées plates pour la base, plus sombre
-    for (let q = 0; q < 3 && pi < NP; q++) { cl.puffs.push({ i: pi, ox: rand(-W * 0.35, W * 0.35), oy: base + 6, oz: rand(-W * 0.15, W * 0.15), s: W * 0.32 }); puffA.setXY(pi, 1, Math.random()); pi++; }
+    for (let q = 0; q < 1 && pi < NP; q++) { cl.puffs.push({ i: pi, ox: rand(-W * 0.4, W * 0.4), oy: base + W * 0.18, oz: rand(-W * 0.2, W * 0.2) + 20, s: W * 0.55 }); puffA.setXY(pi, 0, Math.random()); pi++; }
     FX.cloudData.push(cl);
   }
   scene.add(FX.clouds);

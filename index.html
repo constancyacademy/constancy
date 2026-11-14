@@ -1485,7 +1485,7 @@ const SND_FILES = { race: "assets/eng_race.mp3", moto: "assets/eng_moto.mp3", sc
 /* --- modèles 3D (voitures, bus, avions, bateaux, animaux, mobilier) --- */
 // face : direction du nez du modèle d'origine ; len : longueur voulue dans le monde (h : hauteur à la place)
 const MODEL_DEFS = {
-  gyro: { h: 3.1 }, jet: { len: 17 }, tank: { len: 9.5 }, car_or: { len: 4.8 }, car_minuit: { len: 4.9 }, car_city: { len: 5.4 }, car_sport: { len: 5.7 }, car_taxi: { len: 5.6 }, car_police: { len: 5.7 }, car_suv: { len: 5.9 }, car_pickup: { len: 6.3 },
+  lifeguard: { h: 6.2 }, gyro: { h: 3.1 }, jet: { len: 17 }, tank: { len: 9.5 }, car_or: { len: 4.8 }, car_minuit: { len: 4.9 }, car_city: { len: 5.4 }, car_sport: { len: 5.7 }, car_taxi: { len: 5.6 }, car_police: { len: 5.7 }, car_suv: { len: 5.9 }, car_pickup: { len: 6.3 },
   ambulance: { len: 7.4 }, bus: { len: 13 }, firetruck: { len: 10, face: "x" }, moto: { len: 2.5, face: "-z" },
   plane_liner: { len: 64 }, plane_small: { len: 12, face: "-z" }, heli: { len: 15, face: "-x" },
   yacht: { len: 24, face: "x" }, sailboat: { len: 10 }, gull: { len: 1.8, face: "x" }, shark: { len: 4.5, anim: "Swim" }, dolphin: { len: 3.2, anim: "Swim" },
@@ -2556,7 +2556,7 @@ function updateWheelRide() {
   if (WRIDE.on || G.mode !== "play" || !G.onFoot || G.inside || G.mission) return; const d = wheelDoor(); if (!d) return; const dd = Math.hypot(G.me.x - d.x, G.me.z - d.z);
   if (dd > 9) WRIDE.cool = false; else if (dd < 3.5 && !WRIDE.cool) { WRIDE.cool = true; wheelOffer(); }
 }
-const BEACH = { walk: [], swim: [], volley: [], night: [], built: false };
+const BEACH = { walk: [], swim: [], volley: [], night: [], built: false }, LIFEG = [];
 // bande de sable : côté (0 est, 1 ouest, 2 sud), position le long de la plage, distance au centre
 function beachAt(side, t, off) { return side === 0 ? [off, t] : side === 1 ? [-off, t] : [t, off]; }
 function beachOK(x, z) { return !(z > HALF - 4 && Math.abs(x - AP.gx) < 26) && !onAirport(x, z) && !onHighway(x, z) && !inRiverBand(z) && !onNorth(x, z) && !onPier(x, z) && Math.hypot(x - (PIER.x0 || 0), z - (PIER.z || 0)) > 30; }
@@ -4335,6 +4335,10 @@ function makeBoat() {
   return g;
 }
 function buildBeachStatic(r) {
+  // postes de maîtres-nageurs : rampe côté plage, fenêtres face à la mer
+  if (MODELS.lifeguard) { const off = HALF + 31, spots = [];
+    [-300, -110, 110, 300].forEach(t => { spots.push([off, t, -Math.PI / 2]); spots.push([-off, t, Math.PI / 2]); }); [-260, 230].forEach(t => spots.push([t, off, Math.PI]));
+    spots.forEach(([x, z, ry]) => { if (!beachOK(x, z) || isWater(x, z)) return; const m = modelInstance("lifeguard"); m.position.set(x, GH(x, z), z); m.rotation.y = ry; scene.add(m); addProp(x, z, 2.4); LIFEG.push([x, z]); }); }
   // plagistes allongés, serviettes et parasols (fusionnés : aucun coût par image)
   const towelCols = [0xff2d55, 0x34e0ff, 0xffffff, 0x9b5cff, 0x3fd16b, 0xff9f1a].map(c => new THREE.MeshLambertMaterial({ color: c }));
   const skinM = SKINS.map(c => new THREE.MeshLambertMaterial({ color: c })), suitM = SHIRTS.slice(0, 5).map(c => new THREE.MeshLambertMaterial({ color: c }));
@@ -7305,7 +7309,7 @@ function envCar(mesh) { mesh.traverse(o => { if (!o.isMesh || !o.material) retur
 function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "number" && nightK > 0.5) ? ENVR.night : ENVR.day; if (ENVR.cur === want) return; ENVR.cur = want;
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
 window.__W = () => ({ spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ CAFES, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

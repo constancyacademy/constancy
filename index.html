@@ -349,7 +349,11 @@ const beachH = (x, z) => { const e = shoreE(x, z), ed = shoreEdge(x, z), t = Mat
 const RIVER_J = 9, RZ0 = -HALF + ROAD + 9 * STEP + WALK, RZ1 = -HALF + ROAD + 9 * STEP + BLOCK - WALK;
 const inRiverBand = z => z > RZ0 && z < RZ1;
 const onBridge = x => { const k = Math.round((x + HALF - ROAD / 2) / STEP); return k >= 0 && k <= NB && Math.abs(x - (-HALF + ROAD / 2 + k * STEP)) < ROAD / 2; };
-const isWater = (x, z) => !(Math.abs(x) < HALF + 12 && Math.abs(z) < HALF + 12 && !inRiverBand(z)) && !onAirport(x, z) && !onHighway(x, z) && !onNorth(x, z) && (shoreE(x, z) > shoreEdge(x, z) - 4.5 || (inRiverBand(z) && !onBridge(x) && Math.abs(x) < SHORE + 40));
+// la jetée de la fête foraine : allée (x de PIER.x0 à PIER.x1) puis grande esplanade au bout
+const PIER = { z: 0, x0: 0, x1: 0, x2: 0, w: 26, W: 92, y: 2.6 };
+function onPier(x, z) { if (!PIER.x0) return false; if (x <= PIER.x0 && x >= PIER.x1 && Math.abs(z - PIER.z) < PIER.w / 2) return true; return x < PIER.x1 + 2 && x >= PIER.x2 && Math.abs(z - PIER.z) < PIER.W / 2; }
+function pierH(x) { const d = PIER.x0 - x; return d < 14 ? PIER.y * clamp(d / 14, 0, 1) : PIER.y; }
+const isWater = (x, z) => !(Math.abs(x) < HALF + 12 && Math.abs(z) < HALF + 12 && !inRiverBand(z)) && !onAirport(x, z) && !onHighway(x, z) && !onPier(x, z) && !onNorth(x, z) && (shoreE(x, z) > shoreEdge(x, z) - 4.5 || (inRiverBand(z) && !onBridge(x) && Math.abs(x) < SHORE + 40));
 const BLOCK_BOXES = new Map(); // zones solides par pâté (par défaut : toute l'emprise bâtie)
 // la montagne (clin d'œil au grand sommet) : une île au nord, reliée par une voie rapide sur pont
 const MT = { x: 0, z: -2050, R: 520, peak: 255 };
@@ -401,7 +405,7 @@ function nearMRoad(x, z) { let best = 1e9; for (let k = 0; k < MROAD.length; k +
 const onMountain = (x, z) => Math.hypot(x - MT.x, z - MT.z) < MT.R * 1.12 && mtnH(x, z) > -0.3;
 const OFFROAD = { suv: 1, moto: 1, pickup: 1 };
 // hauteur du sol sous un véhicule ou un piéton
-function GH(x, z) { if (onHighway(x, z)) return hwH(z); if (z < -470) { const h = landH(x, z); if (h > -0.3) return Math.max(0, h); } return 0; }
+function GH(x, z) { if (onPier(x, z)) return pierH(x); if (onHighway(x, z)) return hwH(z); if (z < -470) { const h = landH(x, z); if (h > -0.3) return Math.max(0, h); } return 0; }
 const rc = i => -HALF + ROAD / 2 + i * STEP;                 // centre de la route i (0..8)
 const bMin = i => rc(i) + ROAD / 2, bMax = i => rc(i) + ROAD / 2 + BLOCK, bC = i => rc(i) + ROAD / 2 + BLOCK / 2;
 const DAY_SECONDS = 1440; // 24 minutes = 24 h (1 h de jeu = 1 min)
@@ -2312,10 +2316,118 @@ function buildGuinguettes() {
   });
 }
 const FIRES = { list: [], people: [], tx: null };
+const FAIR = { wheel: null, gond: [], neon: [], booster: null, drop: null, people: [], walkers: [], t: 0, snd: 0 };
+function fairTex(w, h, draw) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t; }
+function buildFair() {
+  // ouest de la ville, entre deux pâtés, loin de la route : la jetée part de la plage et s'avance sur la mer
+  PIER.z = bC(5) + 28; PIER.x0 = -HALF - 14; PIER.x1 = -HALF - 120; PIER.x2 = -HALF - 215;
+  const z0 = PIER.z, Y = PIER.y, wood = new THREE.MeshLambertMaterial({ color: 0x8a6440 }), darkW = new THREE.MeshLambertMaterial({ color: 0x5a3c26 }), white = new THREE.MeshLambertMaterial({ color: 0xf4efe6 });
+  const paveM = new THREE.MeshLambertMaterial({ map: fairTex(256, 256, (g, w) => { g.fillStyle = "#e8dcc8"; g.fillRect(0, 0, w, w); for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { g.fillStyle = ["#e2d3bb", "#efe4d0", "#d8c6aa", "#f2e8d8"][(x * 3 + y * 5) % 4]; g.fillRect(x * 32 + 1, y * 32 + 1, 30, 30); if ((x + y) % 7 === 0) { g.fillStyle = "#c98f8f"; g.fillRect(x * 32 + 1, y * 32 + 1, 30, 30); } } }) });
+  paveM.map.wrapS = paveM.map.wrapT = THREE.RepeatWrapping; paveM.map.repeat.set(12, 3);
+  const deck = (xa, xb, w) => { const L = xa - xb, cx = (xa + xb) / 2; addGeo(paveM, new THREE.BoxGeometry(L, 0.5, w), cx, Y - 0.25, z0);
+    addGeo(darkW, new THREE.BoxGeometry(L, 0.9, 0.5), cx, Y - 0.9, z0 - w / 2); addGeo(darkW, new THREE.BoxGeometry(L, 0.9, 0.5), cx, Y - 0.9, z0 + w / 2);
+    for (let x = xb + 4; x < xa; x += 8) for (let zz = -w / 2 + 1; zz <= w / 2 - 1; zz += Math.max(6, (w - 2) / 3)) addGeo(darkW, new THREE.CylinderGeometry(0.35, 0.4, Y + 6, 7), x, Y / 2 - 3.2, z0 + zz);
+    [-1, 1].forEach(sd => { addGeo(white, new THREE.BoxGeometry(L, 0.12, 0.12), cx, Y + 1.05, z0 + sd * (w / 2 - 0.2)); for (let x = xb + 1; x < xa; x += 3) addGeo(white, new THREE.BoxGeometry(0.12, 1.05, 0.12), x, Y + 0.52, z0 + sd * (w / 2 - 0.2)); }); };
+  deck(PIER.x0 - 14, PIER.x1, PIER.w); deck(PIER.x1 + 2, PIER.x2, PIER.W);
+  { const g = new THREE.BoxGeometry(14, 0.5, PIER.w); g.translate(-7, 0, 0); const rp = new THREE.Mesh(g, paveM); rp.position.set(PIER.x0, Y / 2 - 0.25, z0); rp.rotation.z = Math.atan2(Y, 14); scene.add(rp); }
+  // arche d'entrée style guinguette, au bord de la plage
+  const ax = PIER.x0 - 2, arcM = new THREE.MeshLambertMaterial({ color: 0x2b1e3a }), goldM = new THREE.MeshPhongMaterial({ color: 0xd8b25a, shininess: 80, specular: 0xffffff });
+  [-1, 1].forEach(sd => { addGeo(arcM, new THREE.BoxGeometry(1.2, 9, 1.2), ax, 4.5 + Y * 0.1, z0 + sd * 9); addGeo(goldM, new THREE.SphereGeometry(0.8, 12, 10), ax, 9.6, z0 + sd * 9); });
+  addGeo(arcM, new THREE.BoxGeometry(1.4, 2.6, 19.6), ax, 8.3, z0);
+  const signT = fairTex(1024, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, "#3b0f4a"); gr.addColorStop(1, "#1a0a33"); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = "#ffd36e"; g.lineWidth = 10; g.strokeRect(12, 12, w - 24, h - 24);
+    for (let i = 0; i < 40; i++) { g.fillStyle = i % 2 ? "#ffd36e" : "#ff4fa3"; g.beginPath(); g.arc(30 + i * (w - 60) / 39, 30, 7, 0, 6.28); g.fill(); g.beginPath(); g.arc(30 + i * (w - 60) / 39, h - 30, 7, 0, 6.28); g.fill(); }
+    g.font = "900 104px Georgia, serif"; g.textAlign = "center"; g.fillStyle = "#ff4fa3"; g.shadowColor = "#ff4fa3"; g.shadowBlur = 30; g.fillText("CONSTANCY", w / 2, 146); g.font = "italic 700 60px Georgia, serif"; g.fillStyle = "#ffd36e"; g.shadowColor = "#ffd36e"; g.fillText("~ Carnival ~", w / 2, 210); });
+  const signM = new THREE.MeshLambertMaterial({ map: signT, emissive: 0xffffff, emissiveMap: signT, emissiveIntensity: 0.4 }); FAIR.signM = signM;
+  [-1, 1].forEach(sd => { const sg = new THREE.Mesh(new THREE.PlaneGeometry(18, 4.5), signM); sg.position.set(ax + sd * 0.75, 8.3, z0); sg.rotation.y = sd > 0 ? Math.PI / 2 : -Math.PI / 2; scene.add(sg); });
+  // guirlandes : de l'arche jusqu'au bout de l'allée, en zigzag au-dessus des visiteurs
+  const bulbs = [], bulbs2 = [];
+  for (let x = PIER.x0 - 3; x > PIER.x1 + 4; x -= 10) { for (let k = 0; k <= 16; k++) { const t = k / 16, zz = z0 - 11 + t * 22, yy = Y + 6.2 - Math.sin(Math.PI * t) * 1.4; (k % 2 ? bulbs2 : bulbs).push(x - t * 4, yy, zz); } addGeo(darkW, new THREE.CylinderGeometry(0.12, 0.12, 6.4, 6), x, Y + 3.2, z0 - 11.6); addGeo(darkW, new THREE.CylinderGeometry(0.12, 0.12, 6.4, 6), x - 4, Y + 3.2, z0 + 11.6); }
+  const glowT = glowTexture(), pts = (arr, c, sz) => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(arr), 3)); const m = new THREE.PointsMaterial({ size: sz, map: glowT, color: c, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }); m.userData.base = new THREE.Color(c); NEON.mats.push(m); const P = new THREE.Points(g, m); P.frustumCulled = false; scene.add(P); return P; };
+  pts(bulbs, 0xffc46b, 1.1); pts(bulbs2, 0xff4fc8, 1.2);
+  // petites cabanes en bois façon marché de Noël, chacune son produit
+  const STANDS = [["Churros", "#ff9f1a"], ["Beignets", "#ff4fa3"], ["Barbe à papa", "#ff7ad9"], ["Crêpes", "#ffd36e"], ["Glaces", "#7cf3ff"], ["Limonade", "#f6ff6e"], ["Pop-corn", "#ff5a4f"], ["Gaufres", "#ffb347"], ["Hot-dogs", "#ff6a3d"], ["Pêche aux canards", "#5ad1ff"]];
+  const awn = [0xff4fa3, 0xffd36e, 0x7cf3ff, 0xff9f1a, 0x9b5cff].map(c => new THREE.MeshLambertMaterial({ color: c }));
+  const C = HQ.clips && HQ.clips.m;
+  STANDS.forEach(([name, col], k) => { const sd = k % 2 ? 1 : -1, x = PIER.x0 - 12 - Math.floor(k / 2) * 18, zz = z0 + sd * 8.6, face = -sd;
+    addGeo(wood, new THREE.BoxGeometry(4.4, 2.8, 3.2), x, Y + 1.4, zz); addGeo(darkW, new THREE.BoxGeometry(4.6, 0.25, 3.4), x, Y + 2.9, zz);
+    const roof = new THREE.CylinderGeometry(0.01, 2.9, 1.5, 4, 1); roof.rotateY(Math.PI / 4); roof.scale(1.15, 1, 0.85); addGeo(darkW, roof, x, Y + 3.75, zz);
+    addGeo(white, new THREE.BoxGeometry(4.2, 0.12, 0.7), x, Y + 1.15, zz + face * 1.75);
+    addGeo(awn[k % awn.length], new THREE.BoxGeometry(4.5, 0.08, 1.4), x, Y + 2.55, zz + face * 2.1, 0, 1, 1, 1, face * 0.35);
+    const lb = label(name, col); lb.position.set(x, Y + 4.9, zz + face * 1.2); lb.scale.set(5.2, 1.3, 1); scene.add(lb);
+    addProp(x - 1.2, zz, 1.9); addProp(x + 1.2, zz, 1.9);
+    if (C) { const h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x34e0ff, 0xf6c945]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k % 3 === 0, sleeve: 0.25 }));
+      h.position.set(x, Y, zz - face * 0.2); h.rotation.y = face > 0 ? 0 : Math.PI; scene.add(h); setClip(h, k % 2 ? "Idle_Talking_Loop" : "Idle_Loop", 0.9); h.userData.manual = true; FAIR.people.push(h); } });
+  // promeneurs qui flânent dans l'allée
+  if (C) for (let k = 0; k < 12; k++) { const h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x111114, 0x34e0ff, 0xf6c945, 0x9b5cff, 0xeadfcf]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k % 2 === 0, shorts: k % 3 === 0, sleeve: 0.25 }));
+    scene.add(h); setClip(h, "Walk_Loop", 0.9); h.userData.manual = true; if (k % 3 === 0) giveDrink(h); FAIR.walkers.push({ h, u: Math.random(), sp: rand(0.012, 0.02) * (k % 2 ? 1 : -1), lane: rand(-3.5, 3.5) }); }
+  // ======= la grande roue : 64 m de diamètre, néons qui partent du centre vers l'extérieur =======
+  const R = 32, hubY = Y + R + 5, wx = PIER.x2 + 40, W = new THREE.Group(); W.position.set(wx, hubY, z0); scene.add(W); FAIR.wheel = W;
+  const steel = new THREE.MeshPhongMaterial({ color: 0xe9ecf2, shininess: 70, specular: 0xffffff });
+  [-1.6, 1.6].forEach(o => { const rim = new THREE.Mesh(new THREE.TorusGeometry(R, 0.42, 8, 96), steel); rim.rotation.y = Math.PI / 2; rim.position.x = o; W.add(rim); });
+  const NC = [0xff3fb4, 0x7cf3ff, 0xffd36e, 0xa45bff]; FAIR.neon = [0, 1, 2, 3].map(i => new THREE.MeshBasicMaterial({ color: NC[0] }));
+  const rimNeon = new THREE.MeshBasicMaterial({ color: 0xff3fb4 }); FAIR.rimNeon = rimNeon;
+  [-1.6, 1.6].forEach(o => { const rn = new THREE.Mesh(new THREE.TorusGeometry(R + 0.55, 0.16, 6, 128), rimNeon); rn.rotation.y = Math.PI / 2; rn.position.x = o; W.add(rn); });
+  const NS = 32;
+  for (let k = 0; k < NS; k++) { const a = k / NS * Math.PI * 2;
+    [-1.6, 1.6].forEach(o => { const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, R, 6), steel); sp.position.set(o, Math.sin(a) * R / 2, Math.cos(a) * R / 2); sp.rotation.x = a; W.add(sp);
+      for (let q = 0; q < 4; q++) { const seg = new THREE.Mesh(new THREE.BoxGeometry(0.12, R / 4 - 0.6, 0.12), FAIR.neon[q]), rr = (q + 0.5) * R / 4 + 0.6; seg.position.set(o * 1.06, Math.sin(a) * rr, Math.cos(a) * rr); seg.rotation.x = a; W.add(seg); } });
+    const cb = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.1, 0.1), steel); cb.position.set(0, Math.sin(a) * R, Math.cos(a) * R); W.add(cb); }
+  // moyeu et son enseigne
+  const hubT = fairTex(512, 512, (g, w) => { g.fillStyle = "#14081f"; g.beginPath(); g.arc(w / 2, w / 2, w / 2 - 4, 0, 6.28); g.fill(); g.strokeStyle = "#ffd36e"; g.lineWidth = 14; g.stroke(); g.textAlign = "center"; g.shadowBlur = 24;
+    g.shadowColor = "#ff4fa3"; g.fillStyle = "#ff4fa3"; g.font = "900 70px Georgia, serif"; g.fillText("CONSTANCY", w / 2, 230); g.shadowColor = "#7cf3ff"; g.fillStyle = "#7cf3ff"; g.font = "900 88px Georgia, serif"; g.fillText("WHEEL", w / 2, 318); g.shadowColor = "#ffd36e"; g.fillStyle = "#ffd36e"; g.font = "italic 700 40px Georgia, serif"; g.fillText("Keep it real", w / 2, 380); });
+  const hubM = new THREE.MeshLambertMaterial({ map: hubT, emissive: 0xffffff, emissiveMap: hubT, emissiveIntensity: 0.5 }); FAIR.hubM = hubM;
+  const hubD = new THREE.Mesh(new THREE.CylinderGeometry(6.5, 6.5, 3.8, 48), [steel, hubM, hubM]); hubD.rotation.z = Math.PI / 2; W.add(hubD);
+  // pieds en A et cabines qui restent à l'horizontale
+  [-1, 1].forEach(sd => [-1, 1].forEach(fz => { const len = Math.hypot(hubY - Y, 18), leg = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.85, len, 8), steel); leg.position.set(wx + sd * 4.2, (hubY + Y) / 2, z0 + fz * 9); leg.rotation.x = -fz * Math.atan2(18, hubY - Y); scene.add(leg); }));
+  const gcols = [0xff4fa3, 0x7cf3ff, 0xffd36e, 0xa45bff, 0xffffff, 0xff9f1a];
+  for (let k = 0; k < 24; k++) { const g = new THREE.Group(), body = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.1, 2.2, 10), new THREE.MeshPhongMaterial({ color: gcols[k % 6], shininess: 90, emissive: gcols[k % 6], emissiveIntensity: 0.12 }));
+    body.position.y = -2.6; g.add(body); const roof = new THREE.Mesh(new THREE.SphereGeometry(1.35, 12, 6, 0, 6.28, 0, Math.PI / 2), steel); roof.position.y = -1.5; g.add(roof); const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.5, 5), steel); bar.position.y = -0.7; g.add(bar);
+    scene.add(g); FAIR.gond.push({ g, a: k / 24 * Math.PI * 2 }); }
+  addProp(wx, z0 - 9, 2.4); addProp(wx, z0 + 9, 2.4);
+  // ======= manège à sensations : le grand bras qui tourne =======
+  const bx = PIER.x1 - 22, bz = z0 - 28, B = new THREE.Group(); B.position.set(bx, Y + 20, bz); scene.add(B); FAIR.booster = B;
+  const pyl = new THREE.Mesh(new THREE.BoxGeometry(2.2, 20, 2.2), new THREE.MeshPhongMaterial({ color: 0x2b2b38, shininess: 60 })); pyl.position.set(bx, Y + 10, bz); scene.add(pyl); addProp(bx, bz, 2);
+  const armM = new THREE.MeshPhongMaterial({ color: 0xffd36e, shininess: 90 }), arm = new THREE.Mesh(new THREE.BoxGeometry(1.4, 34, 1.4), armM); B.add(arm);
+  [-1, 1].forEach(sd => { const pod = new THREE.Group(); pod.position.y = sd * 16; const seat = new THREE.Mesh(new THREE.BoxGeometry(4, 1.6, 2.4), new THREE.MeshPhongMaterial({ color: 0xff3fb4, emissive: 0xff3fb4, emissiveIntensity: 0.25 })); pod.add(seat); B.add(pod); });
+  const bn = new THREE.Mesh(new THREE.BoxGeometry(0.2, 33, 0.2), FAIR.neon[1]); bn.position.z = 0.75; B.add(bn);
+  // ======= tour de chute =======
+  const dx = PIER.x1 - 22, dz = z0 + 30, tower = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, 46, 10), new THREE.MeshPhongMaterial({ color: 0xe9ecf2, shininess: 70 })); tower.position.set(dx, Y + 23, dz); scene.add(tower); addProp(dx, dz, 2.6);
+  for (let q = 0; q < 12; q++) { const ring = new THREE.Mesh(new THREE.TorusGeometry(1.35, 0.1, 5, 24), FAIR.neon[q % 4]); ring.rotation.x = Math.PI / 2; ring.position.set(dx, Y + 3 + q * 3.6, dz); scene.add(ring); }
+  const car = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.4, 1.6, 16, 1, true), new THREE.MeshPhongMaterial({ color: 0x7cf3ff, emissive: 0x7cf3ff, emissiveIntensity: 0.2, side: THREE.DoubleSide })); car.position.set(dx, Y + 4, dz); scene.add(car); FAIR.drop = { car, base: Y + 4, top: Y + 42 };
+  const ds = label("Free Fall", "#7cf3ff"); ds.position.set(dx, Y + 49, dz); ds.scale.set(8, 2, 1); scene.add(ds);
+  const bs = label("Booster", "#ffd36e"); bs.position.set(bx, Y + 41, bz); bs.scale.set(8, 2, 1); scene.add(bs);
+  FAIR.x = (PIER.x0 + PIER.x2) / 2; FAIR.z = z0;
+}
+function updateFair(dt) {
+  if (!FAIR.wheel) return; const T = performance.now() / 1000, me = target(), d = Math.hypot(me.x - FAIR.x, me.z - FAIR.z), nk = nightK; FAIR.t += dt;
+  FAIR.wheel.rotation.x += dt * 0.045;
+  FAIR.gond.forEach(gd => { const a = gd.a + FAIR.wheel.rotation.x, R = 32; gd.g.position.set(FAIR.wheel.position.x, FAIR.wheel.position.y + Math.sin(a) * (R + 0.4), FAIR.wheel.position.z + Math.cos(a) * (R + 0.4)); });
+  // néons : une vague de couleur part du cœur vers l'extérieur, en boucle
+  const NC = [[1, 0.25, 0.7], [0.48, 0.95, 1], [1, 0.83, 0.43], [0.64, 0.36, 1]], cyc = Math.floor(T / 4) % 4, k0 = 0.25 + nk * 0.75;
+  FAIR.neon.forEach((m, q) => { const w = Math.max(0, Math.sin(T * 3.2 - q * 1.1)), c = NC[(cyc + (w > 0.6 ? 1 : 0)) % 4], b = (0.35 + 0.65 * w) * k0; m.color.setRGB(c[0] * b, c[1] * b, c[2] * b); });
+  { const b = (0.55 + 0.45 * Math.sin(T * 2)) * k0; FAIR.rimNeon.color.setRGB(b, 0.25 * b, 0.7 * b); }
+  FAIR.hubM.emissiveIntensity = 0.25 + nk * 0.9; FAIR.signM.emissiveIntensity = 0.25 + nk * 0.9;
+  if (FAIR.booster) { FAIR.booster.rotation.z += dt * 1.1; FAIR.booster.children.forEach((c, i) => { if (i > 0 && i < 3) c.rotation.z = -FAIR.booster.rotation.z + Math.sin(T * 1.7) * 0.6; }); }
+  if (FAIR.drop) { const D = FAIR.drop, ph = (T % 16) / 16; D.car.position.y = ph < 0.55 ? D.base + (D.top - D.base) * (ph / 0.55) : ph < 0.68 ? D.top : ph < 0.74 ? D.top - (D.top - D.base) * Math.pow((ph - 0.68) / 0.06, 2) : D.base;
+    if (ph > 0.68 && ph < 0.7 && !D.yell && d < 160) { D.yell = true; fairScream(d); } if (ph > 0.8) D.yell = false; }
+  FAIR.walkers.forEach(w => { w.u += w.sp * dt; if (w.u > 1) w.u -= 1; if (w.u < 0) w.u += 1; const x = PIER.x0 - 4 - w.u * (PIER.x0 - PIER.x1 - 8), h = w.h; h.position.set(x, PIER.y, PIER.z + w.lane + Math.sin(T * 0.3 + w.lane) * 0.6); h.rotation.y = w.sp > 0 ? -Math.PI / 2 : Math.PI / 2; h.visible = d < 260; });
+  FAIR.people.forEach(h => { h.visible = d < 260; });
+  fairSound(dt, d);
+}
+// ambiance sonore de fête foraine : orgue de barbarie, foule, cris sur les manèges
+function fairScream(d) { const c = SND.ctx; if (!c || !SND.on) return; const t = c.currentTime, v = 0.06 * Math.pow(clamp(1 - d / 160, 0, 1), 1.5);
+  for (let i = 0; i < 3; i++) { const o = c.createOscillator(), g = c.createGain(); o.type = "sawtooth"; o.frequency.setValueAtTime(900 + i * 140, t); o.frequency.exponentialRampToValueAtTime(1400 + i * 120, t + 0.25); o.frequency.exponentialRampToValueAtTime(700, t + 1.1); const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 1200; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2); o.connect(f); f.connect(g); g.connect(c.destination); o.start(t + i * 0.04); o.stop(t + 1.3); } }
+function fairSound(dt, d) {
+  const c = SND.ctx; if (!c || !SND.on || G.mode !== "play" || d > 170) return; FAIR.snd -= dt; if (FAIR.snd > 0) return; FAIR.snd = 0.3;
+  const mel = [72, 76, 79, 76, 74, 77, 81, 77, 72, 76, 79, 84, 83, 79, 76, 74], bass = [48, 55, 50, 55, 48, 55, 53, 55]; FAIR.k = (FAIR.k || 0) + 1;
+  const v = 0.045 * Math.pow(clamp(1 - d / 170, 0, 1), 1.3), t = c.currentTime, note = (n, len, vol, type) => { const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.value = 440 * Math.pow(2, (n - 69) / 12); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + len); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + len + 0.05); };
+  note(mel[FAIR.k % 16], 0.28, v, "square"); note(mel[FAIR.k % 16] + 12, 0.2, v * 0.35, "sine"); if (FAIR.k % 2 === 0) note(bass[(FAIR.k / 2) % 8], 0.5, v * 1.2, "triangle");
+  if (Math.random() < 0.25) clink(v * 0.6);
+}
 function buildCampfires() {
   const C = HQ.clips && HQ.clips.m, logM = new THREE.MeshLambertMaterial({ color: 0x4a3020 }), stoneM = new THREE.MeshLambertMaterial({ color: 0x77706a });
   FIRES.tx = FIRES.tx || glowTexture();
-  [{ x: HALF + 24, z: bC(3) + 12 }, { x: -HALF - 24, z: bC(7) + 4 }, { x: -HALF - 24, z: bC(12) - 6 }].filter(S => !onAirport(S.x, S.z) && !onHighway(S.x, S.z) && !inRiverBand(S.z)).forEach((S, si) => {
+  [{ x: HALF + 24, z: bC(3) + 12 }, { x: -HALF - 24, z: bC(7) + 4 }, { x: -HALF - 24, z: bC(12) - 6 }, { x: HALF + 26, z: bC(8) + 6 }, { x: HALF + 22, z: bC(11) - 8 }, { x: HALF + 25, z: bC(0) + 14 }, { x: -HALF - 26, z: bC(1) + 6 }, { x: -HALF - 22, z: bC(10) + 2 }, { x: bC(2), z: -HALF - 26 }, { x: bC(11), z: -HALF - 24 }].filter(S => !onAirport(S.x, S.z) && !onHighway(S.x, S.z) && !inRiverBand(S.z)).forEach((S, si) => {
     const y0 = Math.max(0, beachH(S.x, S.z)) + 0.02;
     for (let k = 0; k < 9; k++) { const a = k / 9 * 6.28; addGeo(stoneM, new THREE.DodecahedronGeometry(0.22, 0), S.x + Math.cos(a) * 0.95, y0 + 0.1, S.z + Math.sin(a) * 0.95, a); }
     [0, 1.1, 2.2].forEach(a => addGeo(logM, new THREE.CylinderGeometry(0.09, 0.11, 1.3, 6), S.x, y0 + 0.18, S.z, a, 1, 1, 1, Math.PI / 2 - 0.25));
@@ -2351,7 +2463,7 @@ function updateGuing(dt) {
   GUING.list.forEach(g => { const d = Math.hypot(me.x - g.x, me.z - g.z); near = Math.min(near, d); g.glow.material.opacity = nk * 0.42; g.pts.forEach(p => { p.visible = d < 1100; }); });
   const on = nk > 0.45;
   GUING.people.forEach(h => { h.visible = (on || h.userData.day) && Math.hypot(me.x - h.position.x, me.z - h.position.z) < 170; if (h.userData.cup) h.userData.cup.visible = h.visible; });
-  guingMusic(dt, near); updateFires(dt);
+  guingMusic(dt, near); updateFires(dt); updateFair(dt);
   if (on && near < 48 && G.mode === "play") { GUING.clinkT -= dt; if (GUING.clinkT <= 0) { GUING.clinkT = rand(0.35, 2.2); clink(0.055 * (1 - near / 48) + 0.004); } }
 }
 // cloche de l'église de Saint-Constant : elle sonne les heures (on l'entend dans la campagne)
@@ -3154,7 +3266,7 @@ function buildWorld() {
   const mentor = makeHuman({ shirt: 0x1d2a44, pants: 0x1d2a44, skin: 0xc68a5e, hair: 0x111111 }); mentor.position.set(HALF + 34, 0.6, bC(5)); mentor.rotation.y = -Math.PI / 2; scene.add(mentor); if (mentor.userData.q) { mentor.position.y = 0.6; setClip(mentor, "Idle_Talking_Loop"); }
 
   buildTrafficLights(); buildTraffic(); buildPeds(); buildLife(); buildRentals(); buildRoofNeons();
-  PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeInterior(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildGuinguettes(); buildStuntPark(); buildCampfires(); buildUfo(); flushBatches(); // les décors construits après le premier regroupement (guinguettes, Stunt Park) sont regroupés à leur tour
+  PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeInterior(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildGuinguettes(); buildStuntPark(); buildCampfires(); buildFair(); buildUfo(); flushBatches(); // les décors construits après le premier regroupement (guinguettes, Stunt Park) sont regroupés à leur tour
   ownMark = makeBeacon(new THREE.Color(0xffffff)); ownMark.userData.col.scale.set(0.5, 0.35, 0.5); ownMark.userData.col.position.y = 12; ownMark.userData.marker.visible = false; ownMark.userData.spk.visible = false; ownMark.children[1].visible = false;
   const ol = label("Ta voiture", "#ffffff"); ol.scale.set(9, 2.2, 1); ol.position.y = 6; ownMark.add(ol); ownMark.visible = false; scene.add(ownMark);
   const mlab = label("Mamie", LM.mamie.color); mlab.scale.set(8, 2, 1); mlab.position.set(LM.mamie.x - 4, 4, bMax(0) - 2); scene.add(mlab);
@@ -4175,7 +4287,7 @@ const GPS_DEST = {
   gym: { name: "Salle", key: "gym" }, home: { name: "Appart", key: "home" }, depot: { name: "Dépôt", key: "depot" }, shop: { name: "Concession", key: "shop" },
   mamie: { name: "Mamie", key: "mamie" }, market: { name: "Supérette", key: "market" }, mentor: { name: "Mentor", key: "mentor" }, park: { name: "Street Workout", key: "park" },
   car: { name: "Ta voiture" }, pin: { name: "Repère", x: () => (G.pin || { x: 0 }).x, z: () => (G.pin || { z: 0 }).z, color: "#f2f0ec" }, mountain: { name: "Montagne", x: () => MROAD[MROAD.length - 1][0], z: () => MROAD[MROAD.length - 1][1], color: "#9a948a" }, village: { name: "Saint-Constant (campagne)", x: () => -150, z: () => -1100, color: "#ffd36e" }, beach: { name: "Plage", x: () => HALF + 25, z: () => 0, color: "#e3c58d" },
-  tower: { name: "Tour Constancy", x: () => TOWER.x, z: () => TOWER.z + 22, color: "#f2f0ec" }, stunt: { name: "Stunt Park · tremplins", x: () => STUNT.x, z: () => STUNT.z - 72, color: "#ff4fa3" }, hospital: { name: "Hôpital", x: () => bC(2) - 9, z: () => bC(5) + 22, color: "#ff1a35" }, marina: { name: "Marina · bateaux", x: () => HALF + 45, z: () => bC(5), color: "#34e0ff" }, airport: { name: "Aéroport · hangar", x: () => 185, z: () => AP.z0 + 30, color: "#cfd8e6" }, aerodrome: { name: "Aérodrome du Mont", x: () => (PAD.x0 + PAD.x1) / 2, z: () => PAD.z1 - 6, color: "#cfd8e6" }
+  tower: { name: "Tour Constancy", x: () => TOWER.x, z: () => TOWER.z + 22, color: "#f2f0ec" }, fair: { name: "Constancy Carnival", x: () => PIER.x0 + 8, z: () => PIER.z, color: "#ff4fa3" }, stunt: { name: "Stunt Park · tremplins", x: () => STUNT.x, z: () => STUNT.z - 72, color: "#ff4fa3" }, hospital: { name: "Hôpital", x: () => bC(2) - 9, z: () => bC(5) + 22, color: "#ff1a35" }, marina: { name: "Marina · bateaux", x: () => HALF + 45, z: () => bC(5), color: "#34e0ff" }, airport: { name: "Aéroport · hangar", x: () => 185, z: () => AP.z0 + 30, color: "#cfd8e6" }, aerodrome: { name: "Aérodrome du Mont", x: () => (PAD.x0 + PAD.x1) / 2, z: () => PAD.z1 - 6, color: "#cfd8e6" }
 };
 function gpsDestPoint(k) {
   const d = GPS_DEST[k]; if (!d) return null;
@@ -4221,8 +4333,29 @@ function gridRoute(o, t) {
 /* ============ Physique ============ */
 const keys = new Set();
 const carDef = () => (G.ride && RIDES[G.ride.kind]) ? RIDES[G.ride.kind] : (CARS.find(c => c.id === P.car) || CARS[0]);
+const GPAD = { prev: [], on: false, nav: 0 };
+function padRead(dt) {
+  const gp = navigator.getGamepads ? Array.from(navigator.getGamepads()).find(g => g && g.connected) : null; if (!gp) { GPAD.state = null; return; }
+  const dz = v => Math.abs(v) < 0.16 ? 0 : (v - Math.sign(v) * 0.16) / 0.84, b = i => gp.buttons[i] ? gp.buttons[i].value : 0, pressed = i => b(i) > 0.5 && !(GPAD.prev[i] > 0.5);
+  const lx = dz(gp.axes[0] || 0), ly = dz(gp.axes[1] || 0), rx = dz(gp.axes[2] || 0), ry = dz(gp.axes[3] || 0), r2 = b(7), l2 = b(6);
+  if (!GPAD.on && (lx || ly || rx || ry || gp.buttons.some(x => x.pressed))) { GPAD.on = true; help("<b>Manette connectée.</b> Joystick gauche : bouger · Joystick droit : regarder · R2 / L2 : accélérer / freiner · Triangle (Y) : monter ou descendre de voiture · Croix (A) : sauter · R1 : sprint et turbo · Start : menu", 7); }
+  if (G.mode === "play") {
+    GPAD.state = { fwd: !G.onFoot && (r2 > 0.05 || l2 > 0.05) ? r2 - l2 : -ly, side: lx, brake: b(1) > 0.5 };
+    if (rx || ry) { G.lookYaw = clamp((G.lookYaw || 0) - rx * 2.4 * dt, -3.14, 3.14); G.lookPitch = clamp((G.lookPitch || 0) + ry * 1.5 * dt, -1.25, 0.95); }
+    if (pressed(3)) toggleCar(); if (pressed(0) && G.onFoot) jump(); G.padTurbo = b(5) > 0.5 || b(4) > 0.5; if (pressed(9)) openMenu(); if (pressed(8)) $("viewBtn").click(); if (pressed(13) || pressed(2)) $("feedBtn").click();
+  } else {
+    GPAD.state = null; const sc = $("screen"), btns = sc ? Array.from(sc.querySelectorAll("button, [data-app], [data-m]")).filter(e => e.offsetParent) : [];
+    GPAD.nav -= dt; const dir = ly > 0.5 || b(13) > 0.5 || lx > 0.5 || b(15) > 0.5 ? 1 : ly < -0.5 || b(12) > 0.5 || lx < -0.5 || b(14) > 0.5 ? -1 : 0;
+    if (btns.length && dir && GPAD.nav <= 0) { GPAD.nav = 0.22; const i = btns.indexOf(document.activeElement); btns[(i + dir + btns.length) % btns.length].focus(); }
+    if (pressed(0) && btns.length) (btns.includes(document.activeElement) ? document.activeElement : btns[0]).click();
+    if ((pressed(1) || pressed(9)) && typeof resume === "function" && G.mode !== "guide") resume();
+  }
+  GPAD.prev = gp.buttons.map(x => x.value);
+}
+window.addEventListener("gamepadconnected", () => { GPAD.on = false; });
 function input() {
   if (window.__auto) return window.__auto(G);
+  if (GPAD.state && (GPAD.state.fwd || GPAD.state.side || GPAD.state.brake)) return GPAD.state;
   let fwd = 0, side = 0, joyBrake = false;
   if (G.joy) { fwd = -G.joy.y; side = G.joy.x; joyBrake = Math.hypot(G.joy.x, G.joy.y) < 0.2; if (Math.abs(fwd) < 0.12) fwd = 0; if (Math.abs(side) < 0.1) side = 0; }
   if (keys.size) {
@@ -6080,7 +6213,7 @@ function gate() {
 
 /* ============ Boucle ============ */
 let last = performance.now();
-window.__W = () => ({ traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
+window.__W = () => ({ FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
 window.__X = () => ({ life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
@@ -6188,6 +6321,7 @@ window.addEventListener("keydown", e => {
   if (e.code === "Escape" || e.code === "KeyP") openMenu();
 });
 window.addEventListener("keyup", e => { keys.delete(e.code); if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.code === "KeyN") G.turbo = false; });
+setInterval(() => { if (GPAD.on || (navigator.getGamepads && Array.from(navigator.getGamepads()).some(g => g))) { padRead(0.016); if (GPAD.on && G.mode === "play") { if (G.padTurbo) G.turbo = true; else if (G.padTurboWas) G.turbo = false; G.padTurboWas = G.padTurbo; } } }, 16);
 window.addEventListener("blur", () => { keys.clear(); G.joy = null; joyId = null; joyEl.classList.add("hidden"); if (G.mode === "play") saveNow(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden && G.mode === "play") { saveNow(); openMenu(); } });
 $("menuBtn").addEventListener("click", () => { if (G.mode === "play") openMenu(); });

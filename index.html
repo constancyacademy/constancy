@@ -276,7 +276,7 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
 #cash,#clock,#mainGoal .t{text-shadow:0 2px 6px rgba(0,0,0,.55)}
 </style>
 
-<canvas id="game" aria-label="Ville de Constancy en 3D"></canvas>
+<canvas id="game" aria-label="Ville de Constancy en 3D"></canvas><div id="cockpitTop" style="position:fixed;left:0;top:0;width:100%;display:none;pointer-events:none;z-index:0;background:linear-gradient(180deg,rgba(8,6,16,.72) 0%,rgba(10,8,20,.5) 60%,rgba(14,10,24,.62) 100%);box-shadow:inset 0 -3px 0 rgba(20,18,26,.95),inset 0 -5px 6px rgba(255,63,180,.35)"></div><img id="cockpitOv" alt="" src="assets/cockpit_nacre.webp" style="position:fixed;left:0;bottom:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;pointer-events:none;z-index:0;display:none;transform-origin:50% 100%">
 
 <div id="glare" aria-hidden="true"></div><div id="adapt" aria-hidden="true"></div>
 <div id="hud" class="hidden">
@@ -3837,7 +3837,9 @@ function buildWorld() {
   FAC.forEach(([col, st], k) => { const tx = windowTexture(k + 3, false, col, st); winMats.push(new THREE.MeshLambertMaterial({ color: 0xffffff, map: tx.map, emissive: 0xffffff, emissiveMap: tx.glow, emissiveIntensity: 0.05 })); });
   { const TL = new THREE.TextureLoader(), ld = (u, rep) => { const t = TL.load(u); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep); t.anisotropy = 8; return t; };
     const photo = (n, rep, tint) => new THREE.MeshLambertMaterial({ color: tint || 0xffffff, map: ld("assets/" + n + "_day.jpg", rep), emissive: 0xffffff, emissiveMap: ld("assets/" + n + "_night.jpg", rep), emissiveIntensity: 0.05 });
-    winMats[1] = photo("fac_res2", 0.55); winMats[10] = photo("fac_res2", 0.55, 0xe8d8cc); winMats[7] = photo("fac_res2", 0.55, 0xfff0d8); winMats[5] = photo("fac_res1", 0.24); }
+    winMats[1] = photo("fac_res2", 0.55); winMats[10] = photo("fac_res2", 0.55, 0xe8d8cc); winMats[7] = photo("fac_res2", 0.55, 0xfff0d8); winMats[5] = photo("fac_res1", 0.24);
+    // façades art déco Miami (ChatGPT) : crème, corail, menthe, rose · fenêtres qui s'allument la nuit
+    winMats[0] = photo("fac_art1", 0.77); winMats[9] = photo("fac_art1", 0.77, 0xfff8f0); winMats[3] = photo("fac_art1", 0.77, 0xffc9bc); winMats[6] = photo("fac_art1", 0.77, 0xcdeee0); winMats[11] = photo("fac_art1", 0.77, 0xf6d2de); }
   NFAC = FAC.length;
   // tours de verre : bleu, bronze, vert profond, argent
   const glassMats = [[0xcfe6ff, "#5f86a8", 0x99bbdd], [0xffe2b8, "#8a6a3e", 0xffd9a0], [0xbfe8d8, "#2f5d55", 0x9fd8c8], [0xe8ecf2, "#8d98a6", 0xffffff]].map(([c, gc, sp], k) => { const gtx = windowTexture(42 + k, true, null, 0, gc); return new THREE.MeshPhongMaterial({ color: c, map: gtx.map, emissive: 0xffffff, emissiveMap: gtx.glow, emissiveIntensity: 0.05, shininess: 90, specular: sp }); });
@@ -5760,7 +5762,13 @@ function updateCamera(dt, follow) {
   const fpvPlane = !!fpv && isPlane(G.ride.kind);
   if (pCockpit) pCockpit.visible = fpvPlane;
   if (cockpit) cockpit.visible = !!fpv && !fpvPlane && !(RIDES[G.ride.kind] && !RIDES[G.ride.kind].car);
-  if (carMesh) carMesh.visible = !(fpv && (cockpit.visible || fpvPlane));
+  { const ov = $("cockpitOv"), lux = !!fpv && !fpvPlane && G.ride.kind === "own" && ["nacre", "hyper", "gt"].includes(P.car);
+    if (ov) { ov.style.display = lux ? "block" : "none"; if (!lux && $("cockpitTop")) $("cockpitTop").style.display = "none"; if (lux) { const port = window.innerWidth < window.innerHeight, sh = clamp(Math.abs(G.car.v) / 60, 0, 1), t = performance.now() / 1000;
+      ov.style.width = port ? "190%" : "100%"; ov.style.left = port ? "-45%" : "0"; ov.style.objectFit = port ? "contain" : "cover";
+      const top = $("cockpitTop"); if (top) { const W2 = window.innerWidth * 1.9, H2 = window.innerHeight, ih = Math.min(W2 / 1536, H2 / 1024) * 1024, gap = port ? Math.max(0, H2 - ih) : 0; top.style.display = gap > 2 ? "block" : "none"; top.style.height = (gap + 6) + "px"; }
+      ov.style.transform = `translate(${Math.sin(t * 13) * sh * 1.2}px, ${Math.sin(t * 17) * sh * 1.5}px) rotate(${-G.car.s * 0.6}deg)`; } }
+    if (lux && cockpit) cockpit.visible = false; }
+  if (carMesh) carMesh.visible = !(fpv && (cockpit.visible || fpvPlane || ($("cockpitOv") && $("cockpitOv").style.display === "block")));
   if (fpvPlane) {
     const c = G.car, big = G.ride.kind === "airbus", fwd = big ? 15 : 1.6, up = big ? 4.4 : 1.55;
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-(c.pitch || 0), c.h, -(c.roll || 0), "YXZ"));

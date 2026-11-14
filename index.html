@@ -295,7 +295,7 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
   </div>
   <div class="sub" id="sub"></div>
   <div class="bl">
-    <div class="blrow"><button class="menu-btn ico" id="feedBtn" type="button" aria-label="Fil d'actu de la ville"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.8" width="10" height="18.4" rx="2.4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M10.5 18h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="dot hidden" id="feedDot"></span></button><button class="menu-btn ico" id="photoBtn" type="button" aria-label="Mode photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3l1.6-2.3h6.8L17 8.5h3v10H4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="none"/><circle cx="12" cy="13.3" r="3.2" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button><button class="menu-btn ico hidden" id="radioBtn" type="button" aria-label="Radio"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="8" width="17" height="11.5" rx="2.2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M7 8 16.5 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="15.5" cy="13.7" r="2.6" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M6.5 12h3M6.5 15.4h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
+    <div class="blrow"><button class="menu-btn ico" id="feedBtn" type="button" aria-label="Téléphone"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.8" width="10" height="18.4" rx="2.4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M10.5 18h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="dot hidden" id="feedDot"></span></button><button class="menu-btn ico" id="photoBtn" type="button" aria-label="Mode photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3l1.6-2.3h6.8L17 8.5h3v10H4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="none"/><circle cx="12" cy="13.3" r="3.2" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button><button class="menu-btn ico hidden" id="radioBtn" type="button" aria-label="Radio"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="8" width="17" height="11.5" rx="2.2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M7 8 16.5 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="15.5" cy="13.7" r="2.6" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M6.5 12h3M6.5 15.4h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
     <canvas id="minimap" width="300" height="300"></canvas>
     <div class="stats">
       <div class="st"><span>Muscle <b id="vMuscle"></b></span><div class="gauge"><i id="gMuscle" style="background:linear-gradient(90deg,#8d8d98,#ffffff)"></i></div></div>
@@ -4896,13 +4896,58 @@ function feedAuto() { // un post de temps en temps, selon ce qui se passe dans t
   ];
   const [w, tx] = pick(pool)(); feedPost(w, tx, { toast: r < 0.5 });
 }
+const PHONE_CSS = `<style>.phone{width:100%;max-width:340px;margin:auto;border-radius:38px;padding:14px 14px 18px;background:linear-gradient(160deg,#2a0f3a 0%,#4a1460 38%,#ff4fa3 120%);border:2px solid rgba(255,255,255,.14);box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 0 0 6px #0b0b10;position:relative}
+.phone .sb{display:flex;justify-content:space-between;font:600 12px Inter,sans-serif;color:#fff;padding:4px 14px 10px;opacity:.9}.phone .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:92px;height:22px;border-radius:12px;background:#0b0b10}
+.phone .wall{text-align:center;color:#fff;margin:8px 0 18px}.phone .wall .clk{font:300 54px Inter,sans-serif;letter-spacing:-1px}.phone .wall .dt{font:500 13px Inter,sans-serif;opacity:.85}
+.phone .apps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 10px;padding:0 6px}.phone .app{background:none;border:0;color:#fff;font:600 11.5px Inter,sans-serif;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;position:relative}
+.phone .ic{width:58px;height:58px;border-radius:16px;display:grid;place-items:center;font-size:27px;box-shadow:0 6px 16px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.35)}.phone .badge{position:absolute;top:-4px;right:12px;min-width:18px;height:18px;border-radius:9px;background:#ff2d55;font:700 11px/18px Inter,sans-serif;padding:0 5px}
+.phone .home{display:block;margin:18px auto 0;width:120px;height:5px;border-radius:3px;background:rgba(255,255,255,.7);border:0;cursor:pointer}.phone .scr{background:rgba(10,8,16,.86);border-radius:22px;padding:14px;color:#fff;max-height:58vh;overflow-y:auto;text-align:left}
+.phone .scr h3{font:800 18px Inter,sans-serif;margin:0 0 10px}.phone .ml{display:flex;gap:10px;padding:10px;border-radius:12px;background:rgba(255,255,255,.06);margin-bottom:8px;cursor:pointer}.phone .ml.unr{border-left:3px solid #ff4fa3}
+.phone .ml b{font-size:13px}.phone .ml p{margin:2px 0 0;font-size:12px;opacity:.75}.phone .car{display:flex;gap:10px;align-items:center;padding:8px;border-radius:12px;background:rgba(255,255,255,.06);margin-bottom:8px}.phone .car img{width:84px;height:54px;object-fit:contain}
+.phone .bar{height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:5px}.phone .bar i{display:block;height:100%;background:linear-gradient(90deg,#ff9f1a,#ff4fa3)}.phone .pbtn{display:block;width:100%;margin-top:10px;padding:11px;border-radius:12px;border:0;background:#ff4fa3;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer}</style>`;
+function phoneMails() {
+  const L = [
+    { id: "w", from: "Constancy", sub: "Bienvenue à Constancy City", body: "Ici, personne ne te juge sur ton point de départ. On regarde une seule chose : est-ce que tu reviens demain. Fais ta mission du jour, même petite. C'est comme ça que tout commence." },
+    { id: "m", from: "Mamie Rosa", sub: "Passe me voir, mon grand", body: "Je t'ai gardé une part de gâteau. Et n'oublie pas : un pas après l'autre, mais tous les jours. Bisous, Mamie." },
+    { id: "c", from: "Coach Karim", sub: "Ta séance t'attend", body: "La salle est ouverte. Pas besoin d'une séance parfaite : une séance faite vaut mieux que dix séances rêvées. On se voit là-bas." },
+    { id: "s", from: "Concession Constancy", sub: "Ta prochaine voiture est en vitrine", body: "Les modèles tournent sur leurs plateaux dans notre showroom vitré. Ouvre l'appli Concession pour voir combien il te manque, et viens la chercher quand tu es prêt." }];
+  if (P && P.email) L.unshift({ id: "e", from: "Constancy", sub: "Ta sauvegarde est créée ✓", body: "Merci ! Tu fais partie des premiers joueurs : tu recevras les nouvelles versions en avant-première. Continue comme ça, ta régularité compte au classement." });
+  return L;
+}
+function openPhone() {
+  setMode("menu"); const d = $("feedDot"); if (d) d.classList.add("hidden"); if (!G.feed || !G.feed.length) feedAuto();
+  P.mailRead = P.mailRead || {}; const unread = phoneMails().filter(m => !P.mailRead[m.id]).length, h = hourNow(), hh = String(Math.floor(h)).padStart(2, "0"), mm = String(Math.floor((h % 1) * 60)).padStart(2, "0");
+  const apps = [["ville", "🏙️", "Ville", "linear-gradient(135deg,#3d8bff,#9b5cff)", 0], ["mail", "✉️", "Messages", "linear-gradient(135deg,#34e0ff,#3d8bff)", unread], ["shop", "🚗", "Concession", "linear-gradient(135deg,#ff9f1a,#ff4f6a)", 0],
+    ["photo", "📸", "Photo", "linear-gradient(135deg,#2b2b33,#55555f)", 0], ["board", "🏆", "Classement", "linear-gradient(135deg,#f6c945,#ff9f1a)", 0], ["share", "🎁", "Inviter", "linear-gradient(135deg,#ff4fa3,#9b5cff)", 0]];
+  show(PHONE_CSS + `<div class="phone"><div class="notch"></div><div class="sb"><span>${hh}:${mm}</span><span>5G ▮▮▮ 🔋</span></div>
+    <div class="wall"><div class="clk">${hh}:${mm}</div><div class="dt">Jour ${P.day} · Constancy City</div></div>
+    <div class="apps">${apps.map(([k, ic, n, bg, b]) => `<button class="app" data-app="${k}" type="button"><span class="ic" style="background:${bg}">${ic}</span>${n}${b ? `<span class="badge">${b}</span>` : ""}</button>`).join("")}</div>
+    <button class="home" id="phHome" data-focus type="button" aria-label="Retour au jeu"></button></div>`);
+  screen.querySelectorAll("[data-app]").forEach(b => b.addEventListener("click", () => { sfx.ui && sfx.ui(); const k = b.dataset.app;
+    if (k === "ville") openFeed(); else if (k === "mail") phoneMail(); else if (k === "shop") phoneShop(); else if (k === "photo") { resume(); openPhoto(); } else if (k === "board") openBoard(); else if (k === "share") shareGame(); }));
+  on("phHome", resume);
+}
+function phoneFrame(title, inner) { return PHONE_CSS + `<div class="phone"><div class="notch"></div><div class="sb"><span>${title}</span><span>🔋</span></div><div class="scr">${inner}</div><button class="home" id="phHome" data-focus type="button" aria-label="Accueil du téléphone"></button></div>`; }
+function phoneMail(open) {
+  const L = phoneMails(); P.mailRead = P.mailRead || {};
+  if (open) { const m = L.find(x => x.id === open); P.mailRead[open] = 1; show(phoneFrame("Messages", `<h3>${m.sub}</h3><p style="font-size:12px;opacity:.7;margin:0 0 10px">De : ${m.from}</p><p style="font-size:14px;line-height:1.5">${m.body}</p><button class="pbtn" id="mBack" type="button">Retour aux messages</button>`)); on("mBack", () => phoneMail()); on("phHome", openPhone); return; }
+  show(phoneFrame("Messages", `<h3>Messages</h3>` + L.map(m => `<div class="ml${P.mailRead[m.id] ? "" : " unr"}" data-m="${m.id}"><div><b>${m.from}</b><p>${m.sub}</p></div></div>`).join("")));
+  screen.querySelectorAll("[data-m]").forEach(e => e.addEventListener("click", () => phoneMail(e.dataset.m))); on("phHome", openPhone);
+}
+function phoneShop() {
+  const nxt = CARS.find(c => !P.cars.includes(c.id));
+  show(phoneFrame("Concession", `<h3>Concession · $${fmt(P.cash)}</h3>` + CARS.map(c => { const own = P.cars.includes(c.id), k = own ? 1 : clamp(P.cash / Math.max(1, c.price), 0, 1);
+    return `<div class="car"><img src="${snapshot("car-" + c.id, () => makeCar(c), 220, 140, 0.75)}" alt=""><div style="flex:1"><b style="font-size:13px">${c.name}</b><div style="font-size:12px;opacity:.75">${own ? (P.car === c.id ? "Ta voiture" : "Au garage") : "$" + fmt(c.price) + (k >= 1 ? " · tu peux l'acheter" : " · il te manque $" + fmt(c.price - P.cash))}</div><div class="bar"><i style="width:${Math.round(k * 100)}%"></i></div></div></div>`; }).join("")
+    + `<p style="font-size:12px;opacity:.7">On achète sur place : les modèles t'attendent dans le showroom vitré.</p><button class="pbtn" id="goShop" type="button">📍 GPS vers la Concession</button>`));
+  on("goShop", () => { G.gpsDest = "shop"; resume(); help("GPS réglé sur la <b>Concession</b>. Suis le trait sur la carte."); }); on("phHome", openPhone);
+}
 function openFeed() {
   setMode("menu"); const d = $("feedDot"); if (d) d.classList.add("hidden"); if (!G.feed || !G.feed.length) feedAuto();
   const av = w => `<div class="av" style="background:${FOLK[w][2]}">${FOLK[w][0][0]}</div>`;
   show(`<div class="panel"><div class="kicker">Fil d'actu · Constancy City</div><h2>Ce que dit la ville</h2>
     <div class="feed">${G.feed.map(q => `<div class="post${q.me ? " me" : ""}">${av(q.who)}<div><div class="who">${FOLK[q.who][0]} <span>@${FOLK[q.who][1]}</span></div><div class="txt">${q.text}</div><div class="meta2">${q.t} · ♥ ${q.likes}</div></div></div>`).join("")}</div>
-    <button class="btn" id="back" data-focus type="button">Retour au jeu</button></div>`);
-  on("back", resume);
+    <button class="btn" id="back" data-focus type="button">Retour au téléphone</button></div>`);
+  on("back", openPhone);
 }
 // ---------- mode photo : cadre ton perso ou ta voiture, prends la photo, partage-la (signée Constancy)
 const PHOTO = { on: false, yaw: 0, pitch: 0.22, dist: 7, pts: new Map(), pinch: 0 };
@@ -5733,7 +5778,8 @@ const GUIDE = [
   { el: "mainGoal", k: "Regarder autour", t: "Glisse ton doigt <b>en haut de l'écran</b> pour regarder à gauche, à droite, en haut ou en bas, sans bouger ton perso. Relâche : La caméra revient derrière toi.", pc: "Ordinateur : clic droit maintenu et glisse la souris." },
   { el: "viewBtn", k: "Vue immersive", t: "Clique <b>ici</b> pour passer en vue à la première personne : à pied, au volant, en bateau ou en avion.", pc: "Raccourci : touche V." },
   { el: "exitBtn", k: "Monter, descendre", t: "<b>Sortir</b> du véhicule, entrer dans un bâtiment, prendre un bateau ou un avion : tout passe par ce bouton.", pc: "Raccourci : touche F." },
-  { el: "menuBtn", k: "Ton perso", t: "Le <b>menu</b> : ton perso, ta santé, ton objectif du jour, le son et ce guide. Le jeu se met en pause.", pc: "Raccourci : Échap." }
+  { el: "menuBtn", k: "Ton perso", t: "Le <b>menu</b> : ton perso, ta santé, ton objectif du jour, le son et ce guide. Le jeu se met en pause.", pc: "Raccourci : Échap." },
+  { el: "feedBtn", k: "Ton téléphone", t: "Ton <b>téléphone</b> : tes messages, le fil de la ville, la concession, l'appareil photo, le classement et tes invitations." },
 ];
 function startGuide(force) {
   if (!P || (P.guided && !force)) return;
@@ -5965,7 +6011,7 @@ $("ufoBtn").addEventListener("click", callUfo);
 $("jokerBtn").addEventListener("click", useJoker);
 $("quitBtn").addEventListener("click", () => { if (G.mode === "play" && G.mission) confirmQuit(); });
 $("mult").addEventListener("click", () => { if (G.mode === "play") help(`<b>Constancy ${multTxt(P.mult)}</b> : ton multiplicateur de gains. Chaque journée réussie d'affilée le fait monter de 0,25 (jusqu'à x2). Une journée ratée le remet à x1.`, 8); });
-$("feedBtn").addEventListener("click", () => { if (G.mode === "play") openFeed(); });
+$("feedBtn").addEventListener("click", () => { if (G.mode === "play") openPhone(); });
 $("radioBtn").addEventListener("click", radioNext);
 $("photoBtn").addEventListener("click", openPhoto); $("pExit").addEventListener("click", closePhoto); $("pShot").addEventListener("click", snapPhoto);
 $("pTime").addEventListener("click", () => { P.dayT = (P.dayT + DAY_SECONDS / 8) % DAY_SECONDS; });

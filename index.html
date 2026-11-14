@@ -4421,6 +4421,31 @@ function makeDoor(mesh) {
   return hinge;
 }
 function updateDoorClose(dt) { const D = G.doorClose; if (!D) return; D.t += dt; D.door.rotation.y = clamp(1.15 - Math.max(0, D.t) * 3.5, 0, 1.15); if (D.t > 0.45) { if (D.door.parent) D.door.parent.remove(D.door); G.doorClose = null; } }
+/* vue à la première personne à pied : on voit ses avant-bras et ses mains qui balancent quand on court */
+let FPH = null;
+function fpHands(on, dt) {
+  if (!on) { if (FPH) FPH.visible = false; return; }
+  if (!FPH) {
+    const lk = (P && P.look) || { gender: "homme", outfit: 0, skin: 1 }, of = OUTFITS[lk.gender][lk.outfit] || OUTFITS.homme[0];
+    const skinM = new THREE.MeshLambertMaterial({ color: SKIN_TONES[lk.skin] || SKIN_TONES[1] }), slM = new THREE.MeshLambertMaterial({ color: of.shirt != null ? of.shirt : 0x222222 });
+    FPH = new THREE.Group(); FPH.userData.ph = 0; FPH.userData.k = 0;
+    FPH.userData.hands = [-1, 1].map(sd => {
+      const g = new THREE.Group(), arm = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.05, 0.36, 12), skinM); arm.rotation.x = Math.PI / 2; arm.position.z = -0.18; g.add(arm);
+      const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.066, 0.068, 0.12, 12), slM); cuff.rotation.x = Math.PI / 2; cuff.position.z = 0.0; g.add(cuff);
+      const fist = new THREE.Mesh(new THREE.SphereGeometry(0.056, 14, 12), skinM); fist.scale.set(1.05, 0.92, 0.95); fist.position.set(0, 0.0, -0.395); g.add(fist);
+      for (let q = 0; q < 4; q++) { const kn = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 6), skinM); kn.position.set((q - 1.5) * 0.024, 0.024, -0.428); g.add(kn); }
+      const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.018, 0.06, 8), skinM); thumb.rotation.set(0.2, 0, sd * 1.2); thumb.position.set(-sd * 0.03, -0.022, -0.43); g.add(thumb);
+      g.userData.sd = sd; FPH.add(g); return g; });
+    FPH.traverse(o => { if (o.isMesh) { o.renderOrder = 9; o.frustumCulled = false; } });
+    FPH.scale.setScalar(1.9); camera.add(FPH); if (!camera.parent) scene.add(camera);
+  }
+  FPH.visible = true; const v = Math.abs(G.me.v || 0), U = FPH.userData, tk = clamp(v / 7, 0, 1.25);
+  U.k += (tk - U.k) * Math.min(1, dt * 6); U.ph += dt * (5 + v * 0.9); const k = U.k;
+  U.hands.forEach(g => { const sd = g.userData.sd, s = Math.sin(U.ph + (sd > 0 ? 0 : Math.PI)), idle = Math.sin(performance.now() / 900 + sd) * 0.006;
+    const xw = 0.07 + 0.14 * Math.min(1, camera.aspect || 1);
+    g.position.set(sd * (xw - 0.02 * s * k), -0.44 + Math.min(k, 1) * 0.1 + 0.04 * s * k + idle, -0.12 - 0.08 * s * k);
+    g.rotation.set(0.18 + 0.3 * s * k + Math.min(k, 1) * 0.1, sd * (0.12 + 0.08 * k) * (camera.aspect < 1 ? 1 : -1), sd * 0.15); });
+}
 /* vue à la première personne : volant dans les mains */
 let cockpit = null, pCockpit = null;
 function buildPlaneCockpit() {
@@ -4589,6 +4614,7 @@ function updateCamera(dt, follow) {
   // vue à la première personne à pied : yeux du perso, le corps est masqué
   const fpvFoot = follow && G.fpv && G.onFoot && !G.entering && meMesh;
   if (meMesh && G.onFoot) meMesh.visible = !fpvFoot;
+  fpHands(!!fpvFoot && !G.swimming && !G.photoMode, dt);
   if (fpvFoot) {
     const me = G.me, fx = Math.sin(me.h), fz = Math.cos(me.h), base = G.inside ? 0 : G.swimming ? -0.6 : GH(me.x, me.z) + 0.25;
     camera.position.set(me.x + fx * 0.15, base + (G.swimming ? 0.9 : 2.05) + (G.sprint ? Math.sin(performance.now() / 70) * 0.05 : 0), me.z + fz * 0.15);

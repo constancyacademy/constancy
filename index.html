@@ -851,6 +851,9 @@ function buildShowroom(cx, cz, F, h) {
     addGeo(metal, new THREE.CylinderGeometry(3.3, 3.4, 0.3, 32), x, 0.6, z); addGeo(ringM, new THREE.TorusGeometry(3.32, 0.06, 6, 40), x, 0.76, z, 0, 1, 1, 1, Math.PI / 2);
     const car = makeCar(c); car.position.set(x, 0.75, z); car.rotation.y = k * 1.3; scene.add(car); SHOWROOM.push(car);
     const tag = label(`${c.name} · $${fmt(c.price)}`, COL.finance); tag.position.set(x, 4.3, z); tag.scale.set(7.5, 1.9, 1); scene.add(tag); });
+  const b = LM.shop.b, f2 = F / 2, t = 0.25;
+  setBoxes(b[0], b[1], [[cx - f2, cz - f2 - t, cx + f2, cz - f2 + t], [cx - f2 - t, cz - f2, cx - f2 + t, cz + f2], [cx + f2 - t, cz - f2, cx + f2 + t, cz + f2],
+    [cx - f2, cz + f2 - t, cx - 3.2, cz + f2 + t], [cx + 3.2, cz + f2 - t, cx + f2, cz + f2 + t], ...spots.map(([ox, oz]) => [cx + ox, cz + oz, 3.5])]);
 }
 function makeBeacon(color) {
   const grp = new THREE.Group(), add = THREE.AdditiveBlending;
@@ -2308,11 +2311,47 @@ function buildGuinguettes() {
     });
   });
 }
+const FIRES = { list: [], people: [], tx: null };
+function buildCampfires() {
+  const C = HQ.clips && HQ.clips.m, logM = new THREE.MeshLambertMaterial({ color: 0x4a3020 }), stoneM = new THREE.MeshLambertMaterial({ color: 0x77706a });
+  FIRES.tx = FIRES.tx || glowTexture();
+  [{ x: HALF + 24, z: bC(3) + 12 }, { x: -HALF - 24, z: bC(7) + 4 }, { x: -HALF - 24, z: bC(12) - 6 }].filter(S => !onAirport(S.x, S.z) && !onHighway(S.x, S.z) && !inRiverBand(S.z)).forEach((S, si) => {
+    const y0 = Math.max(0, beachH(S.x, S.z)) + 0.02;
+    for (let k = 0; k < 9; k++) { const a = k / 9 * 6.28; addGeo(stoneM, new THREE.DodecahedronGeometry(0.22, 0), S.x + Math.cos(a) * 0.95, y0 + 0.1, S.z + Math.sin(a) * 0.95, a); }
+    [0, 1.1, 2.2].forEach(a => addGeo(logM, new THREE.CylinderGeometry(0.09, 0.11, 1.3, 6), S.x, y0 + 0.18, S.z, a, 1, 1, 1, Math.PI / 2 - 0.25));
+    const g = new THREE.Group(); g.position.set(S.x, y0 + 0.2, S.z); scene.add(g);
+    const flames = [[0xff5a1a, 0.55, 1.5], [0xffa020, 0.4, 1.15], [0xfff0a0, 0.22, 0.7]].map(([c, r, h]) => { const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 8, 1, true), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); m.position.y = h / 2; m.userData.h = h; g.add(m); return m; });
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(9, 9), new THREE.MeshBasicMaterial({ color: 0xff8a3a, map: FIRES.tx, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); glow.rotation.x = -Math.PI / 2; glow.position.y = -0.15; g.add(glow);
+    const n = 14, sp = new Float32Array(n * 3), sd = []; for (let k = 0; k < n; k++) sd.push([Math.random() * 3, 0.8 + Math.random() * 1.2, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6]);
+    const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(sp, 3)); const sparks = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffb050, size: 0.18, map: FIRES.tx, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); sparks.frustumCulled = false; g.add(sparks);
+    FIRES.list.push({ g, flames, glow, sparks, sd, x: S.x, z: S.z });
+    if (!C) return;
+    for (let q = 0; q < 4; q++) { const a = q / 4 * 6.28 + si, h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x111114, 0x34e0ff, 0xf6c945, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: (q + si) % 2 === 0, shorts: q % 2 === 0, sleeve: 0.25 }));
+      h.position.set(S.x + Math.cos(a) * 2.3, y0, S.z + Math.sin(a) * 2.3); h.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a)); scene.add(h); setClip(h, q % 2 ? "Idle_Talking_Loop" : "Idle_Loop", 0.8 + Math.random() * 0.3); h.userData.manual = true; if (q % 2 === 0) giveDrink(h); h.visible = false; FIRES.people.push(h); }
+  });
+}
+function updateFires(dt) {
+  if (!FIRES.list.length) return; const me = target(), nk = nightK, T = performance.now() / 1000, on = nk > 0.4;
+  FIRES.list.forEach((F, i) => { const d = Math.hypot(me.x - F.x, me.z - F.z), vis = on && d < 600; F.g.visible = vis; if (!vis) return;
+    F.flames.forEach((m, k) => { const fl = 0.8 + 0.25 * Math.sin(T * (9 + k * 3) + i) + 0.12 * Math.sin(T * 23 + k); m.scale.set(1 + 0.1 * Math.sin(T * 7 + k), fl, 1 + 0.1 * Math.cos(T * 6 + k)); m.rotation.y = T * (0.8 + k * 0.3); });
+    F.glow.material.opacity = (0.5 + 0.12 * Math.sin(T * 11 + i)) * nk;
+    const P = F.sparks.geometry.attributes.position; F.sd.forEach(([o, v, dx, dz], k) => { const u = ((T * v * 0.5 + o) % 3); P.setXYZ(k, dx * u, 0.6 + u * 1.6, dz * u); }); P.needsUpdate = true; });
+  FIRES.people.forEach(h => { h.visible = on && Math.hypot(me.x - h.position.x, me.z - h.position.z) < 170; if (h.userData.cup) h.userData.cup.visible = h.visible; });
+}
+const MUS = { t: 0, k: 0 };
+function guingMusic(dt, near) {
+  const c = SND.ctx; if (!c || !SND.on || near > 70 || nightK < 0.45 || G.mode !== "play") return; MUS.t -= dt; if (MUS.t > 0) return; MUS.t = 0.36;
+  const seq = [0, 7, 12, 7, 3, 10, 15, 10, 5, 12, 17, 12, 7, 14, 19, 14], root = [57, 53, 48, 55][Math.floor(MUS.k / 16) % 4], n = root + seq[MUS.k % 16]; MUS.k++;
+  const vol = 0.05 * Math.pow(1 - near / 70, 1.5), t = c.currentTime, o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter(); o.type = "triangle"; o.frequency.value = 440 * Math.pow(2, (n - 69) / 12); f.type = "lowpass"; f.frequency.value = 1400;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.34); o.connect(f); f.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.4);
+  if (MUS.k % 4 === 1) { const b = c.createOscillator(), bg = c.createGain(); b.type = "sine"; b.frequency.value = 440 * Math.pow(2, (root - 24 - 69) / 12); bg.gain.setValueAtTime(vol * 1.4, t); bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.7); b.connect(bg); bg.connect(c.destination); b.start(t); b.stop(t + 0.75); }
+}
 function updateGuing(dt) {
   if (!GUING.list.length) return; const me = target(), nk = nightK; let near = 1e9;
   GUING.list.forEach(g => { const d = Math.hypot(me.x - g.x, me.z - g.z); near = Math.min(near, d); g.glow.material.opacity = nk * 0.42; g.pts.forEach(p => { p.visible = d < 1100; }); });
   const on = nk > 0.45;
   GUING.people.forEach(h => { h.visible = (on || h.userData.day) && Math.hypot(me.x - h.position.x, me.z - h.position.z) < 170; if (h.userData.cup) h.userData.cup.visible = h.visible; });
+  guingMusic(dt, near); updateFires(dt);
   if (on && near < 48 && G.mode === "play") { GUING.clinkT -= dt; if (GUING.clinkT <= 0) { GUING.clinkT = rand(0.35, 2.2); clink(0.055 * (1 - near / 48) + 0.004); } }
 }
 // cloche de l'église de Saint-Constant : elle sonne les heures (on l'entend dans la campagne)
@@ -3028,10 +3067,12 @@ function buildWorld() {
       const l = LM[key], h = key === "home" ? 16 : key === "gym" ? 12 : 10;
       if (key === "shop") buildShowroom(cx, cz, F, h); else addGeo(deco[key === "home" ? 2 : 3], boxUV(F, h, F), cx, h / 2 + 0.25, cz);
       addGeo(roofM, new THREE.BoxGeometry(F + 0.6, 0.6, F + 0.6), cx, h + 0.55, cz);
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(F + 0.3, 1.6, F + 0.3), new THREE.MeshBasicMaterial({ color: new THREE.Color(l.color) })); stripe.position.set(cx, h - 1.4, cz); scene.add(stripe);
+      const stM = new THREE.MeshBasicMaterial({ color: new THREE.Color(l.color) }), stripe = key === "shop" ? new THREE.Group() : new THREE.Mesh(new THREE.BoxGeometry(F + 0.3, 1.6, F + 0.3), stM); stripe.position.set(cx, h - 1.4, cz); scene.add(stripe);
+      if (key === "shop") [[0, 1], [0, -1], [1, 0], [-1, 0]].forEach(([nx, nz]) => { const b = new THREE.Mesh(new THREE.BoxGeometry(nx ? 0.3 : F + 0.3, 1.6, nx ? F + 0.3 : 0.3), stM); b.position.set(nx * F / 2, 0, nz * F / 2); stripe.add(b); });
       // porte / entrée côté sud
       const door = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 0.3), key === "gym" || key === "shop" ? new THREE.MeshPhongMaterial({ color: 0x9fc9e8, shininess: 100, transparent: true, opacity: .8 }) : new THREE.MeshBasicMaterial({ color: new THREE.Color(l.color) })); door.position.set(cx, 2.25, bMax(j) - WALK + 0.1); scene.add(door);
       if (key === "gym") { gymDoor = door; gymDoor.userData.x0 = cx; }
+      if (key === "shop") door.visible = false;
       const s = label(l.name, l.color); s.position.set(cx, h + 5, cz + 8); scene.add(s);
       continue;
     }
@@ -3113,7 +3154,7 @@ function buildWorld() {
   const mentor = makeHuman({ shirt: 0x1d2a44, pants: 0x1d2a44, skin: 0xc68a5e, hair: 0x111111 }); mentor.position.set(HALF + 34, 0.6, bC(5)); mentor.rotation.y = -Math.PI / 2; scene.add(mentor); if (mentor.userData.q) { mentor.position.y = 0.6; setClip(mentor, "Idle_Talking_Loop"); }
 
   buildTrafficLights(); buildTraffic(); buildPeds(); buildLife(); buildRentals(); buildRoofNeons();
-  PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeInterior(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildGuinguettes(); buildStuntPark(); buildUfo(); flushBatches(); // les décors construits après le premier regroupement (guinguettes, Stunt Park) sont regroupés à leur tour
+  PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeInterior(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildGuinguettes(); buildStuntPark(); buildCampfires(); buildUfo(); flushBatches(); // les décors construits après le premier regroupement (guinguettes, Stunt Park) sont regroupés à leur tour
   ownMark = makeBeacon(new THREE.Color(0xffffff)); ownMark.userData.col.scale.set(0.5, 0.35, 0.5); ownMark.userData.col.position.y = 12; ownMark.userData.marker.visible = false; ownMark.userData.spk.visible = false; ownMark.children[1].visible = false;
   const ol = label("Ta voiture", "#ffffff"); ol.scale.set(9, 2.2, 1); ol.position.y = 6; ownMark.add(ol); ownMark.visible = false; scene.add(ownMark);
   const mlab = label("Mamie", LM.mamie.color); mlab.scale.set(8, 2, 1); mlab.position.set(LM.mamie.x - 4, 4, bMax(0) - 2); scene.add(mlab);
@@ -6010,7 +6051,7 @@ function gate() {
 
 /* ============ Boucle ============ */
 let last = performance.now();
-window.__W = () => ({ life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
+window.__W = () => ({ PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
 window.__X = () => ({ life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);

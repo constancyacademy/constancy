@@ -4082,7 +4082,7 @@ function buildRoofNeons() { // bandeaux néon au niveau des vitrines (rose, cyan
 }
 const PALM_SPOTS = [], POSTS = { M: null };
 // végétation générique : modèle 3D (Tripo) près de la caméra + photo détourée en croix au loin
-const VEG = { flam: { spots: [], glb: "assets/tree_flamboyant.glb", img: "assets/tree_flamboyant.webp", aspect: 1, N: 28, R: 80, far: null, near: null, nearIdx: [], t: 0 } };
+const VEG = { flam: { spots: [], glb: "assets/veg_flamboyant.json", img: "assets/tree_flamboyant.webp", aspect: 1, N: 28, R: 80, far: null, near: null, nearIdx: [], t: 0 } };
 function buildVeg(V) {
   if (!V.spots.length) return; const n = V.spots.length, d = new THREE.Object3D(), tex = new THREE.TextureLoader().load(V.img); tex.anisotropy = 4;
   const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.42, side: THREE.DoubleSide }), a = new THREE.PlaneGeometry(V.aspect, 1); a.translate(0, 0.5, 0); const b = a.clone(); b.rotateY(Math.PI / 2); const c = a.clone(); c.rotateY(Math.PI / 4);
@@ -4107,7 +4107,7 @@ function buildPalms() {
   PALMX.far = new THREE.InstancedMesh(THREE.BufferGeometryUtils.mergeBufferGeometries([a, b, c]), mat, n); PALMX.far.frustumCulled = false;
   PALM_SPOTS.forEach(([x, z, y0, h, ry], k) => { const s = (h || 11) / 1.5 * 1.05; d.position.set(x, y0 - 0.2, z); d.rotation.set(0, ry || 0, 0); d.scale.set(s, s, s); d.updateMatrix(); PALMX.far.setMatrixAt(k, d.matrix); });
   scene.add(PALMX.far);
-  new THREE.GLTFLoader().load("assets/palm_coco.glb", gl => { let src = null; gl.scene.traverse(o => { if (o.isMesh && !src) src = o; }); if (!src) return;
+  new THREE.GLTFLoader().load("assets/veg_palm.json", gl => { let src = null; gl.scene.traverse(o => { if (o.isMesh && !src) src = o; }); if (!src) return;
     const g = src.geometry.clone(); g.computeBoundingBox(); const bb = g.boundingBox, H = bb.max.y - bb.min.y; g.translate(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2); g.scale(1 / H, 1 / H, 1 / H);
     const m = new THREE.MeshLambertMaterial({ map: src.material.map, side: THREE.DoubleSide });
     PALMX.near = new THREE.InstancedMesh(g, m, PALMX.N); PALMX.near.count = 0; PALMX.near.frustumCulled = false; scene.add(PALMX.near); PALMX.t = 1; }, undefined, () => {});

@@ -748,7 +748,7 @@ function updateSound() {
 /* ============ 3D ============ */
 const cv = $("game");
 let lampPoolMat = null;
-let renderer = null, scene, camera, hemi, sun, skyMat, sky, sea, carMesh, meMesh, lampGlowMat, bulbMat, winMats = [], NFAC = 6, beacons = {}, destBeacon;
+const SKYP = {}; let renderer = null, scene, camera, hemi, sun, skyMat, sky, sea, carMesh, meMesh, lampGlowMat, bulbMat, winMats = [], NFAC = 6, beacons = {}, destBeacon;
 const traffic = [], peds = []; window.__dbg = () => renderer.info.render; window.__snd = () => ({ ctx: SND.ctx && SND.ctx.state, on: SND.on, bufs: SND.buf ? Object.keys(SND.buf) : null, raw: Object.keys(SNDRAW), engKey: SND.engKey, engGain: SND.engSG ? SND.engSG.gain.value : null, synth: SND.engGain ? SND.engGain.gain.value : null, loops: Object.keys(SND.loops || {}), ride: G.ride, car: P && P.car, mode: G.mode }); window.__gym = () => { G.onFoot = true; carMesh.visible = true; meMesh.visible = true; enterGym(); }; window.__pos = () => ({ inside: G.inside, me: [G.me.x, G.me.z], cam: camera.position.toArray().map(v => +v.toFixed(1)), foot: G.onFoot, mode: G.mode }); window.__tp = (x, z, h, hr) => { G.snapCam = true; G.car.x = x; G.car.z = z; G.car.h = h; G.car.v = 0; if (hr != null) P.dayT = (hr - 8) * DAY_SECONDS / 24; };
 try { renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, powerPreference: "high-performance" }); } catch (e) { renderer = null; }
 
@@ -3785,12 +3785,13 @@ function buildWorld() {
 
   // ciel
   skyMat = new THREE.ShaderMaterial({
-    uniforms: { top: { value: new THREE.Color() }, bottom: { value: new THREE.Color() }, sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunCol: { value: new THREE.Color(1, .8, .6) }, clouds: { value: (t => { t.needsUpdate = true; return t; })(IMG.sky ? new THREE.Texture(IMG.sky) : new THREE.DataTexture(new Uint8Array([150, 150, 160, 255]), 1, 1)) }, cloudK: { value: IMG.sky ? 0.5 : 0 } },
+    uniforms: { top: { value: new THREE.Color() }, bottom: { value: new THREE.Color() }, sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunCol: { value: new THREE.Color(1, .8, .6) }, clouds: { value: (t => { t.needsUpdate = true; return t; })(IMG.sky ? new THREE.Texture(IMG.sky) : new THREE.DataTexture(new Uint8Array([150, 150, 160, 255]), 1, 1)) }, cloudK: { value: IMG.sky ? 0.5 : 0 }, pSet: { value: null }, pNight: { value: null }, pDay: { value: null }, wSet: { value: 0 }, wNight: { value: 0 }, wDay: { value: 0 } },
     vertexShader: "varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.0); vW = w.xyz - cameraPosition; gl_Position = projectionMatrix*viewMatrix*w; }",
-    fragmentShader: "uniform vec3 top; uniform vec3 bottom; uniform vec3 sunDir; uniform vec3 sunCol; uniform sampler2D clouds; uniform float cloudK; varying vec3 vW; void main(){ vec3 d = normalize(vW); float h = clamp(d.y*1.8+0.08,0.0,1.0); vec3 c = mix(bottom, top, pow(h,0.7)); vec2 uv = vec2(atan(d.z, d.x) / 6.2832 + 0.5, 1.0 - acos(clamp(d.y, -1.0, 1.0)) / 3.1416); float l = dot(texture2D(clouds, uv).rgb, vec3(0.3, 0.59, 0.11)) / 0.6; c *= mix(1.0, clamp(l, 0.55, 1.55), cloudK * smoothstep(0.06, 0.3, d.y)); float s = max(dot(d, normalize(sunDir)), 0.0); c += sunCol*(pow(s,600.0)*1.6 + pow(s,12.0)*0.35); gl_FragColor = vec4(c,1.0); }",
+    fragmentShader: "uniform vec3 top; uniform vec3 bottom; uniform vec3 sunDir; uniform vec3 sunCol; uniform sampler2D clouds; uniform float cloudK; uniform sampler2D pSet; uniform sampler2D pNight; uniform sampler2D pDay; uniform float wSet; uniform float wNight; uniform float wDay; varying vec3 vW; void main(){ vec3 d = normalize(vW); float h = clamp(d.y*1.8+0.08,0.0,1.0); vec3 c = mix(bottom, top, pow(h,0.7)); vec2 uv = vec2(atan(d.z, d.x) / 6.2832 + 0.5, 1.0 - acos(clamp(d.y, -1.0, 1.0)) / 3.1416); float l = dot(texture2D(clouds, uv).rgb, vec3(0.3, 0.59, 0.11)) / 0.6; c *= mix(1.0, clamp(l, 0.55, 1.55), cloudK * smoothstep(0.06, 0.3, d.y)); float wp = wSet + wNight + wDay; if (wp > 0.001) { vec2 pu = vec2(atan(d.z, d.x) / 6.2832 + 0.5, 0.04 + 0.95 * pow(clamp(d.y, 0.0, 1.0), 0.72)); vec3 pc = vec3(0.0); if (wSet > 0.001) pc += texture2D(pSet, pu).rgb * wSet; if (wNight > 0.001) pc += texture2D(pNight, pu).rgb * wNight; if (wDay > 0.001) pc += texture2D(pDay, pu).rgb * wDay; pc /= wp; c = mix(c, pc, min(1.0, wp) * 0.92 * smoothstep(-0.03, 0.1, d.y)); } float s = max(dot(d, normalize(sunDir)), 0.0); c += sunCol*(pow(s,600.0)*1.6 + pow(s,12.0)*0.35) * (1.0 - wSet * 0.6); gl_FragColor = vec4(c,1.0); }",
     side: THREE.BackSide, depthWrite: false
   });
   sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 32, 16), skyMat); sky.renderOrder = -1; scene.add(sky);
+  { const TLs = new THREE.TextureLoader(), ldp = (u, k) => TLs.load(u, t => { t.wrapS = THREE.RepeatWrapping; skyMat.uniforms[k].value = t; SKYP[k] = true; }, undefined, () => {}); ldp("assets/sky_sunset.jpg", "pSet"); ldp("assets/sky_night.jpg", "pNight"); ldp("assets/sky_day.jpg", "pDay"); }
 
   // mer, sable, sol
   // mer : eau turquoise près du sable, bleu profond au large, vagues, reflets du soleil, écume qui va et vient
@@ -4859,6 +4860,8 @@ function hourNow() { return (8 + (P && P.nightStart && P.day === 1 ? 13 : 0) + (
 let nightK = 0;
 function applySky(h) {
   lerpKeys(SKY_TOP, h, skyMat.uniforms.top.value); lerpKeys(SKY_BOT, h, skyMat.uniforms.bottom.value);
+  { const g = (x, c, w) => Math.exp(-(((x - c) / w) ** 2)), U = skyMat.uniforms; let ws = Math.max(g(h, 6.4, 1.0), g(h, 19.0, 1.15)), wn = h >= 20.2 || h < 5.2 ? 1 : h > 19 ? (h - 19) / 1.2 : h < 6 ? (6 - h) / 0.8 : 0; wn = clamp(wn, 0, 1) * (1 - ws * 0.7);
+    let wd = clamp(1 - ws - wn, 0, 1); U.wSet.value = SKYP.pSet ? ws : 0; U.wNight.value = SKYP.pNight ? wn : 0; U.wDay.value = SKYP.pDay ? wd * 0.85 : 0; }
   scene.fog.color.copy(skyMat.uniforms.bottom.value);
   const ang = (h - 6) / 12 * Math.PI, sd = skyMat.uniforms.sunDir.value; sd.set(-Math.cos(ang), Math.max(-0.2, Math.sin(ang)), 0.35).normalize();
   const day = clamp(Math.sin(ang), 0, 1);

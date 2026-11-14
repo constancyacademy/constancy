@@ -1,5 +1,5 @@
 // cache hors ligne : le jeu reste dispo sans réseau ; la page est toujours prise sur le réseau d'abord (mises à jour immédiates)
-const V = 'constancy-202611140600';
+const V = 'constancy-202611140949';
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(V).then(c => c.addAll(['./', './index.html', './manifest.webmanifest']))); });
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', e => {

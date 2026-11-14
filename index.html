@@ -1955,7 +1955,8 @@ function districtMats() {
   DM.white = new THREE.MeshBasicMaterial({ color: 0xdedbd2 });
   DM.glassShop = new THREE.MeshPhongMaterial({ color: 0x1d2c3c, shininess: 90, specular: 0x88aacc, emissive: 0x0b1420 });
   { const TL = new THREE.TextureLoader(), ld = u => { const t = TL.load(u); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t; }; // rez-de-chaussée : vraies vitrines de boutiques (ChatGPT), éclairées le soir
-    DM.shopRow = new THREE.MeshPhongMaterial({ color: 0xffffff, map: ld("assets/shopfront1.jpg"), emissive: 0xffffff, emissiveMap: ld("assets/shopfront1_night.jpg"), emissiveIntensity: 0.1, shininess: 60, specular: 0x334455 }); }
+    DM.shopRow = new THREE.MeshPhongMaterial({ color: 0xffffff, map: ld("assets/shopfront1.jpg"), emissive: 0xffffff, emissiveMap: ld("assets/shopfront1_night.jpg"), emissiveIntensity: 0.1, shininess: 60, specular: 0x334455 });
+    DM.shopRow2 = new THREE.MeshPhongMaterial({ color: 0xffffff, map: ld("assets/shopfront2.jpg"), emissive: 0xffffff, emissiveMap: ld("assets/shopfront2_night.jpg"), emissiveIntensity: 0.1, shininess: 70, specular: 0x554433 }); }
   DM.concrete = new THREE.MeshLambertMaterial({ color: 0xa7a39b });
   DM.crane = new THREE.MeshLambertMaterial({ color: 0xf2b21b });
   DM.fence = new THREE.MeshLambertMaterial({ color: 0x5b6270 });
@@ -1994,7 +1995,7 @@ function zoneOf(i, j, dist, r) {
   return "mixed";
 }
 const SHOPS = [["CAFÉ", "#f4e9d8", "#2a1d16"], ["PHARMACIE", "#ffffff", "#0f6b3a"], ["BOULANGERIE", "#3a2414", "#f3d9a4"], ["BARBER SHOP", "#ffffff", "#141414"], ["TACOS 24/7", "#ffd23f", "#b3122e"], ["LAVERIE", "#0f2c4f", "#e9f3ff"], ["FLEURISTE", "#ffffff", "#c2457a"], ["PIZZERIA", "#ffffff", "#1d5e2f"]];
-const INT_M = {}; let SHOP_M = null, SHOP_G = null, VIT_M = null, VIT_G = null, SIGN_BOX = null, SIGN_BOXG = null;
+const INT_M = {}, CAFES = []; let CAFE_M = null, SHOP_M = null, SHOP_G = null, VIT_M = null, VIT_G = null, SIGN_BOX = null, SIGN_BOXG = null;
 const SHOP_W = [3, 2.2, 3, 1.6, 1.8, 0.35, 1.8, 2], SHOP_WT = SHOP_W.reduce((a, b) => a + b, 0);
 function shopPick(u) { let t = u * SHOP_WT; for (let k = 0; k < SHOP_W.length; k++) { t -= SHOP_W[k]; if (t < 0) return k; } return 0; }
 function vitrines() {
@@ -2051,6 +2052,8 @@ function addShopSign(x, z, w, d, base, faces, r) {
   shopSigns(); vitrines(); if (!SIGN_BOX) { SIGN_BOX = new THREE.MeshLambertMaterial({ color: 0x1c1c20 }); SIGN_BOXG = new THREE.BoxGeometry(6.25, 0.95, 0.28); }
   faces.forEach(([nx, nz]) => { if (r() < .35) return; const k = shopPick(r()), len = Math.min(nx ? d : w, 8) * 0.8, sc = len / 6;
     const px = x + nx * ((nx ? w : 0) / 2 + 0.07), pz = z + nz * ((nz ? d : 0) / 2 + 0.07), ry = nx ? (nx > 0 ? Math.PI / 2 : -Math.PI / 2) : (nz > 0 ? 0 : Math.PI);
+    if (SHOPS[k][0] === "CAFÉ") { if (!CAFE_M) { const L = new THREE.TextureLoader(), t = L.load("assets/cafe_constance.jpg"), e = L.load("assets/cafe_constance_night.jpg"); t.anisotropy = 8; CAFE_M = new THREE.MeshLambertMaterial({ map: t, emissive: 0xffffff, emissiveMap: e, emissiveIntensity: 0.1 }); }
+      addGeo(CAFE_M, new THREE.PlaneGeometry(6, 3.53), px + nx * 0.02, base + 1.62, pz + nz * 0.02, ry, sc, sc, 1); CAFES.push([px, pz, ry]); return; }
     addGeo(SIGN_BOX, SIGN_BOXG, px + nx * 0.14, base + 4.25, pz + nz * 0.14, ry, sc, sc * 1.1, 1);
     addGeo(SHOP_M, SHOP_G[k], px + nx * 0.29, base + 4.25, pz + nz * 0.29, ry, sc, sc * 1.1, 1);
     const tt = SHOPS[k][0], im = tt === "PIZZERIA" ? intMat("int_pizzeria.jpg") : tt === "BOULANGERIE" ? intMat("int_boulangerie.jpg") : null;
@@ -2224,7 +2227,7 @@ function buildDistrictBlock(i, j, cx, cz, F, dist, r, M) {
       addGeo(M.roofM, new THREE.BoxGeometry(w * 0.5, 0.5, d * 0.5), x0, top + base + 0.25, z0); boxes[boxes.length - 1][4] = top + base + (tall ? 20 : 2);
       if (tall && r() < .6) { addGeo(M_POLE, new THREE.CylinderGeometry(.15, .35, 18, 6), x0, top + base + 9, z0); AVL.push([x0, top + base + 18.3, z0]); }
       else if (tall) { AVL.push([x0 - w * 0.3, top + base + 0.8, z0 - d * 0.3]); AVL.push([x0 + w * 0.3, top + base + 0.8, z0 + d * 0.3]); }
-      addGeo(DM.shopRow, shopBox(w + 0.1, 5, d + 0.1), x0, base + 2.5, z0);
+      addGeo(r() < .55 && DM.shopRow2 ? DM.shopRow2 : DM.shopRow, shopBox(w + 0.1, 5, d + 0.1), x0, base + 2.5, z0);
       // couronne lumineuse et marquise du hall
       if (!round) { addGeo(DM.crown, new THREE.BoxGeometry(w * 0.74, 0.35, d * 0.74), x0, base + top - 0.4, z0); addGeo(DM.trimDark, new THREE.BoxGeometry(w * 0.6, 0.35, 3), x0, base + 5.2, z0 + d / 2 + 1.4); addGeo(DM.trimDark, new THREE.BoxGeometry(w * 0.6, 0.35, 3), x0, base + 5.2, z0 - d / 2 - 1.4); }
     } else {
@@ -4921,7 +4924,7 @@ function applySky(h) {
   nightK = 1 - clamp(day * 1.8, 0, 1);
   // Vice City : la nuit, la lumière d'ambiance vire au rose-violet (néons), sans délaver l'image
   hemi.color.setRGB(1, 0.97 - nightK * 0.36, 0.95 - nightK * 0.03); hemi.groundColor.setRGB(0.23 + nightK * 0.2, 0.16, 0.23 + nightK * 0.22);
-  winMats.forEach(m => m.emissiveIntensity = 0.06 + nightK * (FXR.on ? 0.62 : 0.9)); if (DM.shopRow) DM.shopRow.emissiveIntensity = 0.12 + nightK * (FXR.on ? 0.55 : 0.8); for (const k in INT_M) INT_M[k].uniforms.nk.value = nightK;
+  winMats.forEach(m => m.emissiveIntensity = 0.06 + nightK * (FXR.on ? 0.62 : 0.9)); if (DM.shopRow) DM.shopRow.emissiveIntensity = 0.12 + nightK * (FXR.on ? 0.55 : 0.8); if (DM.shopRow2) DM.shopRow2.emissiveIntensity = 0.12 + nightK * (FXR.on ? 0.55 : 0.8); if (CAFE_M) CAFE_M.emissiveIntensity = 0.1 + nightK * 0.85; for (const k in INT_M) INT_M[k].uniforms.nk.value = nightK;
   if (DM.hw) { DM.hw[0].emissiveIntensity = nightK * 1.3; DM.hw[1].emissiveIntensity = nightK * 1.1; }
   if (FX.towerLed) FX.towerLed.emissiveIntensity = 0.05 + nightK * 2.1;
   NEON.mats.forEach(m => m.color.copy(m.userData.base).multiplyScalar(0.06 + nightK * 1.0));
@@ -7302,7 +7305,7 @@ function envCar(mesh) { mesh.traverse(o => { if (!o.isMesh || !o.material) retur
 function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "number" && nightK > 0.5) ? ENVR.night : ENVR.day; if (ENVR.cur === want) return; ENVR.cur = want;
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
 window.__W = () => ({ spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ CAFES, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

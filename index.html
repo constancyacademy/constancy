@@ -3500,18 +3500,23 @@ function updatePigeons(dt) {
 }
 const BIRDS = { n: 74, inst: null, list: [], m: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(0, 0, 0, "YXZ"), v: new THREE.Vector3(), s: new THREE.Vector3() };
 function updateBirds(dt) {
-  if (!BIRDS.inst) { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0.25, -0.9, 0.35, -0.1, 0, 0, -0.1, 0, 0, 0.25, 0.9, 0.35, -0.1, 0, 0, -0.1], 3)); g.computeVertexNormals();
-    BIRDS.inst = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({ color: 0x1c1d22, side: THREE.DoubleSide }), BIRDS.n); BIRDS.inst.frustumCulled = false; scene.add(BIRDS.inst);
+  if (!BIRDS.inst) { const g = new THREE.BufferGeometry(), V = [0, 0.02, 0.4, -0.07, 0, 0, 0, -0.03, -0.42, 0, 0.02, 0.4, 0, -0.03, -0.42, 0.07, 0, 0, 0, 0, -0.3, -0.16, 0, -0.52, 0.16, 0, -0.52];
+    [-1, 1].forEach(sd => V.push(sd * 0.05, 0, 0.12, sd * 0.5, 0.02, 0.06, sd * 0.5, 0.02, -0.2, sd * 0.05, 0, 0.12, sd * 0.5, 0.02, -0.2, sd * 0.05, 0, -0.16, sd * 0.5, 0.02, 0.06, sd * 1.02, 0, -0.2, sd * 0.5, 0.02, -0.2));
+    g.setAttribute("position", new THREE.Float32BufferAttribute(V, 3));
+    const ph = new Float32Array(BIRDS.n * 2); for (let k = 0; k < BIRDS.n; k++) { ph[k * 2] = Math.random() * 6.28; ph[k * 2 + 1] = k >= 60 ? 5.2 : 7 + Math.random() * 3; } g.setAttribute("aFl", new THREE.InstancedBufferAttribute(ph, 2));
+    const bm = new THREE.MeshBasicMaterial({ color: 0x1c1d22, side: THREE.DoubleSide }); BIRDS.u = { value: 0 };
+    bm.onBeforeCompile = sh => { sh.uniforms.uT = BIRDS.u; sh.vertexShader = "attribute vec2 aFl;\nuniform float uT;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\nfloat ax = abs(position.x); float glide = 0.55 + 0.45 * step(0.0, sin(uT * 0.35 + aFl.x));\ntransformed.y += sin(uT * aFl.y + aFl.x) * (ax * 0.42 + max(0.0, ax - 0.5) * 0.55) * glide;"); };
+    BIRDS.inst = new THREE.InstancedMesh(g, bm, BIRDS.n); BIRDS.inst.frustumCulled = false; scene.add(BIRDS.inst);
     for (let k = 0; k < BIRDS.n; k++) BIRDS.list.push({ v: k >= 60 ? k - 60 : -1, f: k % 5, ox: (Math.random() - .5) * 26, oz: (Math.random() - .5) * 26, oy: (Math.random() - .5) * 6, ph: Math.random() * 9 }); }
-  const T = performance.now() / 1000, o = target(), night = nightK > 0.6;
+  const T = performance.now() / 1000, o = target(), night = nightK > 0.6; BIRDS.u.value = T;
   BIRDS.list.forEach((b, k) => {
     if (b.v >= 0) { // vol d'oiseaux migrateurs en V qui traverse le ciel
       const pass = Math.floor(T / 200), u = (T % 200) / 200, dir = pass % 2 ? -1 : 1, z0 = -300 + ((pass * 137) % 600), lx = dir * (-1600 + u * 3200), rk = Math.ceil(b.v / 2), sd = b.v % 2 ? 1 : -1;
       BIRDS.v.set(lx - dir * rk * 3.2, night ? -100 : 115 + Math.sin(T * 0.4 + b.v) * 0.6, z0 + sd * rk * 3.4); BIRDS.e.set(0, dir > 0 ? Math.PI / 2 : -Math.PI / 2, 0); BIRDS.q.setFromEuler(BIRDS.e);
-      BIRDS.s.set(2.6, 2.6 * (0.45 + 0.55 * Math.abs(Math.sin(T * 3.2 + b.v * 0.5))), 2.6); BIRDS.m.compose(BIRDS.v, BIRDS.q, BIRDS.s); BIRDS.inst.setMatrixAt(k, BIRDS.m); return; }
+      BIRDS.s.set(2.6, 2.6, 2.6); BIRDS.m.compose(BIRDS.v, BIRDS.q, BIRDS.s); BIRDS.inst.setMatrixAt(k, BIRDS.m); return; }
     const a = T * 0.045 * (b.f % 2 ? 1 : -1) + b.f * 2.1, R = 140 + b.f * 55, cx = o.x * 0.6 + Math.cos(a) * R, cz = o.z * 0.6 + Math.sin(a) * R, y = 42 + b.f * 11 + b.oy + Math.sin(T * 0.3 + b.ph) * 3;
     const wob = Math.sin(T * 0.7 + b.ph) * 3, h = Math.atan2(-Math.sin(a) * (b.f % 2 ? 1 : -1), Math.cos(a) * (b.f % 2 ? 1 : -1)), flap = 0.35 + 0.65 * Math.abs(Math.sin(T * 7 + b.ph));
-    BIRDS.v.set(cx + b.ox + wob, night ? -100 : y, cz + b.oz); BIRDS.e.set(0, h, 0); BIRDS.q.setFromEuler(BIRDS.e); BIRDS.s.set(1.6, 1.6 * flap, 1.6); BIRDS.m.compose(BIRDS.v, BIRDS.q, BIRDS.s); BIRDS.inst.setMatrixAt(k, BIRDS.m);
+    BIRDS.v.set(cx + b.ox + wob, night ? -100 : y, cz + b.oz); BIRDS.e.set(0, h, 0); BIRDS.q.setFromEuler(BIRDS.e); BIRDS.s.set(1.6, 1.6, 1.6); BIRDS.m.compose(BIRDS.v, BIRDS.q, BIRDS.s); BIRDS.inst.setMatrixAt(k, BIRDS.m);
   });
   BIRDS.inst.instanceMatrix.needsUpdate = true;
 }

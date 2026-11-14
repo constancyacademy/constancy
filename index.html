@@ -3247,6 +3247,17 @@ function pedPos(p) {
 }
 /* --- vie autour : avions, bateaux, joggeurs, plage, street workout --- */
 const planes = [], boats = [], joggers = [];
+// bruit des avions qui passent : grondement des avions de ligne, ronronnement de l'hélice des petits, selon la distance
+const FLY = { s: [], g: [] };
+function updateFlyby() {
+  const c = SND.ctx; if (!c || !SND.on || !SND.buf) return;
+  planes.forEach((p, i) => {
+    const small = p.y < 100;
+    if (!FLY.s[i]) { const key = small ? "moto" : "wind"; if (!SND.buf[key]) return; const s = c.createBufferSource(); s.buffer = SND.buf[key]; s.loop = true; s.playbackRate.value = small ? 0.33 : 0.5;
+      const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = small ? 900 : 520; const g = c.createGain(); g.gain.value = 0; s.connect(f); f.connect(g); g.connect(c.destination); s.start(0, Math.random() * s.buffer.duration); FLY.s[i] = s; FLY.g[i] = g; }
+    const d = p.mesh.position.distanceTo(camera.position), v = G.inside || G.mode !== "play" ? 0 : Math.pow(clamp(1 - d / 560, 0, 1), 2) * (small ? 0.2 : 0.32);
+    FLY.g[i].gain.setTargetAtTime(v, c.currentTime, 0.4); });
+}
 const life = { heli: null, gulls: [], sharks: [], dolphins: [], dogs: [], beach: [], raptors: [] };
 // un point de la plage à l'angle a, à « inset » mètres du bord de l'eau (suit la vraie forme du rivage)
 function beachPoint(a, inset) { const c = Math.cos(a), sn = Math.sin(a), k = Math.pow(Math.pow(Math.abs(c), 6) + Math.pow(Math.abs(sn), 6), 1 / 6), r = (shoreEdge(c, sn) - inset) / k; return [c * r, sn * r]; }
@@ -3355,7 +3366,8 @@ function buildLife() {
   if (MODELS.heli) { const h = new THREE.Group(), hm = modelInstance("heli"); h.add(hm); addRotors(hm, "heli"); scene.add(h); life.heli = { mesh: h, a: 0, r: 170, y: 75 }; }
   if (MODELS.gull) for (let k = 0; k < 14; k++) { const gg = new THREE.Group(); gg.add(modelInstance("gull")); scene.add(gg); life.gulls.push({ mesh: gg, a: rand(0, 6.28), r: SHORE + rand(-30, 60), y: rand(10, 30), s: rand(0.04, 0.07) * (k % 2 ? 1 : -1), ph: rand(0, 6) }); }
   if (MODELS.shark) for (let k = 0; k < 5; k++) { const sh = new THREE.Group(); const m = modelInstance("shark"); sh.add(m); m.position.y = -MODELS.shark.size.y * 0.72; scene.add(sh); life.sharks.push({ mesh: sh, a: rand(0, 6.28), r: SHORE + rand(140, 260), s: rand(0.012, 0.02) * (k % 2 ? 1 : -1) }); }
-  if (MODELS.dolphin) for (let k = 0; k < 4; k++) { const dl = new THREE.Group(); dl.add(modelInstance("dolphin")); scene.add(dl); life.dolphins.push({ mesh: dl, a: rand(0, 6.28), r: SHORE + rand(70, 140), s: rand(0.025, 0.035), ph: rand(0, 6) }); }
+  if (MODELS.dolphin) for (let pod = 0; pod < 3; pod++) { const a0 = rand(0, 6.28), r0 = SHORE + rand(70, 150), s0 = rand(0.024, 0.032) * (pod % 2 ? -1 : 1);
+    for (let k = 0; k < 3; k++) { const dl = new THREE.Group(); dl.add(modelInstance("dolphin")); scene.add(dl); life.dolphins.push({ mesh: dl, a: a0 + k * 0.012, r: r0 + (k - 1) * 4, s: s0, pod, wait: rand(1, 6) + k * 0.35, jt: -1, dur: rand(1.05, 1.3), hgt: rand(2.2, 3.6) }); } }
   if (MODELS.dog) peds.slice(0, 18).forEach(p => { const dg = new THREE.Group(); dg.add(modelInstance("dog")); scene.add(dg); life.dogs.push({ mesh: dg, ped: p }); });
   if (MODELS.cat) for (let k = 0; k < 10; k++) { const i = Math.floor(rand(0, NB)), j = (k * 5) % NB === RIVER_J ? 2 : (k * 5) % NB; const c = modelInstance("cat"); c.position.set(bMin(i) + rand(1, 3), 0.25, bC(j) + rand(-12, 12)); c.rotation.y = rand(0, 6.28); scene.add(c); }
   if (MODELS.flamingo) for (let k = 0; k < 10; k++) { const g = new THREE.Group(), f = modelInstance("flamingo"); g.add(f); scene.add(g); const [x, z, a] = beachSpot(rand(8, 16)); life.beach.push({ kind: "flam", mesh: g, x, z, a, h: rand(0, 6.28), st: "idle", t: rand(1, 6), y: 0 }); }
@@ -3375,6 +3387,16 @@ function squarePath(t, R) { // position sur un carré de « rayon » R, t dans [
   return s === 0 ? [R * f, -R, Math.PI / 2] : s === 1 ? [R, R * f, 0] : s === 2 ? [-R * f, R, -Math.PI / 2] : [-R, -R * f, Math.PI];
 }
 // bateaux et animaux marins : demi-tour avant de toucher la campagne
+// gerbes d'eau (dauphins) : petites gouttes blanches projetées qui retombent
+const SPL = { list: [], i: 0 };
+function splash(x, z, k = 1) {
+  if (Math.hypot(x - camera.position.x, z - camera.position.z) > 420) return;
+  if (SPL.list.length < 6) { const n = 26, g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 3), 3)); const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 0.7, map: (SPL.tx = SPL.tx || glowTexture()), transparent: true, depthWrite: false })); pts.frustumCulled = false; scene.add(pts); SPL.list.push({ pts, v: new Float32Array(n * 3), t: 9 }); }
+  const S = SPL.list[SPL.i++ % SPL.list.length], P = S.pts.geometry.attributes.position;
+  for (let i = 0; i < P.count; i++) { const a = Math.random() * 6.28, r = Math.random() * 0.8; P.setXYZ(i, x + Math.cos(a) * r, 0.1, z + Math.sin(a) * r); S.v[i * 3] = Math.cos(a) * rand(0.5, 2.2) * k; S.v[i * 3 + 1] = rand(2.5, 5.5) * k; S.v[i * 3 + 2] = Math.sin(a) * rand(0.5, 2.2) * k; }
+  P.needsUpdate = true; S.t = 0; S.pts.visible = true;
+}
+function updateSplash(dt) { SPL.list.forEach(S => { if (!S.pts.visible) return; S.t += dt; const P = S.pts.geometry.attributes.position; for (let i = 0; i < P.count; i++) { S.v[i * 3 + 1] -= 9.8 * dt; P.setXYZ(i, P.getX(i) + S.v[i * 3] * dt, Math.max(-0.2, P.getY(i) + S.v[i * 3 + 1] * dt), P.getZ(i) + S.v[i * 3 + 2] * dt); } P.needsUpdate = true; S.pts.material.opacity = clamp(1 - S.t / 1.4, 0, 1); if (S.t > 1.4) S.pts.visible = false; }); }
 function seaStep(o, dt) { const na = o.a + o.s * dt, x = Math.cos(na) * o.r, z = Math.sin(na) * o.r; if (z < -470 && landH(x, z) > -1.2) { if (z < -470 && landH(Math.cos(o.a) * o.r, Math.sin(o.a) * o.r) > -1.2) o.a += 0.4; else o.s = -o.s; } else o.a = na; }
 const PIG = { n: 24, list: [], body: null, wl: null, wr: null, m: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(0, 0, 0, "YXZ"), v: new THREE.Vector3(), s: new THREE.Vector3(1, 1, 1), w: new THREE.Matrix4(), t: 0 };
 function initPigeons() {
@@ -3420,14 +3442,18 @@ function updatePigeons(dt) {
   });
   PIG.body.instanceMatrix.needsUpdate = PIG.wl.instanceMatrix.needsUpdate = PIG.wr.instanceMatrix.needsUpdate = true;
 }
-const BIRDS = { n: 36, inst: null, list: [], m: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(0, 0, 0, "YXZ"), v: new THREE.Vector3(), s: new THREE.Vector3() };
+const BIRDS = { n: 74, inst: null, list: [], m: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(0, 0, 0, "YXZ"), v: new THREE.Vector3(), s: new THREE.Vector3() };
 function updateBirds(dt) {
   if (!BIRDS.inst) { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0.25, -0.9, 0.35, -0.1, 0, 0, -0.1, 0, 0, 0.25, 0.9, 0.35, -0.1, 0, 0, -0.1], 3)); g.computeVertexNormals();
     BIRDS.inst = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({ color: 0x1c1d22, side: THREE.DoubleSide }), BIRDS.n); BIRDS.inst.frustumCulled = false; scene.add(BIRDS.inst);
-    for (let k = 0; k < BIRDS.n; k++) BIRDS.list.push({ f: k % 3, ox: (Math.random() - .5) * 26, oz: (Math.random() - .5) * 26, oy: (Math.random() - .5) * 6, ph: Math.random() * 9 }); }
+    for (let k = 0; k < BIRDS.n; k++) BIRDS.list.push({ v: k >= 60 ? k - 60 : -1, f: k % 5, ox: (Math.random() - .5) * 26, oz: (Math.random() - .5) * 26, oy: (Math.random() - .5) * 6, ph: Math.random() * 9 }); }
   const T = performance.now() / 1000, o = target(), night = nightK > 0.6;
   BIRDS.list.forEach((b, k) => {
-    const a = T * 0.045 * (b.f % 2 ? 1 : -1) + b.f * 2.1, R = 160 + b.f * 70, cx = o.x * 0.6 + Math.cos(a) * R, cz = o.z * 0.6 + Math.sin(a) * R, y = 48 + b.f * 12 + b.oy + Math.sin(T * 0.3 + b.ph) * 3;
+    if (b.v >= 0) { // vol d'oiseaux migrateurs en V qui traverse le ciel
+      const pass = Math.floor(T / 200), u = (T % 200) / 200, dir = pass % 2 ? -1 : 1, z0 = -300 + ((pass * 137) % 600), lx = dir * (-1600 + u * 3200), rk = Math.ceil(b.v / 2), sd = b.v % 2 ? 1 : -1;
+      BIRDS.v.set(lx - dir * rk * 3.2, night ? -100 : 115 + Math.sin(T * 0.4 + b.v) * 0.6, z0 + sd * rk * 3.4); BIRDS.e.set(0, dir > 0 ? Math.PI / 2 : -Math.PI / 2, 0); BIRDS.q.setFromEuler(BIRDS.e);
+      BIRDS.s.set(2.6, 2.6 * (0.45 + 0.55 * Math.abs(Math.sin(T * 3.2 + b.v * 0.5))), 2.6); BIRDS.m.compose(BIRDS.v, BIRDS.q, BIRDS.s); BIRDS.inst.setMatrixAt(k, BIRDS.m); return; }
+    const a = T * 0.045 * (b.f % 2 ? 1 : -1) + b.f * 2.1, R = 140 + b.f * 55, cx = o.x * 0.6 + Math.cos(a) * R, cz = o.z * 0.6 + Math.sin(a) * R, y = 42 + b.f * 11 + b.oy + Math.sin(T * 0.3 + b.ph) * 3;
     const wob = Math.sin(T * 0.7 + b.ph) * 3, h = Math.atan2(-Math.sin(a) * (b.f % 2 ? 1 : -1), Math.cos(a) * (b.f % 2 ? 1 : -1)), flap = 0.35 + 0.65 * Math.abs(Math.sin(T * 7 + b.ph));
     BIRDS.v.set(cx + b.ox + wob, night ? -100 : y, cz + b.oz); BIRDS.e.set(0, h, 0); BIRDS.q.setFromEuler(BIRDS.e); BIRDS.s.set(1.6, 1.6 * flap, 1.6); BIRDS.m.compose(BIRDS.v, BIRDS.q, BIRDS.s); BIRDS.inst.setMatrixAt(k, BIRDS.m);
   });
@@ -3437,6 +3463,7 @@ function updateLife(dt) {
   if (G.mode === "play") { updatePigeons(dt); updateBirds(dt); }
   updateGuing(dt); updateBell(dt);
   planes.forEach(p => { p.a += p.s * dt; p.mesh.position.set(Math.cos(p.a) * p.r, p.y, Math.sin(p.a) * p.r); p.mesh.rotation.set(0, -p.a + (p.s < 0 ? Math.PI : 0), p.s < 0 ? 0.25 : -0.25, "YXZ"); });
+  updateFlyby();
   const T = performance.now() / 1000;
   if (life.heli) { const h = life.heli; h.a += 0.09 * dt; h.mesh.position.set(Math.cos(h.a) * h.r, h.y + Math.sin(T * 0.5) * 3, Math.sin(h.a) * h.r); h.mesh.rotation.set(0, -h.a, -0.12, "YXZ"); }
   { const o = target();
@@ -3452,7 +3479,12 @@ function updateLife(dt) {
     life.raptors.forEach(r => { r.a += r.s * dt; const cx = MT.x + Math.cos(r.a) * r.r, cz = MT.z + Math.sin(r.a) * r.r; r.mesh.position.set(cx, mtnH(cx, cz) + r.y + Math.sin(T * 0.6 + r.ph) * 4, cz); r.mesh.rotation.set(0, -r.a + (r.s < 0 ? Math.PI : 0), r.s < 0 ? 0.35 : -0.35, "YXZ"); }); }
   life.gulls.forEach(gl => { gl.a += gl.s * dt; gl.mesh.position.set(Math.cos(gl.a) * gl.r, gl.y + Math.sin(T * 0.8 + gl.ph) * 2, Math.sin(gl.a) * gl.r); gl.mesh.rotation.set(0, -gl.a + (gl.s < 0 ? Math.PI : 0), gl.s < 0 ? 0.3 : -0.3, "YXZ"); });
   life.sharks.forEach(sh => { seaStep(sh, dt); sh.mesh.position.set(Math.cos(sh.a) * sh.r, -0.6, Math.sin(sh.a) * sh.r); sh.mesh.rotation.y = -sh.a + (sh.s < 0 ? Math.PI : 0); });
-  life.dolphins.forEach(d => { seaStep(d, dt); const j = Math.sin(T * 1.6 + d.ph); d.mesh.position.set(Math.cos(d.a) * d.r, -0.9 + Math.max(0, j) * 3.2, Math.sin(d.a) * d.r); d.mesh.rotation.set(-Math.cos(T * 1.6 + d.ph) * 0.7, -d.a, 0, "YXZ"); });
+  life.dolphins.forEach(d => { seaStep(d, dt); const x = Math.cos(d.a) * d.r, z = Math.sin(d.a) * d.r, yaw = -d.a + (d.s < 0 ? Math.PI : 0), sp = Math.abs(d.s * d.r);
+    let y = -2.6, pitch = 0;
+    if (d.jt < 0) { d.wait -= dt; y = -2.6 + Math.sin(T * 2 + d.r) * 0.25; if (d.wait <= 0) { d.jt = 0; splash(x, z, 0.8); } }
+    else { d.jt += dt; const u = d.jt / d.dur; if (u >= 1) { d.jt = -1; d.wait = rand(3, 9); splash(x, z, 1.1); } else { y = -1.0 + Math.sin(Math.PI * u) * d.hgt; pitch = -Math.atan2(Math.cos(Math.PI * u) * Math.PI * d.hgt / d.dur, sp); } }
+    d.mesh.visible = y > -2.2 || Math.hypot(x - camera.position.x, z - camera.position.z) < 60; d.mesh.position.set(x, y, z); d.mesh.rotation.set(pitch, yaw, 0, "YXZ"); });
+  updateSplash(dt);
   life.dogs.forEach(dg => { const pm = dg.ped.mesh; dg.mesh.visible = pm.visible; if (!pm.visible) return; const h = pm.rotation.y; dg.mesh.position.set(pm.position.x - Math.sin(h) * 1.6 + Math.cos(h) * 0.7, pm.position.y, pm.position.z - Math.cos(h) * 1.6 - Math.sin(h) * 0.7); dg.mesh.rotation.y = h;
     // il aboie quand tu passes tout près (en voiture qui roule, ou à pied en courant)
     const tg = target(), dd = Math.hypot(dg.mesh.position.x - tg.x, dg.mesh.position.z - tg.z), fast = G.onFoot ? (G.me.v || 0) > 3 : Math.abs(G.car.v) > 4;
@@ -5978,7 +6010,7 @@ function gate() {
 
 /* ============ Boucle ============ */
 let last = performance.now();
-window.__W = () => ({ GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
+window.__W = () => ({ life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
 window.__X = () => ({ life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);

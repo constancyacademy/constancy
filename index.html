@@ -1283,6 +1283,12 @@ function applyMuscle(h) {
 const HQ = { ready: false, m: null, f: null, hair: {}, darkM: null, darkF: null, rigged: [], clips: null };
 const HQ_SCALE = 1.27;
 const HQ_FILES = { anims: "assets/anims.json", m: "assets/hm.json", f: "assets/hf.json", buzzed: "assets/hair_buzzed.json", parted: "assets/hair_simpleparted.json", beard: "assets/hair_beard.json", long: "assets/hair_long.json" };
+function hqLateSwap() {
+  if (!G || !G.started || !meMesh || meMesh.userData.q || !P) return;
+  const lk = P.look || { gender: "homme", outfit: 0, skin: 1 }, of = OUTFITS[lk.gender][lk.outfit] || OUTFITS.homme[0];
+  const old = meMesh, nm = makeHuman(Object.assign({}, of, { player: true, skin: SKIN_TONES[lk.skin] || SKIN_TONES[1], female: lk.gender === "femme" }));
+  nm.position.copy(old.position); nm.rotation.copy(old.rotation); nm.visible = old.visible; if (old.parent) old.parent.add(nm); else scene.add(nm); old.parent && old.parent.remove(old); meMesh = nm; applyMuscle(meMesh);
+}
 function loadHumans() {
   if (!THREE.GLTFLoader || !THREE.SkeletonUtils) return Promise.resolve(false);
   const L = new THREE.GLTFLoader(), TL = new THREE.TextureLoader();
@@ -1310,7 +1316,8 @@ function loadHumans() {
       const cf = clip.clone(); cf.tracks.forEach(t => { if (/pelvis\.position$/.test(t.name)) for (let i = 0; i < t.values.length; i++) t.values[i] *= 0.9318 / 0.9491; }); HQ.clips.f[name] = cf; });
     return true;
   }).catch(() => true));
-  const timeout = new Promise(ok => setTimeout(() => ok(false), 12000));
+  all.then(ok => { if (ok && HQ.ready && typeof hqLateSwap === "function") setTimeout(hqLateSwap, 0); });
+  const timeout = new Promise(ok => setTimeout(() => ok(false), 30000));
   return Promise.race([all, timeout]).catch(() => false);
 }
 // vêtements : on colore la peau selon la position du sommet dans la pose de référence
@@ -3823,6 +3830,9 @@ function buildWorld() {
   NFAC = FAC.length;
   // tours de verre : bleu, bronze, vert profond, argent
   const glassMats = [[0xcfe6ff, "#5f86a8", 0x99bbdd], [0xffe2b8, "#8a6a3e", 0xffd9a0], [0xbfe8d8, "#2f5d55", 0x9fd8c8], [0xe8ecf2, "#8d98a6", 0xffffff]].map(([c, gc, sp], k) => { const gtx = windowTexture(42 + k, true, null, 0, gc); return new THREE.MeshPhongMaterial({ color: c, map: gtx.map, emissive: 0xffffff, emissiveMap: gtx.glow, emissiveIntensity: 0.05, shininess: 90, specular: sp }); });
+  { const TLf = new THREE.TextureLoader(), ld = (u, rep) => { const t = TLf.load(u); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep); t.anisotropy = 4; return t; };
+    [["fac_day1", "fac_night1", 0xffffff, 0xaaccee], ["fac_day2", "fac_night2", 0xf4fff8, 0xbfe8d8], ["fac_day3", "fac_night3", 0xffffff, 0xdde6f0]].forEach(([d, n, c, sp]) => {
+      const m = new THREE.MeshPhongMaterial({ color: c, map: ld("assets/" + d + ".jpg", 0.4), emissive: 0xffe6c0, emissiveMap: ld("assets/" + n + ".jpg", 0.4), emissiveIntensity: 0.05, shininess: 110, specular: sp }); glassMats.push(m); if (typeof envAdd === "function") envAdd(m, 0.28); }); }
   const glassTower = glassMats[0]; glassMats.forEach(m => winMats.push(m));
   const deco = [0xf7c6d9, 0xbfe9e3, 0xfff1c9, 0xc9d7ff, 0xffd2b0].map(c => new THREE.MeshLambertMaterial({ color: c, map: imgTex("plaster2", 1) }));
   const trim = new THREE.MeshLambertMaterial({ color: 0xffffff }), roofM = new THREE.MeshLambertMaterial({ color: 0x24232a });
@@ -4787,7 +4797,7 @@ function applySky(h) {
   nightK = 1 - clamp(day * 1.8, 0, 1);
   // Vice City : la nuit, la lumière d'ambiance vire au rose-violet (néons), sans délaver l'image
   hemi.color.setRGB(1, 0.97 - nightK * 0.36, 0.95 - nightK * 0.03); hemi.groundColor.setRGB(0.23 + nightK * 0.2, 0.16, 0.23 + nightK * 0.22);
-  winMats.forEach(m => m.emissiveIntensity = 0.06 + nightK * 0.9);
+  winMats.forEach(m => m.emissiveIntensity = 0.06 + nightK * (FXR.on ? 0.62 : 0.9));
   if (DM.hw) { DM.hw[0].emissiveIntensity = nightK * 1.3; DM.hw[1].emissiveIntensity = nightK * 1.1; }
   if (FX.towerLed) FX.towerLed.emissiveIntensity = 0.05 + nightK * 2.1;
   NEON.mats.forEach(m => m.color.copy(m.userData.base).multiplyScalar(0.06 + nightK * 1.0));
@@ -7062,7 +7072,7 @@ function fxInit() {
   } catch (e) { FXR.fail = true; FXR.comp = null; } }
 function fxSize() { if (!FXR.comp) return; const w = window.innerWidth, h = window.innerHeight; FXR.comp.setPixelRatio(renderer.getPixelRatio()); FXR.comp.setSize(w, h); FXR.bloom.setSize(Math.max(2, Math.round(w * renderer.getPixelRatio() / 2)), Math.max(2, Math.round(h * renderer.getPixelRatio() / 2))); }
 function renderFrame() {
-  if (FXR.on && FXR.comp) { const nk = typeof nightK === "number" ? nightK : 0; FXR.bloom.strength = 0.22 + nk * 0.58; FXR.bloom.threshold = 0.86 - nk * 0.2; FXR.bloom.radius = 0.35 + nk * 0.2;
+  if (FXR.on && FXR.comp) { const nk = typeof nightK === "number" ? nightK : 0; FXR.bloom.strength = 0.22 + nk * 0.52; FXR.bloom.threshold = 0.86 - nk * 0.22; FXR.bloom.radius = 0.35 + nk * 0.2;
     try { FXR.comp.render(); return; } catch (e) { FXR.on = false; FXR.fail = true; } }
   renderer.render(scene, camera); }
 // reflets : un ciel en équirectangulaire (jour / nuit) filtré en carte d'environnement, appliqué aux carrosseries et au verre

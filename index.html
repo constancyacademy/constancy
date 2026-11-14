@@ -5271,7 +5271,7 @@ function input() {
   if (window.__auto) return window.__auto(G);
   if (GPAD.state && (GPAD.state.fwd || GPAD.state.side || GPAD.state.brake)) return GPAD.state;
   let fwd = 0, side = 0, joyBrake = false;
-  if (G.joy) { fwd = -G.joy.y; side = G.joy.x; joyBrake = Math.hypot(G.joy.x, G.joy.y) < 0.2; if (Math.abs(fwd) < 0.12) fwd = 0; if (Math.abs(side) < 0.1) side = 0; else if (!G.onFoot) side = Math.sign(side) * Math.pow(Math.min(1, (Math.abs(side) - 0.1) / 0.9), 1.6); }
+  if (G.joy) { fwd = -G.joy.y; side = G.joy.x; joyBrake = Math.hypot(G.joy.x, G.joy.y) < 0.2; if (Math.abs(fwd) < 0.12) fwd = 0; if (Math.abs(side) < 0.14) side = 0; else if (!G.onFoot) side = Math.sign(side) * Math.pow(Math.min(1, (Math.abs(side) - 0.14) / 0.86), 2.0); }
   if (keys.size) {
     fwd = (keys.has("ArrowUp") || keys.has("KeyW") ? 1 : 0) - (keys.has("ArrowDown") || keys.has("KeyS") ? 1 : 0);
     side = (keys.has("ArrowRight") || keys.has("KeyD") ? 1 : 0) - (keys.has("ArrowLeft") || keys.has("KeyA") ? 1 : 0);
@@ -5578,8 +5578,8 @@ function updateCar(dt) {
   else c.v *= Math.pow(0.45, dt);
   if (Math.abs(c.v) < 0.05 && !inp.fwd) c.v = 0;
   // au clavier, le volant tourne progressivement (fini les coups de volant secs) ; à haute vitesse, la direction s'adoucit
-  const kb = keys.size > 0 && !G.joy; c.s += (inp.side - c.s) * Math.min(1, dt * (kb ? (Math.abs(inp.side) > Math.abs(c.s) ? 2.6 : 6) : 4.5));
-  const sp = Math.abs(c.v), grip = 2.3 * (1 - (kb ? 0.62 : 0.55) * Math.min(1, sp / 45)) * (WX.wet > 0.5 ? 0.9 : 1);
+  const kb = keys.size > 0 && !G.joy; c.s += (inp.side - c.s) * Math.min(1, dt * (kb ? (Math.abs(inp.side) > Math.abs(c.s) ? 2.6 : 6) : (Math.abs(inp.side) > Math.abs(c.s) ? 3.2 : 5.5)));
+  const sp = Math.abs(c.v), grip = 2.3 * (1 - (kb ? 0.62 : 0.66) * Math.min(1, sp / 45)) * (WX.wet > 0.5 ? 0.9 : 1);
   c.h -= c.s * grip * dt * clamp(c.v / 7, -1, 1);
   c.x += Math.sin(c.h) * c.v * dt; c.z += Math.cos(c.h) * c.v * dt;
   const two = RIDES[G.ride.kind] && !RIDES[G.ride.kind].car;

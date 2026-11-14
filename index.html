@@ -911,10 +911,10 @@ function buildShowroom(cx, cz, F, h) {
         const L = Math.hypot(qx - px, qz - pz), rope = new THREE.CylinderGeometry(0.03, 0.03, L, 6); rope.rotateZ(Math.PI / 2); addGeo(ropeM, rope, (px + qx) / 2, 1.28, (pz + qz) / 2, -Math.atan2(qz - pz, qx - px)); }
       SHOWROOM_C.star = { x, z, R: 4.2 }; }
     const car = makeCar(c); car.position.set(x, 0.75 + PH, z); car.rotation.y = k * 1.3; scene.add(car); SHOWROOM.push(car); setTimeout(() => envCar(car), 0);
-    const tag = label(c.id === "nacre" ? `${c.name} · Édition unique · $${fmt(c.price)}` : `${c.name} · $${fmt(c.price)}`, c.id === "nacre" ? "#ff3fb4" : COL.finance); tag.position.set(x, c.id === "nacre" ? 5.3 : 4.3, z); if (c.id === "nacre") tag.scale.set(9.5, 2.4, 1); tag.scale.set(7.5, 1.9, 1); scene.add(tag); });
+    const tag = label(c.id === "nacre" ? `${c.name} · Édition unique · $${fmt(c.price)}` : `${c.name} · $${fmt(c.price)}`, c.id === "nacre" ? "#ff3fb4" : COL.finance); tag.position.set(x, c.id === "nacre" ? 5.3 : 4.3, z); tag.scale.set(7.5, 1.9, 1); if (c.id === "nacre") tag.scale.set(9.5, 2.4, 1); car.userData.carId = c.id; scene.add(tag); });
   const b = LM.shop.b, f2 = F / 2, t = 0.25;
   setBoxes(b[0], b[1], [[cx - f2, cz - f2 - t, cx + f2, cz - f2 + t], [cx - f2 - t, cz - f2, cx - f2 + t, cz + f2], [cx + f2 - t, cz - f2, cx + f2 + t, cz + f2],
-    [cx - f2, cz + f2 - t, cx - 3.2, cz + f2 + t], [cx + 3.2, cz + f2 - t, cx + f2, cz + f2 + t], ...spots.map(([ox, oz]) => [cx + ox, cz + oz, 3.5])]);
+    [cx - f2, cz + f2 - t, cx - 3.4, cz + f2 + t], [cx + 3.4, cz + f2 - t, cx + f2, cz + f2 + t], ...spots.map(([ox, oz]) => [cx + ox, cz + oz, 3.5])]);
 }
 function makeBeacon(color) {
   const grp = new THREE.Group(), add = THREE.AdditiveBlending;
@@ -2237,7 +2237,7 @@ function initWeather() {
 function wxTarget() {
   if (window.__wx != null) return window.__wx;
   if (!P || !G.started) return 0;
-  const gh = P.day * 24 + hourNow(), seg = Math.floor(gh / 3); if (P.day === 1 && hourNow() < 13) return 0;
+  const gh = (P.nightStart ? (P.day === 1 ? 21 : 32 + (P.day - 2) * 24) : 8 + (P.day - 1) * 24) + P.dayT / (DAY_SECONDS / 24), seg = Math.floor(gh / 3); if (P.day === 1 && hourNow() < 13) return 0;
   const r = mulberry(seg * 7919 + 13)(), r2 = mulberry(seg * 104729 + 7)();
   return r < 0.27 ? 0.55 + r2 * 0.45 : 0;
 }
@@ -2462,7 +2462,14 @@ function buildShopFolks() {
     mk({ shirt: 0x34e0ff, pants: 0x2d5aa8 }, sx + 2.1, y - 0.1, sz + 0.7, face(sx + 2.1, sz + 0.7, sx, sz), "Idle_Talking_Loop", 0.85);
     // client qui tourne autour d'une supercar, et un vendeur qui circule entre les plateaux
     mk({ shirt: 0xf6c945, pants: 0x111114 }, cx + 3.6, y - 0.1, cz + 6.2, face(cx + 3.6, cz + 6.2, cx + 7.5, cz + 6.5), "Idle_Loop");
-    const w = mk(Object.assign({}, suit), cx, y - 0.1, cz - 2, 0, C.Walk_Formal_Loop ? "Walk_Formal_Loop" : "Walk_Loop", 0.85); SHOPF.walkers.push({ h: w, cx, cz: cz - 2.2, r: 2.4, a: 0, sp: 0.42 }); }
+    const w = mk(Object.assign({}, suit), cx, y - 0.1, cz - 2, 0, C.Walk_Formal_Loop ? "Walk_Formal_Loop" : "Walk_Loop", 0.85); SHOPF.walkers.push({ h: w, cx, cz: cz - 2.2, r: 2.4, a: 0, sp: 0.42 });
+    const fz = SHOWROOM_C.fz, guard = Object.assign({}, suit, { shirt: 0x0b0b0e, pants: 0x0b0b0e, hair: 0x111111 });
+    SHOWROOM_C.guards = [mk(Object.assign({}, guard), cx - 4.4, y - 0.15, fz + 1.6, 0, "Idle_Loop", 0.6), mk(Object.assign({}, guard), cx + 4.4, y - 0.15, fz + 1.6, 0, "Idle_Loop", 0.6), mk(Object.assign({}, guard), cx + 5.2, y - 0.1, fz - 2.6, Math.PI, "Idle_Loop", 0.6)];
+    // tapis d'entrée bordeaux liseré or jusqu'au comptoir, enseigne SORTIE verte au-dessus de la porte (côté intérieur)
+    addGeo(new THREE.MeshLambertMaterial({ color: 0x6d0f2e }), new THREE.BoxGeometry(3.2, 0.03, fz - cz - 3.2), cx, 0.47, (fz + cz + 3.2) / 2);
+    [-1, 1].forEach(sd => addGeo(gold, new THREE.BoxGeometry(0.08, 0.035, fz - cz - 3.2), cx + sd * 1.64, 0.475, (fz + cz + 3.2) / 2));
+    const ex = document.createElement("canvas"); ex.width = 256; ex.height = 96; const eg = ex.getContext("2d"); eg.fillStyle = "#0c6b3a"; eg.fillRect(0, 0, 256, 96); eg.fillStyle = "#e9fff1"; eg.font = "bold 54px Inter, Arial, sans-serif"; eg.textAlign = "center"; eg.textBaseline = "middle"; eg.fillText("SORTIE  ➜", 128, 50);
+    const exs = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.66), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(ex) })); exs.position.set(cx, 4.0, fz - 0.25); exs.rotation.y = Math.PI; scene.add(exs); }
   // station-service : deux pompes, un client qui fait le plein, le pompiste devant la boutique
   { const x = 128, z = -868, h = csH(x, z), red = new THREE.MeshPhongMaterial({ color: 0xd8302f, shininess: 60 }), wh = new THREE.MeshPhongMaterial({ color: 0xf2f2f0 }), scr = new THREE.MeshBasicMaterial({ color: 0x7cf3ff }), conc = new THREE.MeshLambertMaterial({ color: 0x9a9a9e });
     [-4, 4].forEach(dx => { addGeo(conc, new THREE.BoxGeometry(1.6, 0.25, 4.2), x + dx, h + 0.12, z); addGeo(red, new THREE.BoxGeometry(0.9, 1.7, 0.6), x + dx, h + 1.1, z); addGeo(wh, new THREE.BoxGeometry(0.95, 0.35, 0.65), x + dx, h + 2.1, z); addGeo(scr, new THREE.BoxGeometry(0.5, 0.3, 0.02), x + dx, h + 1.55, z + 0.31); addGeo(scr, new THREE.BoxGeometry(0.5, 0.3, 0.02), x + dx, h + 1.55, z - 0.31); addProp(x + dx, z, 1); });
@@ -4790,6 +4797,12 @@ function lerpKeys(keys, h, out) {
   for (let i = 0; i < keys.length - 1; i++) if (h >= keys[i][0] && h <= keys[i + 1][0]) { const k = (h - keys[i][0]) / (keys[i + 1][0] - keys[i][0]); _c1.set(keys[i][1]); _c2.set(keys[i + 1][1]); return out.copy(_c1).lerp(_c2, k); }
   return out.set(keys[0][1]);
 }
+function creatorTeleport(x, z) {
+  if (G.onFoot) { G.me.x = x; G.me.z = z; G.me._lx = x; G.me._lz = z; } else if (G.ride && isPlane(G.ride.kind)) { G.car.x = x; G.car.z = z; } else { G.car.x = x; G.car.z = z; G.car.v = 0; }
+  G.gpsDest = null; resume(); help("<b>Mode créateur :</b> téléporté.", 2);
+}
+function creatorSetHour(hh) { if (!P) return; const off = 8 + (P.nightStart && P.day === 1 ? 13 : 0); let d = ((hh - off) % 24 + 24) % 24; if (P.nightStart && P.day === 1 && d > 10.9) d = 0; P.dayT = d * DAY_SECONDS / 24; }
+function dayLen() { return P && P.nightStart && P.day === 1 ? DAY_SECONDS * 11 / 24 : DAY_SECONDS; } // jour 1 : de 21 h à 8 h · ensuite de 8 h à 8 h
 function hourNow() { return (8 + (P && P.nightStart && P.day === 1 ? 13 : 0) + (P ? P.dayT : 0) / (DAY_SECONDS / 24)) % 24; }
 let nightK = 0;
 function applySky(h) {
@@ -6830,6 +6843,22 @@ function startQuiz() {
   render();
 }
 /* Concession */
+function carSheet(id) {
+  const c = CARS.find(x => x.id === id); if (!c) return; setMode("shop"); const own = P.cars.includes(c.id), cur = P.car === c.id, miss = Math.max(0, c.price - P.cash);
+  show(`<div class="panel" data-out><div class="kicker">Concession Prestige${c.id === "nacre" ? " · Édition unique" : ""}</div><h2>${c.name}</h2>
+    <img src="${snapshot("car-" + c.id, () => makeCar(c), 220, 140, 0.75)}" alt="${c.name}" style="width:100%;max-height:180px;object-fit:contain;background:radial-gradient(circle at 50% 70%,#2a2a33,#0e0d12);border-radius:12px">
+    <div class="card"><div class="statline"><span>Prix</span><span style="color:var(--cash)">$${fmt(c.price)}</span><span>Vitesse max</span><span>${c.max}</span><span>Statut</span><span>+${c.statut || 0}</span><span>Ton compte</span><span>$${fmt(P.cash)}</span></div></div>
+    ${own ? `<button class="btn" id="csTake" type="button" ${cur ? "disabled" : ""}>${cur ? "Déjà au volant" : "La prendre"}</button>` : miss ? `<p class="note">Il te manque <b>$${fmt(miss)}</b>. Une mission après l'autre : c'est comme ça qu'on se l'offre.</p>` : `<button class="btn" id="csBuy" type="button">Acheter · $${fmt(c.price)}</button>`}
+    <button class="btn alt" id="close" data-focus type="button">Continuer la visite</button></div>`);
+  on("csBuy", () => { if (P.cash < c.price) return; P.cash -= c.price; G.shownCash = P.cash; P.cars.push(c.id); P.statut += c.statut; sfx.win(); P.car = c.id; setCar(c.id); saveNow(); storyCheck(); resume(); help(`<b>${c.name}</b> est à toi. Elle t'attend devant la concession.`, 5); });
+  on("csTake", () => { P.car = c.id; setCar(c.id); saveNow(); resume(); });
+  on("close", resume);
+}
+function showroomTap(e) {
+  if (G.mode !== "play" || !G.onFoot || !SHOWROOM.length || SHOWROOM_C.cx == null) return false; const o = G.me; if (Math.abs(o.x - SHOWROOM_C.cx) > SHOWROOM_C.F / 2 + 6 || Math.abs(o.z - SHOWROOM_C.cz) > SHOWROOM_C.F / 2 + 8) return false;
+  const r = cv.getBoundingClientRect(), v = new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), rc = new THREE.Raycaster(); rc.setFromCamera(v, camera);
+  const hit = rc.intersectObjects(SHOWROOM, true)[0]; if (!hit || hit.distance > 40) return false; let ob = hit.object; while (ob && !(ob.userData && ob.userData.carId)) ob = ob.parent; if (!ob) return false; carSheet(ob.userData.carId); return true;
+}
 function openShop() {
   setMode("shop");
   show(`<div class="panel"><div class="kicker">Concession · ton compte : $${fmt(P.cash)}</div><h2>Monte en gamme.</h2>
@@ -6886,7 +6915,7 @@ function openBigMap(zone) {
     if (ptr.size === 2) { const [a, b] = [...ptr.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch0 > 0) zoomAt(pinch0 / d, ((a.x + b.x) / 2 - r.left) * k, ((a.y + b.y) / 2 - r.top) * k); pinch0 = d; moved += 99; } });
   const up = e => { const had = ptr.delete(e.pointerId); if (ptr.size < 2) pinch0 = 0;
     if (had && ptr.size === 0 && moved >= 8 && performance.now() - vel.t < 80) glide = { x: vel.x * 16, z: vel.z * 16 }; // petit coup de doigt : la carte continue de glisser puis ralentit
-    if (had && ptr.size === 0 && moved < 8) { const r = c.getBoundingClientRect(), wx = VB.x0 + (e.clientX - r.left) / r.width * VB.w, wz = VB.z0 + (e.clientY - r.top) / r.height * VB.w; G.pin = { x: wx, z: wz }; G.gpsDest = "pin"; help(`GPS : <b>repère posé</b>. Suis le trait sur la mini-carte.`, 4); } };
+    if (had && ptr.size === 0 && moved < 8) { const r = c.getBoundingClientRect(), wx = VB.x0 + (e.clientX - r.left) / r.width * VB.w, wz = VB.z0 + (e.clientY - r.top) / r.height * VB.w; G.pin = { x: wx, z: wz }; if (CREATOR) { creatorTeleport(wx, wz); return; } G.gpsDest = "pin"; help(`GPS : <b>repère posé</b>. Suis le trait sur la mini-carte.`, 4); } };
   c.addEventListener("pointerup", up); c.addEventListener("pointercancel", up);
   { const q = $("gpsq"), sg = $("gpsSug"); if (q && sg) { const norm = t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); const filt = () => { const v = norm(q.value.trim()); sg.style.display = "flex"; sg.querySelectorAll(".sug").forEach(b => { b.style.display = !v || norm(b.dataset.n).includes(v) ? "" : "none"; }); };
     q.addEventListener("focus", filt); q.addEventListener("input", filt); q.addEventListener("keydown", e => { if (e.key === "Enter") { const b = [...sg.querySelectorAll(".sug")].find(x => x.style.display !== "none"); if (b) b.click(); } e.stopPropagation(); }); } }
@@ -7020,8 +7049,10 @@ function openMenu() {
     <div class="row" style="font-size:0"><button class="btn alt" id="sndT" type="button" style="font-size:16px">${SND.on ? "Son : activé" : "Son : coupé"}</button><button class="btn alt" id="guideT" type="button" style="font-size:16px">Revoir le guide</button></div>
     <button class="btn alt" id="transf" type="button">Transférer ma partie</button>
     ${matchMedia("(hover: hover) and (pointer: fine)").matches ? `<div class="card keys"><div class="kicker" style="margin-bottom:8px">Raccourcis clavier</div><div class="kgrid"><kbd>Z Q S D</kbd><span>Se déplacer (ou flèches)</span><kbd>Maj</kbd><span>Sprint, turbo</span><kbd>Espace</kbd><span>Sauter, freiner</span><kbd>F</kbd><span>Monter, descendre, entrer</span><kbd>V</kbd><span>Vue première personne</span><kbd>M</kbd><span>Carte et GPS</span><kbd>J</kbd><span>Joker</span><kbd>Échap</kbd><span>Menu, fermer un écran</span></div></div>` : ""}
+    ${CREATOR ? `<div class="row" style="font-size:0"><button class="btn alt" id="crDay" type="button" style="font-size:16px">☀︎ Plein jour</button><button class="btn alt" id="crNight" type="button" style="font-size:16px">☾ Nuit</button></div><p class="note">Mode créateur : touche la carte pour t'y téléporter.</p>` : ""}
     <button class="btn alt" id="credits" type="button">Crédits</button>
     <button class="btn alt" id="stopG" type="button">Arrêter la partie</button><button id="quitHidden" type="button" hidden></button></div>`);
+  on("crDay", () => { creatorSetHour(13); resume(); }); on("crNight", () => { creatorSetHour(22.5); resume(); });
   on("res", resume); on("stopG", stopMenu); on("shareS", shareStreak); on("shareM", () => openShare(true)); on("boardM", openBoard);
   on("sndT", () => { $("soundBtn").click(); const b = $("sndT"); if (b) b.textContent = SND.on ? "Son : activé" : "Son : coupé"; });
   on("guideT", () => { resume(); startGuide(true); });
@@ -7152,7 +7183,7 @@ function loop(now) {
     if (G.inside === true || G.inside === "gym") updateGymFolks(dt);
     if (gymDoor) { const o = target(), open = !G.inside && Math.hypot(o.x - gymDoor.userData.x0, o.z - gymDoor.position.z) < 9; gymDoor.position.x += ((gymDoor.userData.x0 + (open ? 4.8 : 0)) - gymDoor.position.x) * Math.min(1, dt * 6); }
     G.saveTimer += dt; if (G.saveTimer > 10) { G.saveTimer = 0; saveNow(); }
-    if (P.dayT >= DAY_SECONDS) endDay(false);
+    if (P.dayT >= dayLen()) endDay(false);
     if (P.day === 1 && P.dayT > 40) $("tip").classList.add("hidden");
   }
   if (G.mode !== "gym" && G.mode !== "quiz") updateWorldLife(playing || G.mode === "lift" || G.mode === "wheel" ? dt : dt * 0.5);
@@ -7162,6 +7193,12 @@ function loop(now) {
   beaconFx(destBeacon, dt); if (BEACON_TX) BEACON_TX.offset.y -= dt * 0.35;
   if (SHOWROOM.length && SHOWROOM[0].position.distanceToSquared(camera.position) < 62500) SHOWROOM.forEach((c, k) => { c.rotation.y += dt * (0.3 + k * 0.03); });
   if (SHOWROOM_C.star && G.onFoot) { const S = SHOWROOM_C.star, o = G.me, d = Math.hypot(o.x - S.x, o.z - S.z); if (d < S.R && d > 0.01) { o.x = S.x + (o.x - S.x) / d * S.R; o.z = S.z + (o.z - S.z) / d * S.R; if (!S.t || performance.now() - S.t > 20000) { S.t = performance.now(); help("<b>Constancy City · Édition unique.</b> On regarde, on ne touche pas. Elle se mérite : une mission après l'autre.", 5); } } }
+  if (SHOWROOM_C.guards && G.onFoot && P) { const o = G.me, near = Math.hypot(o.x - SHOWROOM_C.cx, o.z - SHOWROOM_C.fz) < 14;
+    SHOWROOM_C.guards.forEach((g, k) => { const want = near ? Math.atan2(o.x - g.position.x, o.z - g.position.z) : (k < 2 ? 0 : Math.PI); let dh = want - g.rotation.y; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); g.rotation.y += dh * Math.min(1, dt * 3); });
+    const atDoor = Math.abs(o.x - SHOWROOM_C.cx) < 5 && o.z > SHOWROOM_C.fz - 1 && o.z < SHOWROOM_C.fz + 5, nowT = performance.now();
+    if (atDoor && (!SHOWROOM_C.ask || nowT - SHOWROOM_C.ask > 90000)) { const first = !SHOWROOM_C.ask; SHOWROOM_C.ask = nowT;
+      const owned = (P.cars || []).length, lines = first ? ["<b>Agent de sécurité :</b> « Bonsoir. Vous êtes ? Et qu'est-ce qui vous amène à la Concession Prestige ? »", `<b>Agent de sécurité :</b> « ${owned > 1 ? "Ah, un client. Bienvenue, entrez." : "On regarde avec les yeux. Ici, chaque voiture se mérite, une mission après l'autre."} »`] : [pick(["<b>Agent :</b> « Re-bonsoir. Pas de photo près de l'Édition unique. »", "<b>Agent :</b> « Toujours à la recherche de la bonne ? Prenez votre temps. »", "<b>Agent :</b> « On reconnaît les réguliers. Bonne visite. »"])];
+      help(lines[0], 4); if (lines[1]) setTimeout(() => help(lines[1], 5), 4200); } }
   if (SHOWROOM_C.doors) { const o = G.onFoot ? G.me : null, open = o && Math.abs(o.x - SHOWROOM_C.cx) < 5 && Math.abs(o.z - SHOWROOM_C.fz) < 6.5;
     SHOWROOM_C.doors.forEach(d => { const was = d.k; d.k += ((open ? 1 : 0) - d.k) * Math.min(1, dt * 3.2); d.g.position.x = d.x0 + d.sd * d.k * 3.05; if (open && was < 0.02 && d.sd > 0 && SND.ctx) noiseHit(0.05, 1800, 0.8, 0.45); }); }
   updateSound();
@@ -7193,6 +7230,7 @@ function joyEnd(e) { if (e.pointerId === G.lookId) { G.lookId = null; G.lookO = 
 ["pointerup", "pointercancel", "lostpointercapture"].forEach(ev => cv.addEventListener(ev, joyEnd));
 $("exitBtn").addEventListener("click", toggleCar);
 cv.addEventListener("contextmenu", e => e.preventDefault());
+{ let td = null; cv.addEventListener("pointerdown", e => { td = { x: e.clientX, y: e.clientY, t: performance.now() }; }, true); cv.addEventListener("pointerup", e => { if (td && performance.now() - td.t < 320 && Math.hypot(e.clientX - td.x, e.clientY - td.y) < 9) showroomTap(e); td = null; }); }
 $("scopeBtn").addEventListener("click", toggleScope);
 $("ufoBtn").addEventListener("click", callUfo);
 ["pointerdown"].forEach(ev => $("turboBtn").addEventListener(ev, e => { e.preventDefault(); G.turbo = true; }));
@@ -7203,7 +7241,7 @@ $("mult").addEventListener("click", () => { if (G.mode === "play") help(`<b>Cons
 $("feedBtn").addEventListener("click", () => { if (G.mode === "play") openPhone(); });
 $("radioBtn").addEventListener("click", radioNext);
 $("photoBtn").addEventListener("click", openPhoto); $("pExit").addEventListener("click", closePhoto); $("pShot").addEventListener("click", snapPhoto);
-$("pTime").addEventListener("click", () => { P.dayT = (P.dayT + DAY_SECONDS / 8) % DAY_SECONDS; });
+$("pTime").addEventListener("click", () => { P.dayT = (P.dayT + DAY_SECONDS / 8) % (dayLen() - 1); });
 { const d = $("pDrag"), last = PHOTO.pts;
   d.addEventListener("pointerdown", e => { d.setPointerCapture(e.pointerId); last.set(e.pointerId, [e.clientX, e.clientY]); PHOTO.pinch = 0; });
   d.addEventListener("pointermove", e => { if (!last.has(e.pointerId)) return; const [px, py] = last.get(e.pointerId); last.set(e.pointerId, [e.clientX, e.clientY]);

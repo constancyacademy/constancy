@@ -542,7 +542,8 @@ const RIDES = {
   avion:       { name: "Avion",                  max: 48, price: 0,  rad: 5,   seat: false, car: true, plane: true },
   airbus:      { name: "Avion de ligne",         max: 60, price: 0,  rad: 10,  seat: false, car: true, plane: true, big: true },
   jetski:      { name: "Jet-ski",                max: 32, price: 0,  rad: 1.3, seat: true, boat: true },
-  bateau:      { name: "Bateau",                 max: 26, price: 0,  rad: 3,   seat: false, car: true, boat: true }
+  bateau:      { name: "Bateau",                 max: 26, price: 0,  rad: 3,   seat: false, car: true, boat: true },
+  gyro:        { name: "Gyrosphère",             max: 14, price: 250, rad: 1.7, seat: false, car: true, gyro: true }
 };
 const rentals = [];
 const isPlane = k => !!(RIDES[k] && RIDES[k].plane);
@@ -1119,6 +1120,8 @@ function wheel(r, x, y, z, parent) { const w = new THREE.Mesh(new THREE.TorusGeo
 function makeRide(kind) {
   const g = new THREE.Group();
   if (kind === "tracteur") { const t = makeTractor(Math.floor(Math.random() * 5)); g.add(t); return g; }
+  if (kind === "gyro") { const m = MODELS.gyro ? modelInstance("gyro") : new THREE.Mesh(new THREE.SphereGeometry(1.5, 24, 16), new THREE.MeshPhongMaterial({ color: 0x9fe8b0, transparent: true, opacity: 0.45, shininess: 120 })); if (!MODELS.gyro) m.position.y = 1.55; g.add(m);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.62, 0.05, 8, 48), new THREE.MeshBasicMaterial({ color: 0x5dff9a })); ring.rotation.x = Math.PI / 2; ring.position.y = 1.45; g.add(ring); g.userData.gyroRing = ring; return g; }
   if (kind === "airbus") { const m = modelInstance("plane_liner"); if (m) { g.add(m); navLights(m); } return g; }
   if (kind === "avion") { const m = modelInstance("plane_small"); if (m) { g.add(m); navLights(m); addRotors(m, "plane_small", () => carMesh === g && !G.onFoot ? 14 + Math.abs(G.car.v) * 1.2 : 0); } else { const b = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 9), RENT_M); b.position.y = 1.4; g.add(b); const w = new THREE.Mesh(new THREE.BoxGeometry(11, 0.2, 1.8), RENT_M); w.position.set(0, 1.8, 0.6); g.add(w); } return g; }
   if (kind === "jetski") {
@@ -1478,7 +1481,7 @@ const SND_FILES = { race: "assets/eng_race.mp3", moto: "assets/eng_moto.mp3", sc
 /* --- modèles 3D (voitures, bus, avions, bateaux, animaux, mobilier) --- */
 // face : direction du nez du modèle d'origine ; len : longueur voulue dans le monde (h : hauteur à la place)
 const MODEL_DEFS = {
-  car_or: { len: 4.8 }, car_minuit: { len: 4.9 }, car_city: { len: 5.4 }, car_sport: { len: 5.7 }, car_taxi: { len: 5.6 }, car_police: { len: 5.7 }, car_suv: { len: 5.9 }, car_pickup: { len: 6.3 },
+  gyro: { h: 3.1 }, car_or: { len: 4.8 }, car_minuit: { len: 4.9 }, car_city: { len: 5.4 }, car_sport: { len: 5.7 }, car_taxi: { len: 5.6 }, car_police: { len: 5.7 }, car_suv: { len: 5.9 }, car_pickup: { len: 6.3 },
   ambulance: { len: 7.4 }, bus: { len: 13 }, firetruck: { len: 10, face: "x" }, moto: { len: 2.5, face: "-z" },
   plane_liner: { len: 64 }, plane_small: { len: 12, face: "-z" }, heli: { len: 15, face: "-x" },
   yacht: { len: 24, face: "x" }, sailboat: { len: 10 }, gull: { len: 1.8, face: "x" }, shark: { len: 4.5, anim: "Swim" }, dolphin: { len: 3.2, anim: "Swim" },
@@ -3443,7 +3446,10 @@ function buildJFence(clear) {
     for (let v = 0; v < 4; v++) { const off = (v - 1.5) * 1.9, hx = vx + Math.cos(ga + Math.PI / 2) * off, hz = vz + Math.sin(ga + Math.PI / 2) * off;
       const h = makeHuman({ shirt: pick([0xeeeeea, 0x3d5a80, 0xc8b79a, 0x6b1f2a, 0x2f4f3a]), pants: pick([0x2a3a55, 0xb09e7c, 0x151515]), skin: pick(SKINS), hair: pick([0x111111, 0x5a3a20, 0xd9b26a]) });
       h.position.set(hx, vy + 0.25, hz); h.rotation.y = Math.atan2(cx - hx, cz - hz); scene.add(h); setClip(h, "Idle_Loop");
-      const ph = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.01), wireM); ph.position.set(0.18, 1.45, 0.35); h.add(ph); h.visible = false; JUNGLE.visit.push({ h, ph, snap: v % 2 === 0 }); } });
+      const ph = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.01), wireM); ph.position.set(0.18, 1.45, 0.35); h.add(ph); h.visible = false; JUNGLE.visit.push({ h, ph, snap: v % 2 === 0 }); }
+    if (ci === 0) { const tx = Math.cos(ga + Math.PI / 2), tz = Math.sin(ga + Math.PI / 2), ox = Math.cos(ga), oz = Math.sin(ga);
+      for (let q = 0; q < 4; q++) { const off = 9 + q * 4.2, x = vx + tx * off + ox * 3, z = vz + tz * off + oz * 3, hh = Math.atan2(cx - x, cz - z), mesh = makeRide("gyro"); mesh.position.set(x, GH(x, z), z); mesh.rotation.y = hh; scene.add(mesh); rentals.push({ kind: "gyro", mesh, x, z, h: hh, offroad: true }); }
+      const l = label("Gyrosphères · 250 $ la journée", "#5dff9a"), lx = vx + tx * 15 + ox * 3, lz = vz + tz * 15 + oz * 3; l.position.set(lx, GH(lx, lz) + 5.2, lz); l.scale.set(12, 3, 1); scene.add(l); JUNGLE.gyroAt = [lx, lz]; } });
 }
 function buildJungle(r) {
   // relief vert profond, sable sur les rives, piste ocre
@@ -3511,7 +3517,11 @@ function updateJungle(dt) {
     U.neck.forEach((n, i) => { n.rotation.z = Math.sin(T * 0.5 + d.ph + i * 0.35) * 0.05; }); U.neck[0].rotation.x = 1.05 + Math.sin(T * 0.23 + d.ph) * 0.1;
     U.tail.forEach((n, i) => { n.rotation.y = Math.sin(T * 1.1 + d.ph - i * 0.4) * 0.07; }); });
   (JUNGLE.visit || []).forEach((v, k) => { v.h.visible = near && v.h.position.distanceToSquared(cam) < 62500; if (v.h.visible && v.snap) v.ph.visible = Math.sin(T * 0.7 + k) > -0.2; });
-  if (near && G.mode === "play" && JUNGLE.fence) { const o = G.onFoot ? G.me : G.car; JUNGLE.fence.forEach(([fx, fz, R]) => { const dd = Math.hypot(o.x - fx, o.z - fz); if (dd < R + 1.4 && dd > R - 3 && dd > 0.01) { o.x = fx + (o.x - fx) / dd * (R + 1.4); o.z = fz + (o.z - fz) / dd * (R + 1.4); if (!G.onFoot && G.car.v) G.car.v *= 0.3; if (!JUNGLE.fenceT || T - JUNGLE.fenceT > 20) { JUNGLE.fenceT = T; help("<b>Clôture électrifiée.</b> Les dinosaures restent dans leur enclos. Regarde-les depuis les points de vue.", 4); } } }); }
+  const gyroOn = !G.onFoot && G.ride && G.ride.kind === "gyro";
+  if (gyroOn && G.mode === "play") { const c = G.car; if (c.z > -2470) { c.z = -2470; c.v *= 0.3; if (!JUNGLE.gyroT || T - JUNGLE.gyroT > 12) { JUNGLE.gyroT = T; help("La gyrosphère reste dans le parc. Descends pour continuer à pied.", 4); } }
+    JUNGLE.dinos.concat(JUNGLE.sauro).forEach(d => { const p = d.g.position, dd = Math.hypot(c.x - p.x, c.z - p.z), R = d.sx ? 0 : (d.g.userData.legs ? 7.5 : d.g.scale.x * 4.6); if (dd < R && dd > 0.01) { c.x = p.x + (c.x - p.x) / dd * R; c.z = p.z + (c.z - p.z) / dd * R; c.v *= 0.4; if (!JUNGLE.bumpT || T - JUNGLE.bumpT > 6) { JUNGLE.bumpT = T; thump && thump(0.4); jungleSound("roar", 0.35); } } });
+    if (carMesh && carMesh.userData.gyroRing) carMesh.userData.gyroRing.material.color.setHSL(0.38, 1, 0.55 + 0.15 * Math.sin(T * 4)); }
+  if (near && G.mode === "play" && JUNGLE.fence && !gyroOn) { const o = G.onFoot ? G.me : G.car; JUNGLE.fence.forEach(([fx, fz, R]) => { const dd = Math.hypot(o.x - fx, o.z - fz); if (dd < R + 1.4 && dd > R - 3 && dd > 0.01) { o.x = fx + (o.x - fx) / dd * (R + 1.4); o.z = fz + (o.z - fz) / dd * (R + 1.4); if (!G.onFoot && G.car.v) G.car.v *= 0.3; if (!JUNGLE.fenceT || T - JUNGLE.fenceT > 20) { JUNGLE.fenceT = T; help("<b>Clôture électrifiée.</b> Les dinosaures restent dans leur enclos. Regarde-les depuis les points de vue.", 4); } } }); }
   JUNGLE.dinos.forEach(d => { d.g.visible = near; if (!near) return; d.a += d.s * dt; const x = d.cx + Math.cos(d.a) * d.r, z = d.cz + Math.sin(d.a) * d.r; d.g.position.set(x, GH(x, z) - 0.15, z);
     if (G.mode === "play" && G.onFoot) { const me = G.me, dd = Math.hypot(me.x - x, me.z - z), R = d.g.scale.x * 4.2; if (dd < R && dd > 0.01) { me.x = x + (me.x - x) / dd * R; me.z = z + (me.z - z) / dd * R; } if (dd < 40 && (!JUNGLE.warnT || T - JUNGLE.warnT > 25)) { JUNGLE.warnT = T; notify("gold", "<b>Attention, danger.</b> Garde tes distances avec les géants. On regarde, on ne touche pas.", 5); } } d.g.rotation.y = -d.a + (d.s > 0 ? 0 : Math.PI); });
   if (JUNGLE.fall) { const F = JUNGLE.fall; F.tex.offset.y += dt * 1.6; F.foam.forEach((sp, k) => { const q = 0.5 + 0.5 * Math.sin(T * 3 + k * 1.7); sp.material.opacity = 0.35 + q * 0.3; sp.scale.set(6 + q * 2, 3.5 + q * 1.5, 1); });
@@ -5292,8 +5302,9 @@ function collide0Terrain(o, swim) {
     if (!swim && landH(o.x, o.z) < -0.2) { const C = jm < Math.min(dm / MT.R, cm) ? { x: JG.cx, z: JG.cz } : dm / MT.R < cm ? { x: MT.x, z: MT.z } : { x: CS.cx, z: CS.cz }, d = Math.hypot(o.x - C.x, o.z - C.z), k = (d - 2.5) / d; o.x = C.x + (o.x - C.x) * k; o.z = C.z + (o.z - C.z) * k; hit = true; }
     return hit;
   }
-  const ee = shoreE(o.x, o.z), lim = shoreEdge(o.x, o.z) + (swim ? 90 : -7);
-  if (ee > lim && !(swim && o.z < -470)) { if (slideBack(o, (x, z) => shoreE(x, z) <= shoreEdge(x, z) + (swim ? 90 : -7))) return hit; const k = lim / ee; o.x *= k; o.z *= k; hit = true; }
+  const wade = !swim && o === G.car && !G.onFoot && !(G.ride && RIDES[G.ride.kind] && RIDES[G.ride.kind].plane) ? 10 : -7;
+  const ee = shoreE(o.x, o.z), lim = shoreEdge(o.x, o.z) + (swim ? 90 : wade);
+  if (ee > lim && !(swim && o.z < -470)) { if (slideBack(o, (x, z) => shoreE(x, z) <= shoreEdge(x, z) + (swim ? 90 : wade))) return hit; const k = lim / ee; o.x *= k; o.z *= k; hit = true; }
   return hit;
 }
 /* ============ Bateau ============ */
@@ -5511,6 +5522,16 @@ function updateSkid(dt, c, inp, sp, yaw, tb, onRoad) {
   [-0.78, 0.78].forEach(o => { SKID.v.set(mx + fz * o, gy, mz - fx * o); SKID.m.compose(SKID.v, SKID.q, SKID.s); if (INS === SKID.dirt) { INS.setMatrixAt(SKID.di, SKID.m); SKID.di = (SKID.di + 1) % SKID.n; } else { INS.setMatrixAt(SKID.i, SKID.m); SKID.i = (SKID.i + 1) % SKID.n; } });
   SKID.s.set(1, 1, 1); INS.instanceMatrix.needsUpdate = true; SKID.last = [bx, bz];
 }
+// profondeur d'eau sous la voiture (0 = sable sec, 1 = l'eau atteint le moteur) : elle ralentit, éclabousse, puis cale et on la relivre sur la plage
+function carWade(c, dt, two) {
+  if (c.z < -470 || onPier(c.x, c.z) || onHighway(c.x, c.z) || !isWater(c.x, c.z)) { c.wd = 0; return 0; }
+  const ee = shoreE(c.x, c.z), ed = shoreEdge(c.x, c.z), wd = clamp((ee - ed + 4.5) / 12.5, 0, 1); c.wd = wd;
+  c.v *= Math.pow(1 - 0.8 * wd, dt * 4);
+  if (Math.abs(c.v) > 3 && (G.splT = (G.splT || 0) - dt) < 0) { G.splT = 0.9 - wd * 0.4; playBuf("splash", 0.12 + wd * 0.22); }
+  if (wd > 0.92 && !G.stall) { G.stall = 1.8; c.v = 0; if (sfx.splash) sfx.splash(); help("<b>Le moteur a pris l'eau.</b> La dépanneuse arrive…", 3); }
+  if (G.stall) { c.v = 0; G.stall -= dt; if (G.stall <= 0) { G.stall = 0; const k = (ed - 16) / ee; c.x *= k; c.z *= k; c._lx = c.x; c._lz = c.z; c.h = Math.atan2(-c.x, -c.z); c.jy = null; c.wd = 0; help("Voiture relivrée sur la plage. On sèche, on repart.", 3); return 0; } }
+  return two ? wd * 0.6 : wd;
+}
 function updateCar(dt) {
   if (!carMesh) return;
   if (G.ride && isPlane(G.ride.kind)) return updatePlane(dt);
@@ -5545,7 +5566,8 @@ function updateCar(dt) {
     if (c.jy <= gnd) { const d = Math.hypot(c.x - c.air0.x, c.z - c.air0.z); if (c.air > 0.4) landJump(d, c.air); c.jy = gnd; c.jv = 0; c.air = 0; c.air0 = null; }
   } else { const fx = Math.sin(c.h), fz = Math.cos(c.h), sl = rh > 0 ? (rampH(c.x + fx * 0.7, c.z + fz * 0.7) - rampH(c.x - fx * 0.7, c.z - fz * 0.7)) / 1.4 : 0; c.jv = rh > 0 ? sl * c.v * 1.05 : clamp((gnd - (c.pg == null ? gnd : c.pg)) / Math.max(dt, 0.004), -14, 14); c.jy = gnd; c.air = 0; c.air0 = null; if (rh > 0) pitch = -Math.atan(sl); }
   c.pg = gnd;
-  carMesh.rotation.order = "YXZ"; carMesh.position.set(c.x, (two ? 0.05 : 0) + c.jy, c.z); carMesh.rotation.y = c.h; carMesh.rotation.x = pitch;
+  const wd = carWade(c, dt, two);
+  carMesh.rotation.order = "YXZ"; carMesh.position.set(c.x, (two ? 0.05 : 0) + c.jy - wd * 0.8, c.z); carMesh.rotation.y = c.h; carMesh.rotation.x = pitch;
   if (!STUNT.hint && Math.hypot(c.x - STUNT.x, c.z - STUNT.z) < 90) { STUNT.hint = true; help(`<b>Stunt Park</b> : prends de l'élan et fais le plus gros saut !${P.bestJump ? ` Ton record : ${P.bestJump.toFixed(1)} m.` : ""}`, 6); }
   if (gh > 0.5 && !G.mtnHint) { G.mtnHint = true; help("Bienvenue sur la <b>route de la montagne</b>. Le sommet t'attend… et il paraît qu'on y croise des choses étranges.", 7); }
   carMesh.rotation.z = -c.s * clamp(sp / def.max, 0, 1) * (two ? 0.35 : 0.05);
@@ -6015,6 +6037,10 @@ function toggleCar() {
     meMesh.visible = true; resetPose(); sfx.door(); G.lastZone = null;
   } else {
     const n = nearestRide(); if (!n) { help("Approche-toi d'un véhicule."); return; }
+    if (n.kind === "gyro") { const done = P.storyI || 0;
+      if (done < 2 && !CREATOR) { help(`<b>Gyrosphère.</b> Réservée aux joueurs qui ont bouclé 2 missions (toi : ${done}/2). Reviens après ta ${done ? "prochaine" : "première"} mission : c'est la régularité qui ouvre les portes.`, 6); return; }
+      if (P.gyroDay !== P.day) { if (P.cash < 250 && !CREATOR) { help(`<b>Gyrosphère : 250 $ la journée.</b> Il te manque $${fmt(250 - P.cash)}. Une livraison de plus et elle est à toi.`, 5); return; }
+        if (!CREATOR) { P.cash -= 250; G.shownCash = P.cash; } P.gyroDay = P.day; saveNow(); sfx.win && sfx.win(); notify("gold", "<b>Bienvenue au Parc des géants.</b> Ta bulle passe les clôtures : roule doucement, ce sont eux les patrons ici.", 7); stat("gyro"); } }
     if (n.traffic) { n.r.base = 0; n.r.speed = 0; n.r.frozen = true; }
     G.entering = { t: 0, n };
   }

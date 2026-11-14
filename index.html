@@ -991,7 +991,7 @@ function makeSupercar(def) {
   const prof = (pts, w, bev) => { const s = new THREE.Shape(); pts.forEach(([z, y], i) => i ? s.lineTo(z, y) : s.moveTo(z, y)); const geo = new THREE.ExtrudeGeometry(s, { depth: w, bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 2 }); geo.translate(0, 0, -w / 2); geo.rotateY(-Math.PI / 2); return geo; };
   const SB = sculptBody(4.7, hyper); paint.shininess = 160; paint.specular = new THREE.Color(0xffffff);
   const body = new THREE.Mesh(SB.body, paint); g.add(body);
-  const cab = new THREE.Mesh(SB.cab, glass); glass.opacity = 0.82; glass.depthWrite = true; glass.name = "glass"; g.add(cab);
+  const cab = new THREE.Mesh(SB.cab, glass); glass.opacity = 0.9; glass.color.setHex(0x07090c); glass.depthWrite = true; glass.name = "glass"; g.add(cab);
   // jupes, prises d'air, diffuseur
   [-1, 1].forEach(sd => { const sk = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 2.2), dark); sk.position.set(sd * 0.98, 0.24, 0.05); g.add(sk);
     });
@@ -2318,7 +2318,7 @@ function rainLoopInit() {
 }
 
 /* ============ Feux d'artifice : la nuit, sur la plage, la marina ou au-dessus des tours ============ */
-const FW = { n: 1600, i: 0, next: 0, nightShown: -1 };
+const FW = { n: 4200, i: 0, next: 0, nightShown: -1 };
 window.__WX = WX; window.__FW = FW; window.__UFO = () => UFO;
 function initFireworks() {
   const n = FW.n, g = new THREE.BufferGeometry();
@@ -2326,7 +2326,7 @@ function initFireworks() {
   for (let i = 0; i < n; i++) FW.pos[i * 3 + 1] = -999;
   g.setAttribute("position", new THREE.BufferAttribute(FW.pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(FW.col, 3)); g.setAttribute("psize", new THREE.BufferAttribute(FW.sz, 1));
   FW.mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, vertexColors: true,
-    vertexShader: "attribute float psize; varying vec3 vC; void main(){ vC = color; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = clamp(psize * (900.0 / -mv.z), 1.5, 40.0); gl_Position = projectionMatrix * mv; }",
+    vertexShader: "attribute float psize; varying vec3 vC; void main(){ vC = color; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = clamp(psize * (900.0 / -mv.z), 1.5, 60.0); gl_Position = projectionMatrix * mv; }",
     fragmentShader: "varying vec3 vC; void main(){ float d = length(gl_PointCoord - 0.5); float a = smoothstep(0.5, 0.0, d); gl_FragColor = vec4(vC * a * 1.6, 1.0); }" });
   FW.pts = new THREE.Points(g, FW.mat); FW.pts.frustumCulled = false; scene.add(FW.pts);
   FW.spots = [{ n: "la plage", x: HALF + 75, z: -20, h: [70, 110] }, { n: "la marina", x: HALF + 70, z: bC(5), h: [60, 95] }, { n: "le centre-ville", x: 0, z: 0, h: [165, 215] }];
@@ -2343,11 +2343,11 @@ function fwLaunch(sp) {
   const d = camera.position.distanceTo(new THREE.Vector3(x, 30, z)); if (d < 260) whistle(0.05 * (1 - d / 260));
 }
 function fwBurst(x, y, z) {
-  const c = pick(FW_COLS), c2 = Math.random() < 0.4 ? pick(FW_COLS) : c, n = 110 + Math.floor(Math.random() * 70), ring = Math.random() < 0.25, spd = rand(30, 46);
+  const big = window.__fwBig ? 1.7 : 1, c = pick(FW_COLS), c2 = Math.random() < 0.4 ? pick(FW_COLS) : c, n = Math.round((110 + Math.floor(Math.random() * 70)) * big), ring = Math.random() < 0.25, spd = rand(30, 46) * Math.pow(big, 0.75);
   for (let q = 0; q < n; q++) {
     let dx, dy, dz; if (ring) { const a = q / n * 6.283; dx = Math.cos(a); dy = Math.sin(a) * 0.3; dz = Math.sin(a); } else { dy = rand(-1, 1); const a = rand(0, 6.283), r = Math.sqrt(1 - dy * dy); dx = Math.cos(a) * r; dz = Math.sin(a) * r; }
     const cc = q % 2 ? c : c2, s = spd * rand(0.85, 1.05);
-    fwSpawn(x, y, z, dx * s, dy * s, dz * s, rand(1.8, 2.8), cc[0], cc[1], cc[2], 2, 3.2);
+    fwSpawn(x, y, z, dx * s, dy * s, dz * s, rand(1.8, 2.8) * (big > 1 ? 1.25 : 1), cc[0], cc[1], cc[2], 2, 3.2 * Math.pow(big, 0.6));
   }
   // son : la détonation arrive avec le retard du son (343 m/s) et s'étouffe avec la distance
   const d = camera.position.distanceTo(new THREE.Vector3(x, y, z)); if (d < 1300) boomFW(Math.pow(1 - d / 1300, 1.7), d);
@@ -2356,7 +2356,7 @@ function fwBurst(x, y, z) {
 function updateFireworks(dt) {
   if (!FW.pts) return;
   const h = hourNow ? (P ? hourNow() : 22) : 22, night = nightK > 0.7 && (h >= 21 || h < 1.5), on = G.started && P && night && WX.rain < 0.2 && G.mode !== "title";
-  if (FW.party > 0) { FW.party -= dt; FW.pnext = (FW.pnext || 0) - dt; if (FW.pnext <= 0) { FW.pnext = rand(0.08, 0.35); const me = target(), sp = Math.random() < 0.5 ? { x: me.x + rand(-220, 220), z: me.z + rand(-220, 220), h: [70, 150] } : pick(FW.spots.concat([{ x: TOWER.x, z: TOWER.z, h: [300, 380] }])); fwLaunch(sp); } }
+  if (FW.party > 0) { FW.party -= dt; FW.pnext = (FW.pnext || 0) - dt; if (FW.pnext <= 0) { FW.pnext = window.__fwBig ? rand(0.03, 0.1) : rand(0.08, 0.35); const me = target(), sp = Math.random() < (window.__fwBig ? 0.15 : 0.5) ? { x: me.x + rand(-220, 220), z: me.z + rand(-220, 220), h: [70, 150] } : pick(FW.spots.concat([{ x: TOWER.x, z: TOWER.z, h: [300, 380] }])); fwLaunch(sp); } }
   if (on) {
     const sp = FW.spots[(P.day + (h < 12 ? -1 : 0)) % FW.spots.length];
     if (FW.nightShown !== P.day && G.mode === "play" && h >= 21) { FW.nightShown = P.day; notify("blue", `<b>Feu d'artifice ce soir sur ${sp.n}.</b> Approche-toi pour l'entendre.`, 7); }
@@ -3828,6 +3828,9 @@ function buildWorld() {
   // façades variées : crème, brique, terracotta, corail Miami, pierre, graphite, menthe, sable, bleu ardoise, blanc art déco
   const FAC = [["#f2ece2", 0], ["#b5543c", 2], ["#d9875e", 0], ["#f3a38f", 0], ["#cdbb9a", 1], ["#4a4d55", 1], ["#a9d6c6", 0], ["#e6cf9c", 2], ["#7f93ad", 1], ["#ffffff", 0], ["#8d3b33", 2], ["#e9b8c8", 0]];
   FAC.forEach(([col, st], k) => { const tx = windowTexture(k + 3, false, col, st); winMats.push(new THREE.MeshLambertMaterial({ color: 0xffffff, map: tx.map, emissive: 0xffffff, emissiveMap: tx.glow, emissiveIntensity: 0.05 })); });
+  { const TL = new THREE.TextureLoader(), ld = (u, rep) => { const t = TL.load(u); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep); t.anisotropy = 8; return t; };
+    const photo = (n, rep, tint) => new THREE.MeshLambertMaterial({ color: tint || 0xffffff, map: ld("assets/" + n + "_day.jpg", rep), emissive: 0xffffff, emissiveMap: ld("assets/" + n + "_night.jpg", rep), emissiveIntensity: 0.05 });
+    winMats[1] = photo("fac_res2", 0.55); winMats[10] = photo("fac_res2", 0.55, 0xe8d8cc); winMats[7] = photo("fac_res2", 0.55, 0xfff0d8); winMats[5] = photo("fac_res1", 0.24); }
   NFAC = FAC.length;
   // tours de verre : bleu, bronze, vert profond, argent
   const glassMats = [[0xcfe6ff, "#5f86a8", 0x99bbdd], [0xffe2b8, "#8a6a3e", 0xffd9a0], [0xbfe8d8, "#2f5d55", 0x9fd8c8], [0xe8ecf2, "#8d98a6", 0xffffff]].map(([c, gc, sp], k) => { const gtx = windowTexture(42 + k, true, null, 0, gc); return new THREE.MeshPhongMaterial({ color: c, map: gtx.map, emissive: 0xffffff, emissiveMap: gtx.glow, emissiveIntensity: 0.05, shininess: 90, specular: sp }); });
@@ -5427,7 +5430,7 @@ function updateCar(dt) {
     // le conducteur est visible derrière le volant (vue extérieure)
     if (meMesh && meMesh.userData.mixer && !(G.ride && RIDES[G.ride.kind] && (RIDES[G.ride.kind].plane || RIDES[G.ride.kind].boat))) {
       const low = carMesh.userData.wheelR === 0.37, sx = low ? 0.36 : 0.44, sz = low ? -0.15 : -0.1, ch = Math.cos(c.h), sh = Math.sin(c.h);
-      meMesh.visible = !G.fpv; const pr = carParts(carMesh); if (pr.seatY == null) { let hgt = low ? 1.24 : 1.6; carMesh.traverse(o => { if (o.userData && o.userData.key && MODELS[o.userData.key]) hgt = MODELS[o.userData.key].size.y; }); pr.seatY = low ? -0.86 : clamp(hgt - 1.97, -0.55, 0.1); }
+      meMesh.visible = !G.fpv; const pr = carParts(carMesh); if (pr.seatY == null) { let hgt = low ? 1.24 : 1.6; carMesh.traverse(o => { if (o.userData && o.userData.key && MODELS[o.userData.key]) hgt = MODELS[o.userData.key].size.y; }); pr.seatY = low ? -1.04 : clamp(hgt - 1.97, -0.55, 0.1); }
       meMesh.position.set(c.x + ch * sx + sh * sz, gh + pr.seatY, c.z - sh * sx + ch * sz); meMesh.rotation.set(carMesh.rotation.x, c.h, 0, "YXZ");
       if (meMesh.userData.clip !== "Driving_Loop") setClip(meMesh, "Driving_Loop", 1, 0.05);
     }

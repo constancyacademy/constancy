@@ -3852,7 +3852,7 @@ function buildWorld() {
   // tours de verre : bleu, bronze, vert profond, argent
   const glassMats = [[0xcfe6ff, "#5f86a8", 0x99bbdd], [0xffe2b8, "#8a6a3e", 0xffd9a0], [0xbfe8d8, "#2f5d55", 0x9fd8c8], [0xe8ecf2, "#8d98a6", 0xffffff]].map(([c, gc, sp], k) => { const gtx = windowTexture(42 + k, true, null, 0, gc); return new THREE.MeshPhongMaterial({ color: c, map: gtx.map, emissive: 0xffffff, emissiveMap: gtx.glow, emissiveIntensity: 0.05, shininess: 90, specular: sp }); });
   { const TLf = new THREE.TextureLoader(), ld = (u, rep) => { const t = TLf.load(u); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep); t.anisotropy = 4; return t; };
-    [["fac_day1", "fac_night1", 0xffffff, 0xaaccee], ["fac_day2", "fac_night2", 0xf4fff8, 0xbfe8d8], ["fac_day3", "fac_night3", 0xffffff, 0xdde6f0]].forEach(([d, n, c, sp]) => {
+    [["fac_day1", "fac_night1", 0xffffff, 0xaaccee], ["fac_day2", "fac_night2", 0xf4fff8, 0xbfe8d8], ["fac_day3", "fac_night3", 0xffffff, 0xdde6f0], ["fac_glass2_day", "fac_glass2_night", 0xffffff, 0xcfe6ee], ["fac_glass2_day", "fac_glass2_night", 0xe8f6ff, 0xcfe6ee]].forEach(([d, n, c, sp]) => {
       const m = new THREE.MeshPhongMaterial({ color: c, map: ld("assets/" + d + ".jpg", 0.4), emissive: 0xffe6c0, emissiveMap: ld("assets/" + n + ".jpg", 0.4), emissiveIntensity: 0.05, shininess: 110, specular: sp }); glassMats.push(m); if (typeof envAdd === "function") envAdd(m, 0.28); }); }
   const glassTower = glassMats[0]; glassMats.forEach(m => winMats.push(m));
   const deco = [0xf7c6d9, 0xbfe9e3, 0xfff1c9, 0xc9d7ff, 0xffd2b0].map(c => new THREE.MeshLambertMaterial({ color: c, map: imgTex("plaster2", 1) }));

@@ -3154,13 +3154,20 @@ function jpalm(x, z, r, y0, big) {
 function jfern(x, z, y0, r, sc) { const n = 5 + Math.floor(r() * 2); for (let i = 0; i < n; i++) addGeo(M_LEAF, G_FROND, x, y0 + 0.5 * sc, z, i * 6.28 / n + r() * 0.4, sc * (0.55 + r() * 0.3), sc, sc * 1.3, 0, -0.35 - r() * 0.5); }
 // diplodocus fait main : corps, quatre pattes qui marchent, long cou qui ondule, longue queue
 function makeSauropod(col) {
-  const g = new THREE.Group(), skin = new THREE.MeshLambertMaterial({ color: col }), belly = new THREE.MeshLambertMaterial({ color: 0xb8b08a });
-  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 12), skin); body.scale.set(3.8, 3.4, 6.8); body.position.y = 7.4; g.add(body);
-  const bel = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), belly); bel.scale.set(3, 2.2, 5.6); bel.position.y = 6.3; g.add(bel);
-  const legs = []; [[-1.9, 3.6], [1.9, 3.6], [-1.9, -3.4], [1.9, -3.4]].forEach(([lx, lz]) => { const pv = new THREE.Group(); pv.position.set(lx, 7, lz); const lg = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.05, 7, 10), skin); lg.position.y = -3.5; pv.add(lg); const ft = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.2, 0.6, 10), skin); ft.position.y = -6.9; pv.add(ft); g.add(pv); legs.push(pv); });
-  const neck = []; let par = g, py = 8.4, pz = 5.6; for (let k = 0; k < 9; k++) { const sg = new THREE.Group(); sg.position.set(0, k ? 2.1 : py, k ? 0 : pz); sg.rotation.x = k ? (k < 5 ? -0.07 : -0.03) : 1.05; par.add(sg); const r0 = 1.35 - k * 0.1; const c = new THREE.Mesh(new THREE.CylinderGeometry(r0 * 0.88, r0, 2.4, 10), skin); c.position.y = 1.05; sg.add(c); neck.push(sg); par = sg; }
-  const head = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), skin); head.scale.set(0.7, 0.62, 1.25); head.position.set(0, 2.3, 0.4); head.rotation.x = -0.5; par.add(head);
-  const tail = []; par = g; for (let k = 0; k < 12; k++) { const sg = new THREE.Group(); sg.position.set(0, k ? 0 : 7.6, k ? -2 : -5.8); sg.rotation.x = k ? -0.03 : -0.3; par.add(sg); const r0 = 1.4 - k * 0.11; const c = new THREE.Mesh(new THREE.CylinderGeometry(r0 * 0.85, r0, 2.2, 8), skin); c.rotation.x = Math.PI / 2; c.position.z = -1; sg.add(c); tail.push(sg); par = sg; }
+  // peau : dos plus sombre, flancs tachetés, ventre clair (texture peinte)
+  const c = document.createElement("canvas"); c.width = 256; c.height = 128; const x = c.getContext("2d"), base = new THREE.Color(col), hex = k => "#" + base.clone().multiplyScalar(k).getHexString();
+  const gr = x.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, hex(0.55)); gr.addColorStop(0.45, hex(1)); gr.addColorStop(0.8, hex(1.15)); gr.addColorStop(1, "#c9c09a"); x.fillStyle = gr; x.fillRect(0, 0, 256, 128);
+  for (let i = 0; i < 160; i++) { x.fillStyle = `rgba(30,25,15,${0.06 + Math.random() * 0.12})`; x.beginPath(); x.ellipse(Math.random() * 256, 20 + Math.random() * 70, 2 + Math.random() * 6, 1 + Math.random() * 4, Math.random() * 3, 0, 6.3); x.fill(); }
+  const tx = new THREE.CanvasTexture(c), skin = new THREE.MeshLambertMaterial({ map: tx }), plain = new THREE.MeshLambertMaterial({ color: base.clone().multiplyScalar(0.9) }), eyeM = new THREE.MeshBasicMaterial({ color: 0x111111 });
+  const g = new THREE.Group(), add = (geo, m, px, py, pz, sx = 1, sy = 1, sz = 1, par = g) => { const o = new THREE.Mesh(geo, m); o.position.set(px, py, pz); o.scale.set(sx, sy, sz); par.add(o); return o; }, S = new THREE.SphereGeometry(1, 20, 14);
+  add(S, skin, 0, 7.6, -0.2, 3.6, 3.3, 6.4); add(S, skin, 0, 8.1, 3.3, 3.2, 3.3, 3.2); add(S, skin, 0, 7.9, -3.6, 3.1, 3.1, 3.2);
+  const legs = []; [[-1.95, 3.5], [1.95, 3.5], [-1.95, -3.6], [1.95, -3.6]].forEach(([lx, lz]) => { const pv = new THREE.Group(); pv.position.set(lx, 7.3, lz); g.add(pv);
+    add(S, skin, 0, -0.7, 0, 1.35, 1.9, 1.5, pv); add(new THREE.CylinderGeometry(0.82, 0.98, 6.4, 12), plain, 0, -3.8, 0, 1, 1, 1, pv); add(new THREE.CylinderGeometry(1.12, 1.28, 0.55, 12), plain, 0, -6.95, 0.12, 1, 1, 1, pv); legs.push(pv); });
+  const neck = []; let par = g; for (let k = 0; k < 14; k++) { const sg = new THREE.Group(); sg.position.set(0, k ? 1.5 : 8.9, k ? 0 : 5.4); sg.rotation.x = k ? -0.045 : 1.05; par.add(sg); const r0 = 1.5 - k * 0.07;
+    add(new THREE.CylinderGeometry(r0 * 0.94, r0, 1.75, 14), skin, 0, 0.75, 0, 1, 1, 1, sg); add(S, skin, 0, 0, 0, r0, r0, r0, sg); neck.push(sg); par = sg; }
+  const hd = new THREE.Group(); hd.position.set(0, 1.7, 0.2); hd.rotation.x = -0.55; par.add(hd); add(S, skin, 0, 0, 0.45, 0.66, 0.56, 1.15, hd); [-1, 1].forEach(sd => add(S, eyeM, sd * 0.5, 0.2, 0.55, 0.11, 0.11, 0.11, hd));
+  const tail = []; par = g; for (let k = 0; k < 16; k++) { const sg = new THREE.Group(); sg.position.set(0, k ? 0 : 7.9, k ? -1.55 : -6.2); sg.rotation.x = k ? 0.02 : -0.3; par.add(sg); const r0 = Math.max(0.12, 1.5 - k * 0.09);
+    const cy = add(new THREE.CylinderGeometry(r0 * 0.92, r0, 1.75, 12), skin, 0, 0, -0.75, 1, 1, 1, sg); cy.rotation.x = Math.PI / 2; add(S, skin, 0, 0, 0, r0, r0, r0, sg); tail.push(sg); par = sg; }
   g.userData = { legs, neck, tail }; return g;
 }
 function buildJungle(r) {
@@ -3193,6 +3200,16 @@ function buildJungle(r) {
     const tx = new THREE.CanvasTexture(c); [0, Math.PI].forEach(ry => { const sign = new THREE.Mesh(new THREE.PlaneGeometry(11, 3.2), new THREE.MeshLambertMaterial({ map: tx })); sign.position.set(0, 6.3, ry ? -0.06 : 0.06); sign.rotation.y = ry; grp.add(sign); });
     const [ax, az] = JTRACK[JTRACK.length - 2]; grp.rotation.y = Math.atan2(ax - gx, az - gz); JUNGLE.gate = [gx, gz]; }
   { const [sx, sz] = JTRACK[2], l = label("Piste de la Jungle · 2 km", "#7ee08a"); l.position.set(sx, Math.max(2, mtnH(sx, sz)) + 5, sz); l.scale.set(18, 4.5, 1); scene.add(l); }
+  // cascade : une falaise au nord de la lagune, l'eau tombe en voile blanc, écume et bruine en bas
+  { const L = JG.lag, fx = L[0], fz = L[1] - L[2] * 0.95, rockM = new THREE.MeshLambertMaterial({ color: 0x5f5a52 }), mossM = new THREE.MeshLambertMaterial({ color: 0x3f5f2e });
+    for (let k = 0; k < 16; k++) { const ox = (k % 5 - 2) * 7 + (r() - 0.5) * 3, oy = Math.floor(k / 5) * 8, sc = 5 + r() * 4; addGeo(k % 3 ? rockM : mossM, new THREE.DodecahedronGeometry(1, 0), fx + ox, oy + sc * 0.6, fz - 9 - r() * 4, r() * 6, sc * 1.2, sc, sc); }
+    addGeo(rockM, new THREE.DodecahedronGeometry(1, 0), fx, 27, fz - 10, 0.4, 14, 5, 7);
+    const cv = document.createElement("canvas"); cv.width = 64; cv.height = 256; const x = cv.getContext("2d"); x.fillStyle = "rgba(200,230,255,0.55)"; x.fillRect(0, 0, 64, 256); for (let i = 0; i < 90; i++) { x.fillStyle = `rgba(255,255,255,${0.3 + Math.random() * 0.6})`; x.fillRect(Math.random() * 64, Math.random() * 256, 1 + Math.random() * 3, 10 + Math.random() * 50); }
+    const wt = new THREE.CanvasTexture(cv); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(2, 1.5);
+    const fall = new THREE.Mesh(new THREE.PlaneGeometry(9, 28, 1, 8), new THREE.MeshBasicMaterial({ map: wt, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
+    const fp = fall.geometry.attributes.position; for (let i = 0; i < fp.count; i++) { const yy = fp.getY(i); fp.setZ(i, Math.pow((14 - yy) / 28, 2) * 3.5); } fall.position.set(fx, 14, fz - 4.5); scene.add(fall);
+    const foam = []; for (let k = 0; k < 5; k++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: 0xffffff, transparent: true, opacity: 0.5, depthWrite: false })); sp.position.set(fx + (k - 2) * 2.4, 0.8, fz - 0.6); sp.scale.set(7, 4, 1); scene.add(sp); foam.push(sp); }
+    JUNGLE.fall = { tex: wt, foam, x: fx, z: fz }; }
   // dinosaures : deux diplodocus géants qui traversent les clairières, T-rex, stégosaures, tricératops
   [[0x6f7a5a, 0], [0x7a6e58, 2]].forEach(([cc, ci]) => { const g = makeSauropod(cc); scene.add(g); const [cx, cz, cr] = clear[ci]; JUNGLE.sauro.push({ g, cx, cz, r: cr * 0.7, a: Math.random() * 6, s: 0.028 + Math.random() * 0.01, ph: Math.random() * 6 }); });
   [["trex", 1, 0.09], ["stego", 3, 0.05], ["stego", 1, 0.045], ["trice", 2, 0.06], ["trice", 3, 0.055], ["trex", 2, 0.08]].forEach(([k, ci, sp], n) => { if (!MODELS[k]) return; const g = new THREE.Group(); g.add(modelInstance(k)); g.scale.setScalar(k === "trex" ? 1.6 : 1.3); scene.add(g); const [cx, cz, cr] = clear[ci]; JUNGLE.dinos.push({ g, cx, cz, r: cr * (0.35 + n * 0.08), a: n * 1.7, s: sp * (n % 2 ? -1 : 1) }); });
@@ -3217,6 +3234,9 @@ function updateJungle(dt) {
     U.neck.forEach((n, i) => { n.rotation.z = Math.sin(T * 0.5 + d.ph + i * 0.35) * 0.05; }); U.neck[0].rotation.x = 1.05 + Math.sin(T * 0.23 + d.ph) * 0.1;
     U.tail.forEach((n, i) => { n.rotation.y = Math.sin(T * 1.1 + d.ph - i * 0.4) * 0.07; }); });
   JUNGLE.dinos.forEach(d => { d.g.visible = near; if (!near) return; d.a += d.s * dt; const x = d.cx + Math.cos(d.a) * d.r, z = d.cz + Math.sin(d.a) * d.r; d.g.position.set(x, Math.max(0.6, jgH(x, z)), z); d.g.rotation.y = -d.a + (d.s > 0 ? 0 : Math.PI); });
+  if (JUNGLE.fall) { const F = JUNGLE.fall; F.tex.offset.y += dt * 1.6; F.foam.forEach((sp, k) => { const q = 0.5 + 0.5 * Math.sin(T * 3 + k * 1.7); sp.material.opacity = 0.35 + q * 0.3; sp.scale.set(6 + q * 2, 3.5 + q * 1.5, 1); });
+    const c = SND.ctx, d = Math.hypot(cam.x - F.x, cam.z - F.z); if (c && SND.on) { if (!F.snd && d < 200) { const n = c.sampleRate * 2, b = c.createBuffer(1, n, c.sampleRate), dd = b.getChannelData(0); let l = 0; for (let i = 0; i < n; i++) { l = l * 0.6 + (Math.random() * 2 - 1) * 0.4; dd[i] = l; } const s = c.createBufferSource(); s.buffer = b; s.loop = true; const bp = c.createBiquadFilter(); bp.type = "lowpass"; bp.frequency.value = 1400; const g = c.createGain(); g.gain.value = 0; s.connect(bp); bp.connect(g); g.connect(c.destination); s.start(); F.snd = g; }
+      if (F.snd) F.snd.gain.setTargetAtTime(G.mode === "play" && !G.inside ? 0.32 * clamp(1 - d / 160, 0, 1) ** 2 : 0, c.currentTime, 0.4); } }
   JUNGLE.ptero.forEach(p => { p.g.visible = near; if (!near) return; p.a += p.s * dt; const x = JG.cx + Math.cos(p.a) * p.r * 1.8, z = JG.cz + Math.sin(p.a) * p.r, f = Math.sin(T * 2.2 + p.r) * 0.35 * (Math.sin(T * 0.4 + p.r) > 0.3 ? 1 : 0.15);
     p.g.position.set(x, p.y + Math.sin(T * 0.3 + p.r) * 6, z); p.g.rotation.set(0, Math.atan2(-Math.sin(p.a) * 1.8, Math.cos(p.a)), -0.25); p.wl[0].rotation.z = f; p.wl[1].rotation.z = -f; });
   // ambiance : oiseaux tropicaux, rugissements au loin ; et la découverte

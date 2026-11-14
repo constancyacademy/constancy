@@ -492,6 +492,7 @@ const CARS = [
   { id: "suv",      name: "SUV Noir Mat",        price: 15000,  max: 54, color: 0x1a1a20, statut: 15 },
   { id: "gt",       name: "GT Sunset",           price: 45000, max: 68, color: 0xff7a2f, statut: 25 },
   { id: "hyper",    name: "Hyper Gold",          price: 180000, max: 84, color: 0xf6c945, statut: 40 },
+  { id: "minuit",   name: "Prototype Minuit",        price: 450000, max: 104, color: 0x14213d, statut: 50, keepPaint: true },
   { id: "nacre",    name: "Constancy City",          price: 1000000, max: 112, color: 0xf4f2ee, statut: 60 }
 ];
 const QUIZ = [
@@ -895,7 +896,7 @@ function buildShowroom(cx, cz, F, h) {
       const hd = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.2, 0.05), new THREE.MeshPhongMaterial({ color: 0xd8dde3, shininess: 140 })); hd.position.set(sd * -1.3, 1.5, 0.08); d.add(hd);
       scene.add(d); return { g: d, sd, x0: cx + sd * 1.6, k: 0 }; }); SHOWROOM_C.fz = fz;
     const sg = wallSign("Concession · Prestige", "#c9a24a", 6, 1.2); sg.position.set(cx, 4.4, fz + 0.2); scene.add(sg); }
-  const spots = [[-7.5, -6.5], [7.5, -6.5], [-7.5, 6.5], [7.5, 6.5], [0, -2.4]];
+  const spots = [[-7.5, -6.5], [7.5, -6.5], [-7.5, 6.5], [7.5, 6.5], [-12, 0.6], [0, -2.4], [12, 0.6]];
   CARS.slice(1).forEach((c, k) => { const [ox, oz] = spots[k], x = cx + ox, z = cz + oz;
     const star = c.id === "nacre", PH = star ? 1.7 : 0;
     if (!star) { addGeo(metal, new THREE.CylinderGeometry(3.3, 3.4, 0.3, 32), x, 0.6, z); addGeo(ringM, new THREE.TorusGeometry(3.32, 0.06, 6, 40), x, 0.76, z, 0, 1, 1, 1, Math.PI / 2); }
@@ -962,7 +963,7 @@ const GLASS = new THREE.MeshPhongMaterial({ color: 0x0c1220, shininess: 90, spec
 const TIRE = new THREE.MeshLambertMaterial({ color: 0x0b0b0d });
 const RIM = new THREE.MeshPhongMaterial({ color: 0xbfc4cc, shininess: 60 });
 const HEAD = new THREE.MeshBasicMaterial({ color: 0xfff1c4 }), TAIL = new THREE.MeshBasicMaterial({ color: 0xff2440 });
-const CAR_MODEL = { citadine: "car_city", coupe: "car_sport", suv: "car_suv", gt: "car_sport", hyper: "car_sport", nacre: "car_sport" };
+const CAR_MODEL = { minuit: "car_minuit", citadine: "car_city", coupe: "car_sport", suv: "car_suv", gt: "car_sport", hyper: "car_sport", nacre: "car_sport" };
 /* Supercar dessinée sur mesure (GT Sunset, Hyper Gold) : profil en coin, habitacle vitré, jantes, feux LED, aileron */
 // surface lissée : f(t, a) -> [x, y, z] pour t ∈ [0,1] le long de la voiture, a ∈ [0, 2π] autour de la section
 function loftGeo(nt, na, f) {
@@ -1056,7 +1057,7 @@ function makeCar(def, opts = {}) {
   const key = opts.model || (opts.police ? "car_police" : CAR_MODEL[def.id]);
   if (!opts.model && !opts.police && (def.id === "gt" || def.id === "hyper" || def.id === "nacre")) return makeSupercar(def);
   if (key && MODELS[key]) {
-    const g = new THREE.Group(), m = modelInstance(key, { paint: opts.keepPaint ? null : def.color }); g.add(m);
+    const g = new THREE.Group(), m = modelInstance(key, { paint: opts.keepPaint || def.keepPaint ? null : def.color }); g.add(m); if (def.keepPaint) g.userData.lowCar = true;
     if (def.id === "hyper") m.scale.set(1.04, 0.9, 1.04);
     if (opts.police) { // gyrophares qui clignotent pendant une poursuite
       const red = new THREE.MeshBasicMaterial({ color: 0xff2440 }), blue = new THREE.MeshBasicMaterial({ color: 0x2f6bff }), hy = MODELS[key].size.y;
@@ -1476,7 +1477,7 @@ const SND_FILES = { race: "assets/eng_race.mp3", moto: "assets/eng_moto.mp3", sc
 /* --- modèles 3D (voitures, bus, avions, bateaux, animaux, mobilier) --- */
 // face : direction du nez du modèle d'origine ; len : longueur voulue dans le monde (h : hauteur à la place)
 const MODEL_DEFS = {
-  car_city: { len: 5.4 }, car_sport: { len: 5.7 }, car_taxi: { len: 5.6 }, car_police: { len: 5.7 }, car_suv: { len: 5.9 }, car_pickup: { len: 6.3 },
+  car_minuit: { len: 4.9 }, car_city: { len: 5.4 }, car_sport: { len: 5.7 }, car_taxi: { len: 5.6 }, car_police: { len: 5.7 }, car_suv: { len: 5.9 }, car_pickup: { len: 6.3 },
   ambulance: { len: 7.4 }, bus: { len: 13 }, firetruck: { len: 10, face: "x" }, moto: { len: 2.5, face: "-z" },
   plane_liner: { len: 64 }, plane_small: { len: 12, face: "-z" }, heli: { len: 15, face: "-x" },
   yacht: { len: 24, face: "x" }, sailboat: { len: 10 }, gull: { len: 1.8, face: "x" }, shark: { len: 4.5, anim: "Swim" }, dolphin: { len: 3.2, anim: "Swim" },
@@ -5524,7 +5525,7 @@ function updateCar(dt) {
     spinWheels(carMesh, c.v, -c.s * 0.5, dt);
     // le conducteur est visible derrière le volant (vue extérieure)
     if (meMesh && meMesh.userData.mixer && !(G.ride && RIDES[G.ride.kind] && (RIDES[G.ride.kind].plane || RIDES[G.ride.kind].boat))) {
-      const low = carMesh.userData.wheelR === 0.37, sx = low ? 0.36 : 0.44, sz = low ? -0.15 : -0.1, ch = Math.cos(c.h), sh = Math.sin(c.h);
+      const low = carMesh.userData.wheelR === 0.37 || !!carMesh.userData.lowCar, sx = low ? 0.36 : 0.44, sz = low ? -0.15 : -0.1, ch = Math.cos(c.h), sh = Math.sin(c.h);
       meMesh.visible = !G.fpv; const pr = carParts(carMesh); if (pr.seatY == null) { let hgt = low ? 1.24 : 1.6; carMesh.traverse(o => { if (o.userData && o.userData.key && MODELS[o.userData.key]) hgt = MODELS[o.userData.key].size.y; }); pr.seatY = low ? -1.04 : clamp(hgt - 1.97, -0.55, 0.1); }
       meMesh.position.set(c.x + ch * sx + sh * sz, gh + pr.seatY, c.z - sh * sx + ch * sz); meMesh.rotation.set(carMesh.rotation.x, c.h, 0, "YXZ");
       if (meMesh.userData.clip !== "Driving_Loop") setClip(meMesh, "Driving_Loop", 1, 0.05);

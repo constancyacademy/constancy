@@ -3876,7 +3876,7 @@ function buildWorld() {
     const photo = (n, rep, tint) => new THREE.MeshLambertMaterial({ color: tint || 0xffffff, map: ld("assets/" + n + "_day.jpg", rep), emissive: 0xffffff, emissiveMap: ld("assets/" + n + "_night.jpg", rep), emissiveIntensity: 0.05 });
     winMats[1] = photo("fac_res2", 0.55); winMats[10] = photo("fac_res2", 0.55, 0xe8d8cc); winMats[7] = photo("fac_res2", 0.55, 0xfff0d8); winMats[5] = photo("fac_res1", 0.24);
     // façades art déco Miami (ChatGPT) : crème, corail, menthe, rose · fenêtres qui s'allument la nuit
-    winMats[0] = photo("fac_art1", 0.77); winMats[9] = photo("fac_art1", 0.77, 0xfff8f0); winMats[3] = photo("fac_art1", 0.77, 0xffc9bc); winMats[6] = photo("fac_art1", 0.77, 0xcdeee0); winMats[11] = photo("fac_art1", 0.77, 0xf6d2de); winMats[2] = photo("fac_res2", 0.55, 0xffd9c2); winMats[4] = photo("fac_art1", 0.77, 0xead9bd); winMats[8] = photo("fac_art1", 0.77, 0xc9d6ea); }
+    winMats[0] = photo("fac_art1", 0.77); winMats[9] = photo("fac_wgold", 0.77); winMats[3] = photo("fac_coral", 0.77); winMats[6] = photo("fac_art1", 0.77, 0xcdeee0); winMats[11] = photo("fac_coral", 0.77, 0xffe2dc); winMats[2] = photo("fac_res2", 0.55, 0xffd9c2); winMats[4] = photo("fac_art1", 0.77, 0xead9bd); winMats[8] = photo("fac_art1", 0.77, 0xc9d6ea); }
   NFAC = FAC.length;
   // tours de verre : bleu, bronze, vert profond, argent
   const glassMats = [[0xcfe6ff, "#5f86a8", 0x99bbdd], [0xffe2b8, "#8a6a3e", 0xffd9a0], [0xbfe8d8, "#2f5d55", 0x9fd8c8], [0xe8ecf2, "#8d98a6", 0xffffff]].map(([c, gc, sp], k) => { const gtx = windowTexture(42 + k, true, null, 0, gc); return new THREE.MeshPhongMaterial({ color: c, map: gtx.map, emissive: 0xffffff, emissiveMap: gtx.glow, emissiveIntensity: 0.05, shininess: 90, specular: sp }); });

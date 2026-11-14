@@ -547,6 +547,12 @@ function decodeSnd(k) {
 }
 function startLoopAs(name, key) { const c = SND.ctx; if (!c || SND.loops[name] || !SND.buf[key]) return; const s = c.createBufferSource(); s.buffer = SND.buf[key]; s.loop = true; s.playbackRate.value = 0.33; const g = c.createGain(); g.gain.value = 0; s.connect(g); g.connect(c.destination); s.start(0, Math.random() * SND.buf[key].duration); SND.loops[name] = { s, g }; }
 // petits sons de nature synthétisés : chant d'oiseau, pas de dinosaure
+function noiseHit(vol, f, q = 1, dur = 0.06, type = "bandpass") { const c = SND.ctx; if (!c || !SND.on || vol < 0.002) return; const t = c.currentTime, n = Math.ceil(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const s = c.createBufferSource(); s.buffer = b; const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; const g = c.createGain(); g.gain.value = vol; s.connect(fl); fl.connect(g); g.connect(c.destination); s.start(t); }
+function moo(vol) { const c = SND.ctx; if (!c || !SND.on || vol < 0.003) return; const t = c.currentTime, L = 1.3 + Math.random() * 0.6, o = c.createOscillator(), bp = c.createBiquadFilter(), g = c.createGain(), f0 = 105 + Math.random() * 25;
+  o.type = "sawtooth"; o.frequency.setValueAtTime(f0 * 0.85, t); o.frequency.linearRampToValueAtTime(f0, t + 0.25); o.frequency.linearRampToValueAtTime(f0 * 0.8, t + L);
+  bp.type = "bandpass"; bp.Q.value = 3; bp.frequency.setValueAtTime(380, t); bp.frequency.linearRampToValueAtTime(720, t + 0.35); bp.frequency.linearRampToValueAtTime(420, t + L);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.25); g.gain.setValueAtTime(vol, t + L - 0.35); g.gain.linearRampToValueAtTime(0, t + L); o.connect(bp); bp.connect(g); g.connect(c.destination); o.start(t); o.stop(t + L + 0.05); }
 function chirp(vol = 0.05) { const c = SND.ctx; if (!c || !SND.on) return; const t = c.currentTime, f0 = 2400 + Math.random() * 1800, n = 2 + Math.floor(Math.random() * 3);
   for (let i = 0; i < n; i++) { const o = c.createOscillator(), g = c.createGain(), st = t + i * (0.09 + Math.random() * 0.05); o.type = "sine"; o.frequency.setValueAtTime(f0, st); o.frequency.exponentialRampToValueAtTime(f0 * (1.25 + Math.random() * 0.4), st + 0.07); g.gain.setValueAtTime(0, st); g.gain.linearRampToValueAtTime(vol, st + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, st + 0.09); o.connect(g); g.connect(c.destination); o.start(st); o.stop(st + 0.1); } }
 function thump(vol = 0.3) { const c = SND.ctx; if (!c || !SND.on || vol < 0.01) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain(); o.type = "sine"; o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(32, t + 0.3); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.5); }
@@ -708,6 +714,7 @@ function updateSound() {
   loopVol("waves", playing && pos ? (0.04 + nearSea * 0.42) * (1 - high) : 0, t, 0.8);
   loopVol("city", playing && pos ? (0.05 + inCity * 0.22) * (1 - high) * (1 - mtn * 0.9) : 0, t, 0.8);
   loopVol("wind", playing && pos ? 0.03 + mtn * 0.16 + high * 0.2 + WX.rain * 0.08 : 0, t, 1.2);
+  if (G.mode === "lift" && SND.on && typeof LIFT !== "undefined") { const k = LIFT.ph === "top" ? 1 : clamp((camera.position.y - 20) / 300, 0, 1); loopVol("wind", 0.05 + k * 0.24, t, 1.2); loopVol("city", 0.2 * (1 - k * 0.75), t, 0.8); loopVol("waves", 0.03 + k * 0.05, t, 0.8); }
   loopVol("rain", playing && WX.rain > 0.02 ? WX.rain * (G.inside ? 0.1 : 0.34) * (1 - high * 0.6) : 0, t, 1.5);
   loopVol("rain2", playing && WX.rain > 0.02 ? WX.rain * (G.inside ? 0.2 : 0.3) : 0, t, 1.5);
   if (playing && WX.rain > 0.1 && !G.inside) { const nd = WX.rain * 28 * (1 / 60); for (let q = 0; q < 3; q++) if (Math.random() < nd) { const o = SND.ctx.createOscillator(), g = SND.ctx.createGain(), st = t + Math.random() * 0.05, f = 1800 + Math.random() * 3200; o.type = "sine"; o.frequency.setValueAtTime(f, st); o.frequency.exponentialRampToValueAtTime(f * 0.55, st + 0.03); g.gain.setValueAtTime(0.012 + Math.random() * 0.02 * WX.rain, st); g.gain.exponentialRampToValueAtTime(0.0001, st + 0.04); o.connect(g); g.connect(SND.ctx.destination); o.start(st); o.stop(st + 0.05); } }
@@ -2383,7 +2390,7 @@ function updateBeachLife(dt) {
     if (!beachOK(x, z) || !isWater(x, z)) { w.h.visible = false; return; } w.h.position.set(x, -1.05 + Math.sin(T * 1.3 + w.t0) * 0.06, z); const d = fwd ? 1 : -1; w.h.rotation.y = w.side === 2 ? (d > 0 ? Math.PI / 2 : -Math.PI / 2) : (d > 0 ? 0 : Math.PI); });
   BEACH.night.forEach(h => { h.visible = nearB && day; });
   BEACH.volley.forEach(v => { const show = nearB && day && Math.hypot(v.cx - cam.x, v.cz - cam.z) < 260; v.ball.visible = show; v.players.forEach(p => { p.h.visible = show; }); if (!show) return;
-    v.t += dt / 1.5; if (v.t >= 1) { v.t = 0; v.from = v.to; v.to = v.from < 2 ? 2 + Math.floor(Math.random() * 2) : Math.floor(Math.random() * 2); }
+    v.t += dt / 1.5; if (v.t >= 1) { const dd = Math.hypot(v.cx - cam.x, v.cz - cam.z); if (G.mode === "play" && dd < 70) noiseHit(0.16 * (1 - dd / 70), 900, 1.4, 0.045); v.t = 0; v.from = v.to; v.to = v.from < 2 ? 2 + Math.floor(Math.random() * 2) : Math.floor(Math.random() * 2); }
     const A = v.players[v.from], B = v.players[v.to], t = v.t; v.ball.position.set(A.x + (B.x - A.x) * t, 2.3 + Math.sin(Math.PI * t) * 5.5, A.z + (B.z - A.z) * t);
     v.players.forEach((p, i) => { const hit = (i === v.from && t < 0.12) || (i === v.to && t > 0.88); p.h.position.y = 0.05 + (hit ? Math.sin((i === v.from ? t / 0.12 : (1 - t) / 0.12) * Math.PI) * 0.35 : 0); p.h.rotation.y = Math.atan2(v.ball.position.x - p.x, v.ball.position.z - p.z); }); });
 }
@@ -2816,6 +2823,18 @@ function makeTractor(i) {
   const wheels = []; [[-1.05, -0.8, 1.05, 0.55], [1.05, -0.8, 1.05, 0.55], [-0.85, 1.6, 0.55, 0.35], [0.85, 1.6, 0.55, 0.35]].forEach(([x, z, r, w]) => { const wg = new THREE.Group(); wg.position.set(x, r, z); const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 16), dark); t.rotation.z = Math.PI / 2; wg.add(t); const hub = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.5, r * 0.5, w + 0.04, 10), rim); hub.rotation.z = Math.PI / 2; wg.add(hub); g.add(wg); wheels.push([wg, r]); });
   g.userData.wheels = wheels; return g;
 }
+// vache low-poly : robe pie noire (ou brune), tête qui broute
+let COW_MAT = null;
+function makeCow(brown) {
+  if (!COW_MAT) { COW_MAT = [0, 1].map(b => { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"); g.fillStyle = "#f2efe8"; g.fillRect(0, 0, 128, 128); g.fillStyle = b ? "#7a4a2a" : "#18181a"; for (let i = 0; i < 9; i++) { g.beginPath(); g.ellipse(Math.random() * 128, Math.random() * 128, 10 + Math.random() * 18, 8 + Math.random() * 14, Math.random() * 3, 0, Math.PI * 2); g.fill(); } const t = new THREE.CanvasTexture(c); return new THREE.MeshLambertMaterial({ map: t }); }); COW_MAT.push(new THREE.MeshLambertMaterial({ color: 0xe8a0a0 }), new THREE.MeshLambertMaterial({ color: 0x2a2420 })); }
+  const g = new THREE.Group(), M = COW_MAT[brown ? 1 : 0], parts = [], put = (geo, x, y, z) => { geo.translate(x, y, z); parts.push(geo); };
+  put(new THREE.BoxGeometry(0.95, 0.85, 1.9), 0, 1.15, 0); [[-0.32, 0.7], [0.32, 0.7], [-0.32, -0.7], [0.32, -0.7]].forEach(([x, z]) => put(new THREE.BoxGeometry(0.2, 0.75, 0.2), x, 0.38, z)); put(new THREE.BoxGeometry(0.06, 0.7, 0.06), 0, 1.0, -0.98);
+  const body = new THREE.Mesh(THREE.BufferGeometryUtils.mergeBufferGeometries(parts), M); g.add(body);
+  const ud = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.34), COW_MAT[2]); ud.position.set(0, 0.68, -0.45); g.add(ud);
+  const head = new THREE.Group(); head.position.set(0, 1.4, 0.95); g.add(head); const hm = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.46, 0.62), M); hm.position.z = 0.3; head.add(hm);
+  const sn = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.26, 0.12), COW_MAT[2]); sn.position.set(0, -0.08, 0.64); head.add(sn); [-1, 1].forEach(sd => { const hr = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.22, 5), COW_MAT[3]); hr.position.set(sd * 0.2, 0.3, 0.15); hr.rotation.z = -sd * 0.6; head.add(hr); });
+  g.userData.head = head; return g;
+}
 function buildCountryLife() {
   const farms = [[330, -700, 0.3], [-520, -1100, 1.1], [410, -1255, -0.4], [-320, -880, 0.7], [-430, -1350, 0.2]];
   const shirt = [0x9e2a24, 0x3a5a8a, 0x6b7a3a, 0xc9862f, 0x8a3a2a], hat = new THREE.MeshLambertMaterial({ color: 0xd8c08a });
@@ -2833,6 +2852,10 @@ function buildCountryLife() {
       const x0 = fx + 26 + (q ? 20 : 4), z0 = fz + (q ? 12 : 21); h.position.set(x0, csH(x0, z0), z0); scene.add(h); setClip(h, q ? "Idle_Talking_Loop" : "Walk_Loop", q ? 1 : 0.75); h.userData.manual = true;
       COUNTRY.folks.push({ h, x0, z0, walk: !q, u: Math.random() }); }
   });
+  // troupeaux de vaches dans les prés, à côté des fermes
+  COUNTRY.cows = [];
+  farms.forEach(([fx, fz, a], i) => { let cx = 0, cz = 0, ok = false; for (let t = 0; t < 14 && !ok; t++) { const ang = a + Math.PI + t * 0.45; cx = fx + Math.cos(ang) * 60; cz = fz - Math.sin(ang) * 60; ok = nearNat(cx, cz) > 22 && csH(cx, cz) > 0.9 && csMask(cx, cz) < 0.88 && !COUNTRY.tr.some(q => Math.hypot(q.cx - cx, q.cz - cz) < 55); }
+    if (!ok) return; for (let k = 0; k < 6; k++) { const g = makeCow(k % 3 === 2), x = cx + (Math.random() - 0.5) * 30, z = cz + (Math.random() - 0.5) * 30; g.position.set(x, csH(x, z), z); g.rotation.y = Math.random() * 6.28; scene.add(g); COUNTRY.cows.push({ g, cx, cz, x, z, h: g.rotation.y, tx: x, tz: z, t: Math.random() * 8, ph: Math.random() * 6 }); } });
   // virevoltants : boules de brindilles sèches qui roulent avec le vent
   const wM = new THREE.MeshLambertMaterial({ color: 0x9a7a4a, wireframe: true }), wM2 = new THREE.MeshLambertMaterial({ color: 0x7a5a32, wireframe: true });
   for (let k = 0; k < 7; k++) { const g = new THREE.Group(), r = 0.55 + Math.random() * 0.35; g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), wM)); const inn = new THREE.Mesh(new THREE.IcosahedronGeometry(r * 0.7, 1), wM2); inn.rotation.set(1, 2, 0.5); g.add(inn); g.visible = false; scene.add(g); COUNTRY.weeds.push({ g, r, x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0, alive: false }); }
@@ -2853,6 +2876,13 @@ function updateCountry(dt) {
     const hd = t.turn > 0 ? Math.atan2(ca * t.dir, -sa * t.dir) + Math.PI * (1 - t.turn / 2.4) : Math.atan2(ca * t.dir, -sa * t.dir);
     t.g.position.set(x, csH(x, z) - 0.05, z); t.g.rotation.y = hd; if (t.turn <= 0) t.g.userData.wheels.forEach(([w, r]) => { w.rotation.x += t.sp * dt / r; }); t.g.rotation.z = Math.sin(T * 9 + t.cx) * 0.012;
     t.dust.visible = t.turn <= 0; t.dust.position.set(x - Math.sin(hd) * 3.4, csH(x, z) + 0.9, z - Math.cos(hd) * 3.4); t.dust.material.opacity = 0.18 + Math.sin(T * 5 + t.cz) * 0.06; });
+  if (G.mode === "play" && SND.ctx) { let dt0 = 1e9; COUNTRY.tr.forEach(t => { if (t.g.visible) dt0 = Math.min(dt0, t.g.position.distanceTo(cam)); });
+    if (dt0 < 55) { COUNTRY.putT = (COUNTRY.putT || 0) - dt; if (COUNTRY.putT <= 0) { COUNTRY.putT = 0.115; noiseHit(0.09 * (1 - dt0 / 55), 120, 0.7, 0.07, "lowpass"); } }
+    let dc = 1e9; (COUNTRY.cows || []).forEach(c => { if (c.g.visible) dc = Math.min(dc, Math.hypot(c.x - cam.x, c.z - cam.z)); }); if (dc < 260) { COUNTRY.mooT = (COUNTRY.mooT == null ? 6 : COUNTRY.mooT) - dt; if (COUNTRY.mooT <= 0) { COUNTRY.mooT = 7 + Math.random() * 14; moo((0.03 + Math.random() * 0.04) * clamp(1.15 - dc / 260, 0.15, 1)); } } }
+  (COUNTRY.cows || []).forEach(c => { const d2 = (c.cx - cam.x) ** 2 + (c.cz - cam.z) ** 2; c.g.visible = d2 < 160000; if (!c.g.visible) return;
+    c.t -= dt; if (c.t <= 0) { c.t = 6 + Math.random() * 10; c.tx = c.cx + (Math.random() - 0.5) * 34; c.tz = c.cz + (Math.random() - 0.5) * 34; }
+    const dx = c.tx - c.x, dz = c.tz - c.z, d = Math.hypot(dx, dz), walk = d > 0.6 && c.t < 5; if (walk) { const want = Math.atan2(dx, dz); let dh = want - c.h; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); c.h += dh * Math.min(1, dt * 1.2); if (Math.abs(dh) < 0.5) { c.x += Math.sin(c.h) * 0.55 * dt; c.z += Math.cos(c.h) * 0.55 * dt; } }
+    c.g.position.set(c.x, csH(c.x, c.z) + (walk ? Math.abs(Math.sin(T * 4 + c.ph)) * 0.03 : 0), c.z); c.g.rotation.y = c.h; c.g.userData.head.rotation.x = walk ? 0.15 : 0.75 + Math.sin(T * 1.6 + c.ph) * 0.12; });
   COUNTRY.folks.forEach(f => { const h = f.h, d2 = (f.x0 - cam.x) ** 2 + (f.z0 - cam.z) ** 2; h.visible = d2 < 90000; if (!h.visible) return;
     if (f.walk) { f.u += dt * 0.025; const k = (f.u % 1), s2 = k < 0.5 ? k * 2 : 2 - k * 2, x = f.x0 + s2 * 40, z = f.z0; h.position.set(x, csH(x, z), z); h.rotation.y = k < 0.5 ? Math.PI / 2 : -Math.PI / 2; }
     else h.rotation.y = Math.sin(T * 0.2 + f.x0) * 1.2; });

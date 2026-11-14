@@ -1042,8 +1042,8 @@ const RENT_M = new THREE.MeshPhongMaterial({ color: 0x3fd16b, shininess: 60 }), 
 function wheel(r, x, y, z, parent) { const w = new THREE.Mesh(new THREE.TorusGeometry(r, r * 0.22, 8, 18), DARK_M); w.rotation.y = Math.PI / 2; w.position.set(x, y, z); parent.add(w); }
 function makeRide(kind) {
   const g = new THREE.Group();
-  if (kind === "airbus") { const m = modelInstance("plane_liner"); if (m) g.add(m); return g; }
-  if (kind === "avion") { const m = modelInstance("plane_small"); if (m) { g.add(m); addRotors(m, "plane_small", () => carMesh === g && !G.onFoot ? 14 + Math.abs(G.car.v) * 1.2 : 0); } else { const b = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 9), RENT_M); b.position.y = 1.4; g.add(b); const w = new THREE.Mesh(new THREE.BoxGeometry(11, 0.2, 1.8), RENT_M); w.position.set(0, 1.8, 0.6); g.add(w); } return g; }
+  if (kind === "airbus") { const m = modelInstance("plane_liner"); if (m) { g.add(m); navLights(m); } return g; }
+  if (kind === "avion") { const m = modelInstance("plane_small"); if (m) { g.add(m); navLights(m); addRotors(m, "plane_small", () => carMesh === g && !G.onFoot ? 14 + Math.abs(G.car.v) * 1.2 : 0); } else { const b = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 9), RENT_M); b.position.y = 1.4; g.add(b); const w = new THREE.Mesh(new THREE.BoxGeometry(11, 0.2, 1.8), RENT_M); w.position.set(0, 1.8, 0.6); g.add(w); } return g; }
   if (kind === "jetski") {
     const pink = new THREE.MeshPhongMaterial({ color: 0xff3fa4, shininess: 90, specular: 0xffffff }), white = new THREE.MeshPhongMaterial({ color: 0xf4f4f6, shininess: 90 }), black = new THREE.MeshLambertMaterial({ color: 0x15151a });
     const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.78, 3.1, 10), white); hull.rotation.x = Math.PI / 2; hull.scale.set(1, 1, 0.42); hull.position.y = 0.2; g.add(hull);
@@ -2012,6 +2012,12 @@ function grassTufts(cx, cz, w, d, n, r, base, avoid, flowers) {
   for (let k = 0; k < n; k++) { const x = cx + (r() - .5) * w, z = cz + (r() - .5) * d; if (avoid && avoid(x, z)) continue; const sc = 0.7 + r() * 0.7;
     addGeo(flowers && r() < flowers ? FLOWER_M : GRASS_M, GRASS_G, x, base, z, r() * 3.14, sc * 1.2, 0.32 + r() * 0.38, sc * 1.2); }
 }
+const RUNWAY = { edge: null };
+function updateRunway() { if (!RUNWAY.edge) return; const nk = nightK, T = performance.now() / 1000, on = 0.12 + nk * 0.88;
+  RUNWAY.edge.material.opacity = on; RUNWAY.cen.material.opacity = on * 0.8; RUNWAY.thr.material.opacity = on; RUNWAY.end.material.opacity = on; RUNWAY.pool.opacity = nk * 0.22;
+  RUNWAY.edge.material.size = 4 + nk * 3; const A = RUNWAY.ac, ph = (T * 2.2) % 1, n = A.length / 15; // rampe d'approche : un éclair blanc court vers la piste, deux fois par seconde
+  for (let i = 0; i < A.length / 3; i++) { const k = Math.floor(i / 10) + 1, lead = 1 - ph, hit = Math.abs(k / 12 - lead) < 0.06 ? 1 : 0.08, v = (0.15 + nk * 0.85) * hit; A[i * 3] = v; A[i * 3 + 1] = v; A[i * 3 + 2] = v * 0.95; }
+  RUNWAY.app.geometry.attributes.color.needsUpdate = true; }
 const AVL = []; let AVL_M = null; // feux d'obstacle rouges au sommet des tours (clignotent la nuit)
 function buildAviationLights() {
   if (!AVL.length) return; AVL_M = new THREE.PointsMaterial({ map: glowTexture(), color: 0xff2a2a, size: 6, sizeAttenuation: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 });
@@ -2618,7 +2624,7 @@ function updateGuing(dt) {
   GUING.list.forEach(g => { const d = Math.hypot(me.x - g.x, me.z - g.z); near = Math.min(near, d); g.glow.material.opacity = nk * 0.42; g.pts.forEach(p => { p.visible = d < 1100; }); });
   const on = nk > 0.45;
   GUING.people.forEach(h => { h.visible = (on || h.userData.day) && Math.hypot(me.x - h.position.x, me.z - h.position.z) < 170; if (h.userData.cup) h.userData.cup.visible = h.visible; });
-  guingMusic(dt, near); updateFires(dt); updateFair(dt); updateWheelRide(); updateShopFolks(dt); updateGantry(); updateBanner(dt); updateRadio2(); updateBeachLife(dt); updateLift(dt); updateCountry(dt); updateJungle(dt);
+  guingMusic(dt, near); updateFires(dt); updateFair(dt); updateWheelRide(); updateShopFolks(dt); updateGantry(); updateBanner(dt); updateRadio2(); updateRunway(); updateNavLights(); updateBeachLife(dt); updateLift(dt); updateCountry(dt); updateJungle(dt);
   if (on && near < 48 && G.mode === "play") { GUING.clinkT -= dt; if (GUING.clinkT <= 0) { GUING.clinkT = rand(0.35, 2.2); clink(0.055 * (1 - near / 48) + 0.004); } }
 }
 // cloche de l'église de Saint-Constant : elle sonne les heures (on l'entend dans la campagne)
@@ -3054,7 +3060,7 @@ function liftCam(dt) {
     px = LIFT.sx + Math.cos(LIFT.th) * 0.6; pz = LIFT.sz + Math.sin(LIFT.th) * 0.6; LIFT.cab.position.y = y; y += eye;
   }
   camera.position.set(px, y, pz); const cp = Math.cos(pitch); camera.lookAt(px + Math.cos(yaw) * cp * 10, y + Math.sin(pitch) * 10, pz + Math.sin(yaw) * cp * 10);
-  const fv = window.innerWidth < window.innerHeight ? 74 : 60, far = y > 120 ? 4400 : 2000; if (camera.fov !== fv || camera.far !== far) { camera.fov = fv; camera.far = far; camera.updateProjectionMatrix(); }
+  const fv = window.innerWidth < window.innerHeight ? 74 : 60; if (camera.fov !== fv) { camera.fov = fv; camera.updateProjectionMatrix(); }
   sky.position.copy(camera.position);
   if (LIFT.ph !== "top") { const fl = Math.round(88 * clamp((y - eye - LIFT.y0) / (yD - LIFT.y0), 0, 1)); $("lfN").textContent = fl; $("lfM").textContent = `ÉTAGE · ${Math.round(y - eye)} m`; }
   if (meMesh) meMesh.visible = false;
@@ -3138,11 +3144,11 @@ const CTRAIL = { n: 900, i: 0, pts: null };
 function trailPuff(x, y, z) {
   if (!CTRAIL.pts) { const g = new THREE.BufferGeometry(); CTRAIL.pos = new Float32Array(CTRAIL.n * 3).fill(-9999); CTRAIL.col = new Float32Array(CTRAIL.n * 3); CTRAIL.age = new Float32Array(CTRAIL.n).fill(99);
     g.setAttribute("position", new THREE.BufferAttribute(CTRAIL.pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(CTRAIL.col, 3));
-    CTRAIL.pts = new THREE.Points(g, new THREE.PointsMaterial({ size: 2.6, map: glowTexture(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true })); CTRAIL.pts.frustumCulled = false; scene.add(CTRAIL.pts); }
+    CTRAIL.pts = new THREE.Points(g, new THREE.PointsMaterial({ size: 1.3, map: glowTexture(), vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false, sizeAttenuation: true })); CTRAIL.pts.frustumCulled = false; scene.add(CTRAIL.pts); }
   const i = CTRAIL.i = (CTRAIL.i + 1) % CTRAIL.n; CTRAIL.pos[i * 3] = x; CTRAIL.pos[i * 3 + 1] = y; CTRAIL.pos[i * 3 + 2] = z; CTRAIL.age[i] = 0;
 }
 function updateTrails(dt) {
-  if (!CTRAIL.pts) return; const k = 0.55 + nightK * 0.1;
+  if (!CTRAIL.pts) return; const k = 0.75 * (1 - nightK * 0.85);
   for (let i = 0; i < CTRAIL.n; i++) { const a = CTRAIL.age[i] += dt; const v = a > 4.5 ? 0 : (1 - a / 4.5) * k; CTRAIL.col[i * 3] = v; CTRAIL.col[i * 3 + 1] = v; CTRAIL.col[i * 3 + 2] = v * 1.02; }
   CTRAIL.pts.geometry.attributes.color.needsUpdate = true; CTRAIL.pts.geometry.attributes.position.needsUpdate = true;
 }
@@ -3589,7 +3595,7 @@ function buildWorld() {
 
   // mer, sable, sol
   // mer : eau turquoise près du sable, bleu profond au large, vagues, reflets du soleil, écume qui va et vient
-  sea = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), new THREE.ShaderMaterial({
+  sea = new THREE.Mesh(new THREE.PlaneGeometry(26000, 26000), new THREE.ShaderMaterial({
     uniforms: { time: { value: 0 }, shore: { value: SHORE }, sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunCol: { value: new THREE.Color(1, .9, .7) }, skyCol: { value: new THREE.Color(0.6, 0.8, 1) },
       fogColor: { value: new THREE.Color() }, fogNear: { value: 160 }, fogFar: { value: 620 }, lightK: { value: 1 } },
     vertexShader: "varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }",
@@ -3975,6 +3981,19 @@ function addRotors(m, key, speedFn) {
   }
 }
 function updateSpin(dt) { for (const s of SPIN) { const v = s.f(); if (v) s.o.rotation[s.ax] += v * dt; } }
+// feux de navigation : rouge au bout de l'aile gauche, vert à droite, flash blanc en queue, balise rouge qui clignote, phares d'atterrissage
+const NAVL = []; let NAV_TX = null;
+function navLights(g) {
+  g.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(g); if (!isFinite(b.min.x)) return; NAV_TX = NAV_TX || glowTexture();
+  const span = b.max.x - b.min.x, s = Math.max(0.9, span * 0.06), mk = (col, x, y, z, k) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: NAV_TX, color: col, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); sp.position.set(x, y, z); sp.scale.setScalar(s * k); g.add(sp); return sp; };
+  const yw = (b.min.y + b.max.y) * 0.45, zw = (b.min.z + b.max.z) * 0.5 + (b.max.z - b.min.z) * 0.08;
+  NAVL.push({ red: mk(0xff2030, b.min.x + 0.1, yw, zw, 1), green: mk(0x20ff60, b.max.x - 0.1, yw, zw, 1), strobe: mk(0xffffff, 0, (b.min.y + b.max.y) * 0.55, b.min.z + 0.2, 1.4), beacon: mk(0xff3020, 0, b.max.y - 0.1, (b.min.z + b.max.z) * 0.5, 1.1),
+    land: [-1, 1].map(sd => mk(0xfff4dc, sd * span * 0.12, yw - 0.2, b.max.z * 0.55, 1.5)), g, ph: Math.random() * 3 });
+}
+function updateNavLights() { if (!NAVL.length) return; const T = performance.now() / 1000, nk = nightK;
+  for (let i = NAVL.length - 1; i >= 0; i--) { const L = NAVL[i]; if (!L.g.parent) { NAVL.splice(i, 1); continue; } if (!L.g.visible) continue; const base = 0.35 + nk * 0.65, t = (T + L.ph) % 1.2;
+    L.red.material.opacity = base; L.green.material.opacity = base; L.strobe.material.opacity = t < 0.06 || (t > 0.16 && t < 0.22) ? 1 : 0; L.beacon.material.opacity = (T + L.ph) % 1 < 0.5 ? base : 0.05;
+    const own = carMesh === L.g && G.car.alt < 220; L.land.forEach(sp => { sp.material.opacity = own ? nk * 0.9 : nk * 0.25; }); } }
 function makePlane(kind) {
   const key = kind || (Math.random() < 0.6 ? "plane_liner" : "plane_small");
   if (MODELS[key]) {
@@ -3983,7 +4002,7 @@ function makePlane(kind) {
     TRAIL_MAT = TRAIL_MAT || new THREE.MeshBasicMaterial({ map: fadeTex(true), transparent: true, depthWrite: false, opacity: 0.8 });
     if (key === "plane_liner") [-9, 9].forEach(x => { const t = trail(260, 2.2, TRAIL_MAT); t.position.set(x, MODELS[key].size.y * 0.3, -MODELS[key].size.z * 0.55); g.add(t); });
     else { const t = trail(60, 1.2, TRAIL_MAT); t.position.set(0, 1, -MODELS[key].size.z * 0.6); t.material = TRAIL_MAT; g.add(t); }
-    return g;
+    navLights(m); return g;
   }
   const g = new THREE.Group(), w = new THREE.MeshPhongMaterial({ color: 0xf4f4f4, shininess: 60 }), r = new THREE.MeshLambertMaterial({ color: 0xff2d55 });
   const body = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.1, 22, 12), w); body.rotation.x = Math.PI / 2; g.add(body);
@@ -4588,7 +4607,10 @@ function applySky(h) {
   lampGlowMat.opacity = nightK * 0.95; if (lampPoolMat) lampPoolMat.opacity = nightK * 0.42 * (1 + WX.wet * 0.5); bulbMat.color.setRGB(0.47 + nightK * 0.53, 0.44 + nightK * 0.5, 0.4 + nightK * 0.3);
   const su = sea.material.uniforms; su.sunDir.value.copy(sd); su.sunCol.value.copy(skyMat.uniforms.sunCol.value); su.skyCol.value.copy(skyMat.uniforms.top.value).lerp(skyMat.uniforms.bottom.value, 0.5);
   if (FX.cloudMat) { FX.cloudMat.color.setRGB(0.35 + day * 0.65, 0.33 + day * 0.62, 0.38 + day * 0.6).lerp(new THREE.Color(1, 0.62, 0.45), Math.max(0, 0.45 - day) * (1 - nightK) * 1.4); FX.cloudMat.opacity = 0.62 + day * 0.3; }
-  { const cy = camera ? camera.position.y : 0, away = camera && camera.position.z < -HALF - 120 ? 1.7 : 1, fk = Math.max(away, 1 + Math.min(3.2, Math.max(0, cy - 8) / 40)); scene.fog.near = Math.min(160 * fk, 520); scene.fog.far = Math.min(620 * fk, 1180); }
+  { const cy = camera ? camera.position.y : 0, away = camera && camera.position.z < -HALF - 120 ? 1.7 : 1, fk = Math.max(away, 1 + Math.min(3.2, Math.max(0, cy - 8) / 40)), vk = clamp((cy - 70) / 150, 0, 1);
+    // points de vue (belvédère, sommet, avion) : on voit loin, la montagne depuis la tour et la ville depuis la montagne, avec une légère brume
+    scene.fog.near = Math.min(160 * fk, 520) + vk * 650; scene.fog.far = Math.min(620 * fk, 1180) + vk * 3700;
+    if (camera) { const want = vk > 0.01 ? 5600 : 2000; if (camera.far !== want) { camera.far = want; camera.updateProjectionMatrix(); } } }
   su.fogColor.value.copy(scene.fog.color); su.fogNear.value = scene.fog.near; su.fogFar.value = scene.fog.far; su.lightK.value = 0.3 + day * 0.7;
   applyWeatherSky(day);
   if (FW.flash) hemi.intensity += FW.flash * 0.4;
@@ -4953,6 +4975,7 @@ function updateBoat(dt) {
 /* ============ Avion (arcade) ============ */
 function planeGround(x, z) { return GH(x, z); }
 function planeRescue() { // flash blanc puis réveil sur la plage, l'avion retourne à sa place, personne n'est blessé
+  if (G.onFoot || G.para || !carMesh) return; // déjà sorti en parachute : on ne téléporte plus personne
   const fl = $("pFlash"); if (fl) { fl.style.transition = "none"; fl.style.opacity = 1; }
   setTimeout(() => {
     const k = G.ride.kind, home = G.rideHome || { x: AP.x0 + 60, z: AP.rz, h: Math.PI / 2 }, c = G.car;
@@ -4993,20 +5016,24 @@ function updatePlane(dt) {
     }
   }
   const f = Math.cos(c.pitch); c.x += Math.sin(c.h) * c.v * dt * f; c.z += Math.cos(c.h) * c.v * dt * f;
-  const R = 2300; if (Math.hypot(c.x, c.z + 450) > R - 220 && !G.edgeWarn && air) { G.edgeWarn = true; notify("gold", "<b>Tu essaies de t'échapper ?</b> On n'échappe pas à la Constancy. Fais demi-tour : Tes missions t'attendent.", 6); }
-  if (Math.hypot(c.x, c.z + 450) < R - 260) G.edgeWarn = false;
-  if (Math.hypot(c.x, c.z + 450) > R && air && !G.crash) { G.crash = { t: 0 }; stat("avion-a-la-mer"); help("<b>Tu ne peux pas fuir.</b> L'avion pique vers la mer…", 3); }
+  const R = 3000; if (Math.hypot(c.x, c.z + 950) > R - 220 && !G.edgeWarn && air) { G.edgeWarn = true; notify("gold", "<b>Tu essaies de t'échapper ?</b> On n'échappe pas à la Constancy. L'avion fait demi-tour : Tes missions t'attendent.", 6); }
+  if (Math.hypot(c.x, c.z + 950) < R - 260) G.edgeWarn = false;
+  // au bord du monde : l'avion fait demi-tour tout seul, en douceur (on garde toujours le contrôle)
+  if (Math.hypot(c.x, c.z + 950) > R - 150 && air && !G.crash) { const want = Math.atan2(-c.x, -(c.z + 950)); let dh = want - c.h; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); c.h += clamp(dh, -0.9 * dt, 0.9 * dt); c.roll += (Math.sign(dh) * -0.45 - c.roll) * Math.min(1, dt * 2); }
+  if (false) { G.crash = { t: 0 }; stat("avion-a-la-mer"); help("<b>Tu ne peux pas fuir.</b> L'avion pique vers la mer…", 3); }
   if (G.crash) { G.crash.t += dt; c.pitch += (-0.75 - c.pitch) * Math.min(1, dt * 1.6); c.alt -= (20 + c.v * 0.6) * dt; c.v = Math.max(30, c.v);
     if (c.alt <= 1 && !G.crash.splash) { G.crash.splash = true; c.alt = 0.5; c.v = 0; sfx.splash && sfx.splash(); FX.mat.uniforms.col.value.setHex(0xe8f6ff); for (let q = 0; q < 160; q++) { const a = Math.random() * 6.28, sp = 2 + Math.random() * 9; emitDust(c.x + Math.cos(a) * 3, 0.5, c.z + Math.sin(a) * 3, Math.cos(a) * sp, Math.sin(a) * sp, 2.2); }
       setTimeout(() => planeRescue(), 1400); }
     if (G.crash.splash) { carMesh.position.set(c.x, c.alt, c.z); return; } }
   if (!air && collide(c, 4.5)) c.v *= Math.pow(0.05, dt);
   carMesh.rotation.order = "YXZ"; carMesh.position.set(c.x, c.alt, c.z); carMesh.rotation.set(-c.pitch, c.h, -c.roll);
-  if (air && c.alt > 12) { const big = G.ride.kind === "airbus", wing = big ? 17 : 5.5, back = big ? 14 : 2.5, rx = Math.cos(c.h), rz = -Math.sin(c.h); [-1, 1].forEach(sd => trailPuff(c.x + rx * wing * sd - Math.sin(c.h) * back, c.alt + 0.4, c.z + rz * wing * sd - Math.cos(c.h) * back)); }
+  if (air && c.alt > 90 && c.v > 35) { const big = G.ride.kind === "airbus", wing = big ? 17 : 5.5, back = big ? 14 : 2.5, rx = Math.cos(c.h), rz = -Math.sin(c.h); [-1, 1].forEach(sd => trailPuff(c.x + rx * wing * sd - Math.sin(c.h) * back, c.alt + 0.4, c.z + rz * wing * sd - Math.cos(c.h) * back)); }
 }
 // hauteur du toit sous l'avion (blocs de la ville)
 function buildingTop(x, z) {
   if (Math.abs(x) > HALF || Math.abs(z) > HALF) return 0;
+  if (TOWER.F && Math.abs(x - TOWER.x) < TOWER.F / 2 + 3 && Math.abs(z - TOWER.z) < TOWER.F / 2 + 3) { const d = Math.hypot(x - TOWER.x, z - TOWER.z);
+    return d < 4 ? 478 : d < 9.5 ? 442 : d < 16.8 ? 321 : d < 18.9 ? 88 : d < 19.8 ? 50 : 8; }
   const i = clamp(Math.floor((x + HALF) / STEP), 0, NB - 1), j = clamp(Math.floor((z + HALF) / STEP), 0, NB - 1), L = BLOCK_BOXES.get(i + "," + j); if (!L) return 0;
   let top = 0; for (const b of L) if (x > b[0] - 3 && x < b[2] + 3 && z > b[1] - 3 && z < b[3] + 3) top = Math.max(top, b[4] || 12); return top;
 }
@@ -5025,8 +5052,24 @@ function buildAirports(r) {
   addGeo(yel, new THREE.BoxGeometry(0.5, 0.02, AP.rz - 12 - (AP.z0 + 40)), 185, 0.1, (AP.rz - 12 + AP.z0 + 40) / 2);
   addGeo(yel, new THREE.BoxGeometry(AP.x1 - AP.x0 - 60, 0.02, 0.5), cx, 0.1, AP.rz - 18);
   // balisage lumineux le long de la piste
-  const lightM = new THREE.MeshBasicMaterial({ color: 0xfff4c2 });
+  const lightM = new THREE.MeshBasicMaterial({ color: 0xff7ad9 });
   for (let x = AP.x0 + 22; x < AP.x1 - 20; x += 14) [-13.5, 13.5].forEach(dz => addGeo(lightM, new THREE.BoxGeometry(0.4, 0.3, 0.4), x, 0.2, AP.rz + dz));
+  { const gt = glowTexture(), edge = [], cen = [], thr = [], end = [], app = [], x0 = AP.x0 + 20, x1 = AP.x1 - 20;
+    for (let x = AP.x0 + 22; x < AP.x1 - 20; x += 14) [-13.5, 13.5].forEach(dz => edge.push(x, 0.45, AP.rz + dz));
+    for (let x = x0 + 30; x < x1 - 30; x += 9) cen.push(x, 0.15, AP.rz);
+    for (let dz = -12; dz <= 12; dz += 2) { thr.push(x0, 0.3, AP.rz + dz, x1, 0.3, AP.rz + dz); end.push(x0 - 1.5, 0.3, AP.rz + dz, x1 + 1.5, 0.3, AP.rz + dz); }
+    for (let k = 1; k <= 12; k++) [-1, 1].forEach(sd => { for (let w = -2; w <= 2; w++) app.push(sd < 0 ? x0 - k * 11 : x1 + k * 11, 1.2, AP.rz + w * 1.6); });
+    const pts = (arr, col, size, extra = {}) => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(arr, 3)); const m = new THREE.PointsMaterial(Object.assign({ map: gt, color: col, size, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 }, extra)); const o = new THREE.Points(g, m); o.frustumCulled = false; scene.add(o); return o; };
+    RUNWAY.edge = pts(edge, 0xff4fc8, 5); RUNWAY.cen = pts(cen, 0xffe6f6, 2.6); RUNWAY.thr = pts(thr, 0x3dff7a, 3.6); RUNWAY.end = pts(end, 0xff2a2a, 3.2);
+    const ag = new THREE.BufferGeometry(); ag.setAttribute("position", new THREE.Float32BufferAttribute(app, 3)); RUNWAY.ac = new Float32Array(app.length); ag.setAttribute("color", new THREE.BufferAttribute(RUNWAY.ac, 3));
+    RUNWAY.app = new THREE.Points(ag, new THREE.PointsMaterial({ map: gt, size: 4.2, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); RUNWAY.app.frustumCulled = false; scene.add(RUNWAY.app);
+    // halos roses au sol le long des bords
+    const pool = new THREE.MeshBasicMaterial({ map: gt, color: 0xff4fc8, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }); RUNWAY.pool = pool;
+    [-13.5, 13.5].forEach(dz => { const pl = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, 9), pool); pl.rotation.x = -Math.PI / 2; pl.position.set((x0 + x1) / 2, 0.12, AP.rz + dz); scene.add(pl); });
+    // nom de l'aéroport peint aux deux bouts de la piste
+    const c = document.createElement("canvas"); c.width = 1024; c.height = 256; const x = c.getContext("2d"); x.fillStyle = "rgba(242,240,236,.88)"; x.textAlign = "center"; x.font = "900 170px Georgia, serif"; x.fillText("CONSTANCY", 512, 190);
+    const tm = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false });
+    [[x0 + 62, -Math.PI / 2], [x1 - 62, Math.PI / 2]].forEach(([px, rz]) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(36, 9), tm); m.rotation.set(-Math.PI / 2, 0, rz); m.position.set(px, 0.11, AP.rz); scene.add(m); }); }
   // hangar : grande voûte ouverte côté piste
   const hgM = new THREE.MeshLambertMaterial({ color: 0xe9e6df, side: THREE.DoubleSide }), hx = 185, hz = AP.z0 + 26;
   const arch = new THREE.CylinderGeometry(17, 17, 34, 24, 1, true, -Math.PI / 2, Math.PI); arch.rotateZ(Math.PI / 2); arch.rotateY(Math.PI / 2);
@@ -5519,10 +5562,18 @@ function nearestRide() {
   return best;
 }
 let paraMesh = null;
+const UNST = { t: 0, x: 0, z: 0 };
+function unstick(dt) {
+  const me = G.me; if (G.para || G.inside || G.ufoRide || G.swimming || (Math.abs(me.x) < HALF + 30 && Math.abs(me.z) < HALF + 30)) { UNST.t = 0; return; }
+  const inp = input(), push = Math.abs(inp.fwd) > 0.4, moved = Math.hypot(me.x - UNST.x, me.z - UNST.z); UNST.x = me.x; UNST.z = me.z;
+  if (!push || moved > 0.02) { UNST.t = 0; return; } UNST.t += dt; if (UNST.t < 1.4) return; UNST.t = 0;
+  for (const r of [3, 6, 10, 16, 24, 36]) for (let k = 0; k < 12; k++) { const a = me.h + k * Math.PI / 6, x = me.x + Math.sin(a) * r, z = me.z + Math.cos(a) * r; if (isWater(x, z)) continue;
+    const o = { x, z, _lx: x, _lz: z }; collide(o, 0.6, false); if (Math.hypot(o.x - x, o.z - z) < 0.3) { me.x = x; me.z = z; me._lx = x; me._lz = z; G.snapCam = true; help("Petit coup de pouce : Te revoilà sur la terre ferme.", 3); return; } }
+}
 function startParachute() {
   const c = G.car, k = G.ride.kind;
   G.ghost = { mesh: carMesh, kind: k, x: c.x, z: c.z, alt: c.alt, h: c.h, v: Math.max(30, c.v), pitch: c.pitch || 0, roll: c.roll || 0, home: G.rideHome || { x: AP.x0 + 60, z: AP.rz, h: Math.PI / 2 }, t: 0 };
-  carMesh = null; G.ride = { kind: "none" }; G.onFoot = true; G.turbo = false; G.tbOn = false; G.fpv = false;
+  carMesh = null; G.ride = { kind: "none" }; G.onFoot = true; G.turbo = false; G.tbOn = false; G.fpv = false; G.crash = null; G.edgeWarn = false; G.wantExit = false;
   G.me.x = c.x - Math.sin(c.h) * 6; G.me.z = c.z - Math.cos(c.h) * 6; G.me.h = c.h; G.me.v = 0; G.me.jy = 0; G.swimming = false;
   G.para = { alt: c.alt - 2, open: 0 }; meMesh.visible = true; resetPose(); G.snapCam = true; sfx.door();
   if (!paraMesh) {
@@ -5550,7 +5601,7 @@ function updateGhost(dt) {
   const g = G.ghost; if (!g) return; g.t += dt;
   g.pitch += (-0.32 - g.pitch) * Math.min(1, dt * 0.8); g.roll *= Math.pow(0.4, dt);
   // il s'éloigne vers le large (la mer entoure la ville)
-  const out = Math.atan2(g.x, g.z + 450); let dh = out - g.h; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); g.h += clamp(dh, -0.4 * dt, 0.4 * dt);
+  const out = Math.atan2(g.x, g.z + 950); let dh = out - g.h; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); g.h += clamp(dh, -0.4 * dt, 0.4 * dt);
   g.x += Math.sin(g.h) * g.v * dt * Math.cos(g.pitch); g.z += Math.cos(g.h) * g.v * dt * Math.cos(g.pitch); g.alt += Math.sin(g.pitch) * g.v * dt;
   g.mesh.rotation.order = "YXZ"; g.mesh.position.set(g.x, g.alt, g.z); g.mesh.rotation.set(-g.pitch, g.h, -g.roll);
   const gh = isWater(g.x, g.z) ? -0.6 : planeGround(g.x, g.z);
@@ -6114,16 +6165,16 @@ function socialTick() {
   if (!P.refWelcome && refCode() && t > 20) { P.refWelcome = 1; addCash(FRIEND_BONUS); saveNow(); stat("bienvenue-filleul"); notify("gold", `<b>Un ami t'a invité.</b> Cadeau de bienvenue : <b style="color:var(--cash)">+$${fmt(FRIEND_BONUS)}</b>. Bienvenue à Constancy City.`, 7); }
 }
 function emailMoment(dt) { // le bon moment : juste après une mission, ou quand le joueur souffle (arrêté), sinon au plus tard à 4 min
-  if (P.email || CREATOR || G.emailGate || G.mode !== "play" || G.entering || G.inside) return;
+  if (P.email || CREATOR || G.emailGate || G.mode !== "play" || G.entering || G.inside || P.emailLater) return;
   P.playS = (P.playS || 0) + dt; const t = P.playS;
   if (P.emailAsks && t > 30) { openEmailGate(); return; }
-  if (t < (P.emailNext || 150)) return;
+  if (t < (P.emailNext || 120)) return;
   const still = G.onFoot ? (G.me.speed || G.me.v || 0) < 0.6 : Math.abs((G.car && G.car.v) || 0) < 1;
   G.emailStill = still ? (G.emailStill || 0) + dt : 0;
   const afterMission = G.emailAfterMission && t > G.emailAfterMission;
-  if (afterMission || G.emailStill > 2.5 || t > (P.emailNext || 150) + 90) { G.emailAfterMission = 0; openEmailGate(); }
+  if (afterMission || G.emailStill > 2.5 || t > (P.emailNext || 120) + 45) { G.emailAfterMission = 0; openEmailGate(); }
 }
-function openEmailGate() {
+function openEmailGate(after) {
   if (G.emailGate) return; G.emailGate = true; P.emailAsks = (P.emailAsks || 0) + 1; setMode("email"); stat("ecran-email-" + P.emailAsks);
   const perk = (ic, b, t) => `<div style="display:flex;gap:12px;align-items:flex-start"><span style="flex:0 0 34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:rgba(255,63,164,.16);border:1px solid rgba(255,63,164,.4);font-size:17px">${ic}</span><span style="font-size:14px;line-height:1.4;color:#dcd8e2"><b style="color:#fff">${b}</b><br>${t}</span></div>`;
   show(`<div class="panel" style="gap:16px"><div class="kicker" style="color:#ff6fbf">Sauvegarde · Accès anticipé</div>
@@ -6138,12 +6189,15 @@ function openEmailGate() {
     <input id="emPs" class="linkbox" type="text" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="Ton pseudo (classement)" style="-webkit-user-select:text;user-select:text;text-align:left;margin:-6px 0 0;font-size:16px;padding:14px">
     <div id="emErr" class="note" style="color:#ff6b8a;min-height:16px;margin-top:-8px"></div>
     <button class="btn pink" id="emGo" type="button" style="margin-top:-6px">Sauvegarder et continuer</button>
-    <p class="note" style="opacity:.75;margin:0;text-align:center">Un e-mail seulement quand une nouvelle version sort. Jamais de spam · Désinscription en 1 clic.</p></div>`, "mail");
+    <p class="note" style="opacity:.75;margin:0;text-align:center">Un e-mail seulement quand une nouvelle version sort. Jamais de spam · Désinscription en 1 clic.</p>
+    <button id="emLater" type="button" style="background:none;border:0;color:rgba(242,240,236,.45);font:500 13px Inter,sans-serif;padding:4px;margin:-6px auto 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px">Plus tard</button></div>`, "mail");
   const inp = $("em"), go = () => { const v = (inp.value || "").trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(v)) { $("emErr").textContent = "Vérifie ton adresse e-mail."; return; }
     { const ps = ($("emPs") && $("emPs").value || "").replace(/[<>"&]/g, "").trim().slice(0, 16); if (ps) P.pseudo = ps; } pid(); P.email = v; addCash(EMAIL_BONUS); saveNow(); stat("email-ok"); if (refCode()) stat("inscription-parrainee"); const q = kitQueue(); q.push(v); kitSave(q); kitFlush();
-    G.emailGate = false; resume(); celebrate(4); notify("gold", "<b>Tu es sur la liste.</b> Tu recevras la prochaine bêta avant tout le monde. <b style=\"color:var(--cash)\">+$" + fmt(EMAIL_BONUS) + "</b> versés.", 6); };
+    G.emailGate = false; if (after) after(); else resume(); celebrate(4); notify("gold", "<b>Tu es sur la liste.</b> Tu recevras la prochaine bêta avant tout le monde. <b style=\"color:var(--cash)\">+$" + fmt(EMAIL_BONUS) + "</b> versés.", 6); };
   on("emGo", go); inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+  // « Plus tard » : on ne redemande plus en pleine partie, seulement au retour d'un jour suivant (3 fois maximum)
+  on("emLater", () => { P.emailLater = (P.emailLater || 0) + 1; saveNow(); stat("email-plus-tard"); G.emailGate = false; if (after) after(); else resume(); });
 }
 function setMode(m) {
   G.mode = m; const play = m === "play";
@@ -6170,7 +6224,8 @@ function titleScreen() {
     ${saved ? `<button class="btn" id="cont" data-focus type="button">Continuer · jour ${saved.day} · $${fmt(saved.cash)}</button><button class="btn alt" id="newg" type="button">Nouvelle partie</button>` : `<button class="btn" id="quick" data-focus type="button">Jouer maintenant</button><button class="btn alt" id="newg" type="button">Créer mon perso d'abord</button>`}
     <button class="btn alt" id="tcodeBtn" type="button" style="font-size:14px">J'ai un code de partie</button>
     <p class="note">Téléphone : pose ton pouce en bas de l'écran et glisse vers le haut pour avancer, vers le bas pour reculer, sur les côtés pour tourner. Ordinateur : flèches ou ZQSD, Espace pour freiner, F pour sortir de la voiture, Maj pour sprinter à pied. Sur téléphone, pousse le doigt au-delà du rond pour sprinter.</p></div>`);
-  on("cont", () => { audioInit(); P = Object.assign(freshSave(saved.objective, saved.muscle), saved); P.counts = P.counts || {}; if (P.jokers == null) P.jokers = 2; dailyReturn(); if (G.newDay) welcomeBack(); else startPlay(); });
+  on("cont", () => { audioInit(); P = Object.assign(freshSave(saved.objective, saved.muscle), saved); P.counts = P.counts || {}; if (P.jokers == null) P.jokers = 2; dailyReturn(); const next = () => { if (G.newDay) welcomeBack(); else startPlay(); };
+    if (G.newDay && !P.email && !CREATOR && P.emailLater && (P.emailReask || 0) < 3) { P.emailReask = (P.emailReask || 0) + 1; saveNow(); openEmailGate(next); } else next(); });
   on("newg", () => { audioInit(); saved ? confirmNew() : createAvatar(); });
   on("quick", () => { audioInit(); quickObjective(); });
   on("tcodeBtn", () => openTransfer(true));
@@ -6186,8 +6241,10 @@ function titleScreen() {
 /* ============ Statistiques (GoatCounter : gratuit, sans cookie) + transfert de partie ============ */
 const GC_CODE = "constancy"; // compte goatcounter.com : constancy.goatcounter.com
 const onWeb = /^https?:$/.test(location.protocol) && !/claude\.ai|claudeusercontent|anthropic/.test(location.hostname);
-if (onWeb && GC_CODE) { const sc = document.createElement("script"); sc.async = true; sc.src = "https://gc.zgo.at/count.js"; sc.dataset.goatcounter = `https://${GC_CODE}.goatcounter.com/count`; document.head.appendChild(sc); }
-function stat(name) { try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "evt-" + name, title: name, event: true }); else if (onWeb) setTimeout(() => window.goatcounter && window.goatcounter.count && window.goatcounter.count({ path: "evt-" + name, title: name, event: true }), 3000); } catch (e) {} }
+// mode sans statistiques : ?nostat=1 coupe GoatCounter sur cet appareil pour toujours (localStorage « skipgc », reconnu aussi par count.js), puis le paramètre disparaît de l'adresse
+const NOSTAT = (() => { try { const u = new URL(location.href); if (u.searchParams.get("nostat") === "1") { localStorage.setItem("skipgc", "t"); u.searchParams.delete("nostat"); history.replaceState(null, "", u.pathname + (u.search.length > 1 ? u.search : "") + u.hash); } return localStorage.getItem("skipgc") === "t"; } catch (e) { return /[?&]nostat=1/.test(location.search); } })();
+if (onWeb && GC_CODE && !NOSTAT) { const sc = document.createElement("script"); sc.async = true; sc.src = "https://gc.zgo.at/count.js"; sc.dataset.goatcounter = `https://${GC_CODE}.goatcounter.com/count`; document.head.appendChild(sc); }
+function stat(name) { if (NOSTAT) return; try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "evt-" + name, title: name, event: true }); else if (onWeb) setTimeout(() => window.goatcounter && window.goatcounter.count && window.goatcounter.count({ path: "evt-" + name, title: name, event: true }), 3000); } catch (e) {} }
 window.addEventListener("appinstalled", () => stat("installation-appli"));
 function exportSave() { saveNow(); try { return "CST1." + btoa(unescape(encodeURIComponent(JSON.stringify(P)))); } catch (e) { return ""; } }
 function importSave(code) { try { const d = JSON.parse(decodeURIComponent(escape(atob(code.trim().replace(/^CST1\./, ""))))); if (!d || !d.objective) return false; store.save(d); return true; } catch (e) { return false; } }
@@ -6770,7 +6827,7 @@ function loop(now) {
   if (playing) {
     P.dayT += dt; const h = hourNow();
     if (P.objective === "famille" && !storyStep()) [9, 14, 19].forEach(hh => { if (h >= hh && h < hh + 0.25 && !G.alerts["m" + hh] && !G.mission) { G.alerts["m" + hh] = true; G.alerts.mamieActive = true; sfx.door(); help(`<b style="color:${COL.env}">Mamie t'appelle :</b> « On vient de me voler mon sac ! » Fonce chez elle.`, 7); } });
-    if (G.entering) updateEnter(dt); else if (G.onFoot) updateMe(dt); else updateCar(dt);
+    if (G.entering) updateEnter(dt); else if (G.onFoot) { updateMe(dt); unstick(dt); } else updateCar(dt);
     if (beam && (G.onFoot || !carMesh || (G.ride && (isPlane(G.ride.kind) || G.ride.kind === "bateau")))) beam.visible = false;
     if (G.wantExit && !G.onFoot && !G.entering) { G.car.v *= Math.pow(0.004, dt); if (Math.abs(G.car.v) < 4) { G.car.v = 0; G.wantExit = false; toggleCar(); } } else if (G.onFoot) G.wantExit = false;
     updateReminders(dt);

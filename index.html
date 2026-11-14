@@ -1873,7 +1873,8 @@ function collideProps(o, rad) {
   return hit;
 }
 function palm(x, z, r, y0 = 0) {
-  addProp(x, z, 0.35); if (PALM_SPOTS.length < 900) PALM_SPOTS.push([x, z, y0]);
+  addProp(x, z, 0.35); if (PALM_SPOTS.length < 1600) PALM_SPOTS.push([x, z, y0, 8 + r() * 7, r() * 6.283]);
+  if (PALMX.on) return;
   const h = 8 + r() * 7, segs = 4, bend = (r() - .5) * 0.5, dir = r() * Math.PI * 2, seg = h / segs;
   let px = x, py = y0, pz = z;
   for (let k = 0; k < segs; k++) {
@@ -1935,6 +1936,8 @@ function districtMats() {
   DM.lot = new THREE.MeshLambertMaterial({ color: 0x3b3a40 });
   DM.white = new THREE.MeshBasicMaterial({ color: 0xdedbd2 });
   DM.glassShop = new THREE.MeshPhongMaterial({ color: 0x1d2c3c, shininess: 90, specular: 0x88aacc, emissive: 0x0b1420 });
+  { const TL = new THREE.TextureLoader(), ld = u => { const t = TL.load(u); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t; }; // rez-de-chaussée : vraies vitrines de boutiques (ChatGPT), éclairées le soir
+    DM.shopRow = new THREE.MeshPhongMaterial({ color: 0xffffff, map: ld("assets/shopfront1.jpg"), emissive: 0xffffff, emissiveMap: ld("assets/shopfront1_night.jpg"), emissiveIntensity: 0.1, shininess: 60, specular: 0x334455 }); }
   DM.concrete = new THREE.MeshLambertMaterial({ color: 0xa7a39b });
   DM.crane = new THREE.MeshLambertMaterial({ color: 0xf2b21b });
   DM.fence = new THREE.MeshLambertMaterial({ color: 0x5b6270 });
@@ -1956,6 +1959,8 @@ function billboardTexture() {
 }
 const ZONES = new Map(), PARKED = []; // voitures garées sur les parkings : on peut monter dedans (location)
 function setBoxes(i, j, list) { BLOCK_BOXES.set(i + "," + j, list); }
+function shopBox(w, h, d) { const g = new THREE.BoxGeometry(w, h, d), uv = g.attributes.uv, L = h * 2.05; // une rangée de 3 boutiques tous les ~2 × la hauteur
+  const dims = [d, d, 0, 0, w, w]; for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) { const i = f * 4 + k; uv.setXY(i, dims[f] ? uv.getX(i) * Math.max(1, Math.round(dims[f] / L)) : 0, dims[f] ? uv.getY(i) : 0); } return g; }
 function zoneOf(i, j, dist, r) {
   if (i === 2 && j === 5) return "hospital";
   if (i === 10 && j === 3) return "construction";
@@ -2191,14 +2196,14 @@ function buildDistrictBlock(i, j, cx, cz, F, dist, r, M) {
       addGeo(M.roofM, new THREE.BoxGeometry(w * 0.5, 0.5, d * 0.5), x0, top + base + 0.25, z0); boxes[boxes.length - 1][4] = top + base + (tall ? 20 : 2);
       if (tall && r() < .6) { addGeo(M_POLE, new THREE.CylinderGeometry(.15, .35, 18, 6), x0, top + base + 9, z0); AVL.push([x0, top + base + 18.3, z0]); }
       else if (tall) { AVL.push([x0 - w * 0.3, top + base + 0.8, z0 - d * 0.3]); AVL.push([x0 + w * 0.3, top + base + 0.8, z0 + d * 0.3]); }
-      addGeo(DM.glassShop, new THREE.BoxGeometry(w + 0.1, 5, d + 0.1), x0, base + 2.5, z0);
+      addGeo(DM.shopRow, shopBox(w + 0.1, 5, d + 0.1), x0, base + 2.5, z0);
       // couronne lumineuse et marquise du hall
       if (!round) { addGeo(DM.crown, new THREE.BoxGeometry(w * 0.74, 0.35, d * 0.74), x0, base + top - 0.4, z0); addGeo(DM.trimDark, new THREE.BoxGeometry(w * 0.6, 0.35, 3), x0, base + 5.2, z0 + d / 2 + 1.4); addGeo(DM.trimDark, new THREE.BoxGeometry(w * 0.6, 0.35, 3), x0, base + 5.2, z0 - d / 2 - 1.4); }
     } else {
       const h = 8 + r() * 22 * (1.25 - dist), mat = pick(winMats.slice(0, NFAC));
       addGeo(mat, boxUV(w, h, d), x0, h / 2 + base, z0);
       buildingDetail(x0, z0, w, d, h, base, r);
-      addGeo(DM.glassShop, new THREE.BoxGeometry(w + 0.08, 3.2, d + 0.08), x0, base + 1.6, z0);
+      addGeo(DM.shopRow, shopBox(w + 0.08, 3.2, d + 0.08), x0, base + 1.6, z0);
       addGeo(pick(awnMats), new THREE.BoxGeometry(w + 1.6, 0.18, d + 1.6), x0, base + 3.5, z0);
       { const fc = []; if (x0 + w / 2 > cx + F / 2 - 3) fc.push([1, 0]); if (x0 - w / 2 < cx - F / 2 + 3) fc.push([-1, 0]); if (z0 + d / 2 > cz + F / 2 - 3) fc.push([0, 1]); if (z0 - d / 2 < cz - F / 2 + 3) fc.push([0, -1]); addShopSign(x0, z0, w, d, base, fc, r); }
       addGeo(M.roofM, new THREE.BoxGeometry(w + .4, .5, d + .4), x0, h + base + .25, z0); boxes[boxes.length - 1][4] = h + base + 4;
@@ -2741,7 +2746,7 @@ function updateGuing(dt) {
   GUING.list.forEach(g => { const d = Math.hypot(me.x - g.x, me.z - g.z); near = Math.min(near, d); g.glow.material.opacity = nk * 0.42; g.pts.forEach(p => { p.visible = d < 1100; }); });
   const on = nk > 0.45;
   GUING.people.forEach(h => { h.visible = (on || h.userData.day) && Math.hypot(me.x - h.position.x, me.z - h.position.z) < 170; if (h.userData.cup) h.userData.cup.visible = h.visible; });
-  guingMusic(dt, near); updateFires(dt); updateFair(dt); updateWheelRide(); updateShopFolks(dt); updateGantry(); updateBanner(dt); updateRadio2(); updateFlags(); updateHolly(); updateRunway(); updateNavLights(); updateBeachLife(dt); updateLift(dt); updateCountry(dt); updateJungle(dt); updateGpsTrail(dt); updateGarage(dt);
+  guingMusic(dt, near); updateFires(dt); updateFair(dt); updateWheelRide(); updateShopFolks(dt); updateGantry(); updateBanner(dt); updateRadio2(); updateFlags(); updateHolly(); updateRunway(); updateNavLights(); updateBeachLife(dt); updateLift(dt); updateCountry(dt); updateJungle(dt); updateGpsTrail(dt); updateGarage(dt); updatePalms(dt);
   if (on && near < 48 && G.mode === "play") { GUING.clinkT -= dt; if (GUING.clinkT <= 0) { GUING.clinkT = rand(0.35, 2.2); clink(0.055 * (1 - near / 48) + 0.004); } }
 }
 // cloche de l'église de Saint-Constant : elle sonne les heures (on l'entend dans la campagne)
@@ -3839,7 +3844,7 @@ function buildWorld() {
     const photo = (n, rep, tint) => new THREE.MeshLambertMaterial({ color: tint || 0xffffff, map: ld("assets/" + n + "_day.jpg", rep), emissive: 0xffffff, emissiveMap: ld("assets/" + n + "_night.jpg", rep), emissiveIntensity: 0.05 });
     winMats[1] = photo("fac_res2", 0.55); winMats[10] = photo("fac_res2", 0.55, 0xe8d8cc); winMats[7] = photo("fac_res2", 0.55, 0xfff0d8); winMats[5] = photo("fac_res1", 0.24);
     // façades art déco Miami (ChatGPT) : crème, corail, menthe, rose · fenêtres qui s'allument la nuit
-    winMats[0] = photo("fac_art1", 0.77); winMats[9] = photo("fac_art1", 0.77, 0xfff8f0); winMats[3] = photo("fac_art1", 0.77, 0xffc9bc); winMats[6] = photo("fac_art1", 0.77, 0xcdeee0); winMats[11] = photo("fac_art1", 0.77, 0xf6d2de); }
+    winMats[0] = photo("fac_art1", 0.77); winMats[9] = photo("fac_art1", 0.77, 0xfff8f0); winMats[3] = photo("fac_art1", 0.77, 0xffc9bc); winMats[6] = photo("fac_art1", 0.77, 0xcdeee0); winMats[11] = photo("fac_art1", 0.77, 0xf6d2de); winMats[2] = photo("fac_res2", 0.55, 0xffd9c2); winMats[4] = photo("fac_art1", 0.77, 0xead9bd); winMats[8] = photo("fac_art1", 0.77, 0xc9d6ea); }
   NFAC = FAC.length;
   // tours de verre : bleu, bronze, vert profond, argent
   const glassMats = [[0xcfe6ff, "#5f86a8", 0x99bbdd], [0xffe2b8, "#8a6a3e", 0xffd9a0], [0xbfe8d8, "#2f5d55", 0x9fd8c8], [0xe8ecf2, "#8d98a6", 0xffffff]].map(([c, gc, sp], k) => { const gtx = windowTexture(42 + k, true, null, 0, gc); return new THREE.MeshPhongMaterial({ color: c, map: gtx.map, emissive: 0xffffff, emissiveMap: gtx.glow, emissiveIntensity: 0.05, shininess: 90, specular: sp }); });
@@ -4029,9 +4034,32 @@ function buildRoofNeons() { // bandeaux néon au niveau des vitrines (rose, cyan
     list.forEach((e, k) => { const dx = e[2] - e[0], dz = e[3] - e[1], L = Math.hypot(dx, dz); v.set((e[0] + e[2]) / 2, e[4], (e[1] + e[3]) / 2); q.setFromAxisAngle(Y, -Math.atan2(dz, dx)); sc.set(L, 1, 1); m.compose(v, q, sc); im.setMatrixAt(k, m); });
     scene.add(im); });
   // palmiers éclairés en rose par le bas
-  if (PALM_SPOTS.length) buildGlowPosts();
+  if (PALM_SPOTS.length) { buildGlowPosts(); buildPalms(); }
 }
 const PALM_SPOTS = [], POSTS = { M: null };
+const PALMX = { on: true, far: null, near: null, nearIdx: [], t: 0, N: 36 };
+function buildPalms() {
+  if (!PALM_SPOTS.length) return; const n = PALM_SPOTS.length, d = new THREE.Object3D();
+  const tex = new THREE.TextureLoader().load("assets/palm_coco.webp"); tex.anisotropy = 4;
+  const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.42, side: THREE.DoubleSide });
+  const a = new THREE.PlaneGeometry(1, 1.5); a.translate(0, 0.75, 0); const b = a.clone(); b.rotateY(Math.PI / 2); const c = a.clone(); c.rotateY(Math.PI / 4);
+  PALMX.far = new THREE.InstancedMesh(THREE.BufferGeometryUtils.mergeBufferGeometries([a, b, c]), mat, n); PALMX.far.frustumCulled = false;
+  PALM_SPOTS.forEach(([x, z, y0, h, ry], k) => { const s = (h || 11) / 1.5 * 1.05; d.position.set(x, y0 - 0.2, z); d.rotation.set(0, ry || 0, 0); d.scale.set(s, s, s); d.updateMatrix(); PALMX.far.setMatrixAt(k, d.matrix); });
+  scene.add(PALMX.far);
+  new THREE.GLTFLoader().load("assets/palm_coco.glb", gl => { let src = null; gl.scene.traverse(o => { if (o.isMesh && !src) src = o; }); if (!src) return;
+    const g = src.geometry.clone(); g.computeBoundingBox(); const bb = g.boundingBox, H = bb.max.y - bb.min.y; g.translate(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2); g.scale(1 / H, 1 / H, 1 / H);
+    const m = new THREE.MeshLambertMaterial({ map: src.material.map, side: THREE.DoubleSide });
+    PALMX.near = new THREE.InstancedMesh(g, m, PALMX.N); PALMX.near.count = 0; PALMX.near.frustumCulled = false; scene.add(PALMX.near); PALMX.t = 1; }, undefined, () => {});
+}
+function updatePalms(dt) {
+  if (!PALMX.near || !PALMX.far) return; PALMX.t += dt; if (PALMX.t < 0.35) return; PALMX.t = 0;
+  const cx = camera.position.x, cz = camera.position.z, best = [], d = new THREE.Object3D(), R2 = 85 * 85;
+  for (let k = 0; k < PALM_SPOTS.length; k++) { const p = PALM_SPOTS[k], dd = (p[0] - cx) * (p[0] - cx) + (p[1] - cz) * (p[1] - cz); if (dd < R2) best.push([dd, k]); }
+  best.sort((u, v) => u[0] - v[0]); const pick = best.slice(0, PALMX.N).map(u => u[1]);
+  const set = new Set(pick); PALMX.nearIdx.forEach(k => { if (!set.has(k)) { const [x, z, y0, h, ry] = PALM_SPOTS[k], s = (h || 11) / 1.5 * 1.05; d.position.set(x, y0 - 0.2, z); d.rotation.set(0, ry || 0, 0); d.scale.set(s, s, s); d.updateMatrix(); PALMX.far.setMatrixAt(k, d.matrix); } });
+  pick.forEach((k, i) => { const [x, z, y0, h, ry] = PALM_SPOTS[k]; d.position.set(x, y0 - 0.3, z); d.rotation.set(0, ry || 0, 0); d.scale.setScalar(h || 11); d.updateMatrix(); PALMX.near.setMatrixAt(i, d.matrix); d.scale.setScalar(0.0001); d.updateMatrix(); PALMX.far.setMatrixAt(k, d.matrix); });
+  PALMX.near.count = pick.length; PALMX.near.instanceMatrix.needsUpdate = true; PALMX.far.instanceMatrix.needsUpdate = true; PALMX.nearIdx = pick;
+}
 function buildGlowPosts() {
   const metal = new THREE.MeshPhongMaterial({ color: 0x2c2c34, shininess: 90, specular: 0x888899 }), col = new THREE.MeshLambertMaterial({ color: 0xf1ede8 });
   const gar = new THREE.MeshLambertMaterial({ color: 0xff5fae, emissive: 0xff2d95, emissiveIntensity: 0 }), lan = new THREE.MeshLambertMaterial({ color: 0xf7e9f1, emissive: 0xff6fc0, emissiveIntensity: 0 });
@@ -4818,7 +4846,7 @@ function applySky(h) {
   nightK = 1 - clamp(day * 1.8, 0, 1);
   // Vice City : la nuit, la lumière d'ambiance vire au rose-violet (néons), sans délaver l'image
   hemi.color.setRGB(1, 0.97 - nightK * 0.36, 0.95 - nightK * 0.03); hemi.groundColor.setRGB(0.23 + nightK * 0.2, 0.16, 0.23 + nightK * 0.22);
-  winMats.forEach(m => m.emissiveIntensity = 0.06 + nightK * (FXR.on ? 0.62 : 0.9));
+  winMats.forEach(m => m.emissiveIntensity = 0.06 + nightK * (FXR.on ? 0.62 : 0.9)); if (DM.shopRow) DM.shopRow.emissiveIntensity = 0.12 + nightK * (FXR.on ? 0.55 : 0.8);
   if (DM.hw) { DM.hw[0].emissiveIntensity = nightK * 1.3; DM.hw[1].emissiveIntensity = nightK * 1.1; }
   if (FX.towerLed) FX.towerLed.emissiveIntensity = 0.05 + nightK * 2.1;
   NEON.mats.forEach(m => m.color.copy(m.userData.base).multiplyScalar(0.06 + nightK * 1.0));

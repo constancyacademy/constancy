@@ -1354,7 +1354,63 @@ function playModelAnim(g, name, ts = 1) {
   const a = u.mixer.clipAction(clip); a.reset().play(); if (u.act) u.act.crossFadeTo(a, 0.3, false); u.act = a; a.timeScale = ts;
 }
 // version fusionnée dans le décor (lampadaires, bancs…) : aucun coût par objet
+const REAL_TREE = { c_tree_oak: "oak", c_tree_fat: "round", c_tree_autumn: "autumn" }, TREEV = {};
+let TREE_M = null;
+function leafTex(pal) {
+  const c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d");
+  for (let k = 0; k < 46; k++) { const a = Math.random() * 6.28, rr = Math.random() * 78, x = 128 + Math.cos(a) * rr, y = 128 + Math.sin(a) * rr, L = 26 + Math.random() * 18, W = L * (0.36 + Math.random() * 0.12), ang = a + (Math.random() - 0.5) * 1.2;
+    g.save(); g.translate(x, y); g.rotate(ang); const col = pal[Math.floor(Math.random() * pal.length)], l = (Math.random() - 0.5) * 14;
+    g.fillStyle = `hsl(${col[0] + (Math.random() - 0.5) * 10},${col[1]}%,${col[2] + l}%)`; g.beginPath(); g.moveTo(-L / 2, 0); g.quadraticCurveTo(0, -W, L / 2, 0); g.quadraticCurveTo(0, W, -L / 2, 0); g.fill();
+    g.strokeStyle = `hsla(${col[0]},${col[1]}%,${col[2] + 16}%,.55)`; g.lineWidth = 1.4; g.beginPath(); g.moveTo(-L / 2, 0); g.lineTo(L / 2, 0); g.stroke(); g.restore(); }
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t;
+}
+function barkTex(birch) {
+  const c = document.createElement("canvas"); c.width = 64; c.height = 256; const g = c.getContext("2d"); g.fillStyle = birch ? "#e4e0d6" : "#5a4232"; g.fillRect(0, 0, 64, 256);
+  for (let k = 0; k < 90; k++) { g.fillStyle = birch ? `rgba(30,25,20,${0.4 + Math.random() * 0.5})` : `rgba(${20 + Math.random() * 40},${14 + Math.random() * 25},10,${0.35 + Math.random() * 0.4})`; if (birch) g.fillRect(Math.random() * 64, Math.random() * 256, 6 + Math.random() * 14, 1.5 + Math.random() * 2.5); else g.fillRect(Math.random() * 64, Math.random() * 256, 1.5 + Math.random() * 3, 18 + Math.random() * 60); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+function treeMats() {
+  if (TREE_M) return TREE_M;
+  const leaf = (pal) => new THREE.MeshLambertMaterial({ map: leafTex(pal), alphaTest: 0.42, vertexColors: true });
+  TREE_M = { oak: leaf([[98, 42, 26], [108, 38, 22], [88, 46, 32]]), round: leaf([[92, 48, 30], [104, 44, 26], [84, 50, 36]]), autumn: leaf([[32, 78, 46], [42, 82, 50], [20, 70, 40], [52, 70, 44]]),
+    bark: new THREE.MeshLambertMaterial({ map: barkTex(false) }), birch: new THREE.MeshLambertMaterial({ map: barkTex(true) }) };
+  return TREE_M;
+}
+// une variante d'arbre (hauteur 1) : tronc + branches, et un feuillage en grappes
+function treeVariant(kind, seed) {
+  let sd = seed * 9301 + 49297; const R = () => { sd = (sd * 9301 + 49297) % 233280; return sd / 233280; };
+  const trunkH = kind === "autumn" ? 0.5 : kind === "oak" ? 0.42 : 0.38, crownY = trunkH + (kind === "autumn" ? 0.22 : 0.2), CR = kind === "oak" ? 0.3 : kind === "autumn" ? 0.2 : 0.27;
+  const parts = []; const cyl = (r0, r1, a, b) => { const v = new THREE.Vector3().subVectors(b, a), L = v.length(), g = new THREE.CylinderGeometry(r1, r0, L, 7, 1, true); g.translate(0, L / 2, 0);
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), v.normalize()); g.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(q)); g.translate(a.x, a.y, a.z); parts.push(g); };
+  const top = new THREE.Vector3((R() - 0.5) * 0.04, trunkH, (R() - 0.5) * 0.04); cyl(0.03, 0.02, new THREE.Vector3(0, -0.02, 0), top);
+  const nC = kind === "autumn" ? 4 : 6, clusters = [];
+  for (let k = 0; k < nC; k++) { const a = k / nC * 6.28 + R() * 0.8, rr = CR * (0.45 + R() * 0.45), cy = crownY + (R() - 0.3) * CR * 0.9 + (kind === "autumn" ? k * 0.05 : 0);
+    const c = new THREE.Vector3(Math.cos(a) * rr, cy, Math.sin(a) * rr); clusters.push([c, CR * (0.5 + R() * 0.25)]);
+    const from = new THREE.Vector3(top.x * 0.6, trunkH * (0.72 + R() * 0.25), top.z * 0.6); cyl(0.013, 0.006, from, c.clone().lerp(from, 0.25)); }
+  clusters.push([new THREE.Vector3(0, crownY + CR * 0.55, 0), CR * 0.62]);
+  const pos = [], nor = [], uv = [], col = [], idx = []; const C0 = new THREE.Vector3(0, crownY + CR * 0.15, 0), up = new THREE.Vector3(0, 1, 0);
+  const cards = kind === "autumn" ? 13 : 12, size = kind === "autumn" ? 0.175 : 0.21;
+  clusters.forEach(([c, r]) => { const tint = 0.9 + R() * 0.2;
+    for (let k = 0; k < cards; k++) {
+      const d = new THREE.Vector3(R() * 2 - 1, R() * 1.6 - 0.6, R() * 2 - 1).normalize(), p = c.clone().addScaledVector(d, r * (0.55 + R() * 0.45));
+      const n = p.clone().sub(C0).normalize().lerp(d, 0.5).add(new THREE.Vector3(0, 0.25, 0)).normalize();
+      const t1 = new THREE.Vector3().crossVectors(n, Math.abs(n.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : up).normalize(), t2 = new THREE.Vector3().crossVectors(n, t1), rot = R() * 6.28;
+      const u = t1.clone().multiplyScalar(Math.cos(rot)).addScaledVector(t2, Math.sin(rot)).multiplyScalar(size), v = t1.clone().multiplyScalar(-Math.sin(rot)).addScaledVector(t2, Math.cos(rot)).multiplyScalar(size);
+      const yk = clamp((p.y - (crownY - CR * 0.6)) / (CR * 2.2), 0, 1), dk = clamp(p.distanceTo(C0) / (CR * 1.3), 0, 1), ao = (0.42 + 0.58 * Math.min(1, yk * 0.7 + dk * 0.6)) * tint;
+      const b = pos.length / 3; [[-1, -1, 0, 0], [1, -1, 1, 0], [1, 1, 1, 1], [-1, 1, 0, 1]].forEach(([a1, a2, s1, s2]) => { pos.push(p.x + u.x * a1 + v.x * a2, p.y + u.y * a1 + v.y * a2, p.z + u.z * a1 + v.z * a2); nor.push(n.x, n.y, n.z); uv.push(s1, s2); col.push(ao, ao, ao * 0.96); });
+      idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
+    } });
+  const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); lg.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); lg.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); lg.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); lg.setIndex(idx);
+  const tg = THREE.BufferGeometryUtils.mergeBufferGeometries(parts.map(g => g.toNonIndexed()));
+  return { leaves: lg, trunk: tg };
+}
+function realTree(key, x, y, z, ry, sc) {
+  const kind = REAL_TREE[key], M = treeMats(), H = (MODEL_DEFS[key].h || 10) * sc * 1.05;
+  const vs = TREEV[kind] || (TREEV[kind] = [0, 1, 2, 3].map(k => treeVariant(kind, k + 1))), v = vs[Math.abs(Math.floor(x * 7.3 + z * 3.1)) % vs.length];
+  addGeo(kind === "autumn" ? M.birch : M.bark, v.trunk, x, y, z, ry, H, H, H); addGeo(M[kind], v.leaves, x, y, z, ry, H, H, H);
+}
 function addModelGeo(key, x, y, z, ry = 0, sc = 1) {
+  if (REAL_TREE[key] && MODEL_DEFS[key] && THREE.BufferGeometryUtils) { realTree(key, x, y, z, ry, sc); return true; }
   const M = MODELS[key]; if (!M || M.skinned) return false;
   M.proto.updateMatrixWorld(true);
   M.proto.traverse(m => { if (!m.isMesh) return; const gg = m.geometry.clone(); gg.applyMatrix4(m.matrixWorld); addGeo(m.material, gg, x, y, z, ry, sc, sc, sc); });
@@ -1795,6 +1851,7 @@ function buildHospital(i, j, cx, cz, F, base, D) {
   const ur = wallSign("Urgences", "#ff1a35", 7, 1.75); ur.position.set(cx - 9, base + 7.4, front + 5.25); scene.add(ur);
   // ambulance garée devant les urgences, gyrophare bleu
   const ax = cx - 9, az = front + 9.5;
+  if (addModelGeo("ambulance", ax, base, az, 0, 1)) { setBoxes(i, j, [[cx - w / 2, bz - d / 2, cx + w / 2, bz + d / 2], [cx - 15, front, cx - 3, front + 5.2], [ax - 1.2, az - 3.8, ax + 1.2, az + 3.8]]); return; }
   addGeo(M.white, new THREE.BoxGeometry(2.3, 2.5, 4.2), ax, base + 1.55, az - 0.6); addGeo(M.white, new THREE.BoxGeometry(2.2, 1.6, 1.6), ax, base + 1.1, az + 2.3);
   addGeo(M.red, new THREE.BoxGeometry(2.34, 0.35, 4.24), ax, base + 1.5, az - 0.6); addGeo(M.glass, new THREE.BoxGeometry(2.0, 0.8, 0.1), ax, base + 1.6, az + 3.1);
   addGeo(M.blue, new THREE.BoxGeometry(1.6, 0.25, 0.4), ax, base + 2.95, az + 1.3);
@@ -3219,7 +3276,7 @@ function buildBeachStatic(r) {
   for (let k = 0; k < 2; k++) { const x = px + 5 + k * 1.2; addGeo(metal, new THREE.CylinderGeometry(0.1, 0.1, 1.2, 6), x, 0.6, pz - 1); addGeo(metal, new THREE.CylinderGeometry(0.1, 0.1, 1.2, 6), x, 0.6, pz + 1); addGeo(metal, new THREE.CylinderGeometry(0.06, 0.06, 2, 6), x, 1.2, pz, 0, 1, 1, 1, Math.PI / 2); }
 }
 function buildLife() {
-  [["plane_liner", HALF + 380, 150, 0.035], ["plane_small", HALF + 120, 70, 0.07], ["plane_liner", HALF + 520, 190, -0.028]].forEach(([kind, r, y, sp], k) => { const p = makePlane(kind); scene.add(p); planes.push({ mesh: p, a: k * 2.1, r, y, s: sp }); });
+  [["plane_liner", HALF + 380, 150, 0.035], ["plane_small", HALF + 120, 70, 0.07], ["plane_liner", HALF + 520, 190, -0.028]].forEach(([kind, r, y, sp], k) => { const p = makePlane(kind); if (kind === "plane_liner") p.traverse(o => { if (/^Wheel/i.test(o.name)) o.visible = false; }); scene.add(p); planes.push({ mesh: p, a: k * 2.1, r, y, s: sp }); }); // train rentré en vol
   // hélico au-dessus du centre-ville, mouettes près de la plage, requins et dauphins au large, chiens et chats en ville
   if (MODELS.heli) { const h = new THREE.Group(), hm = modelInstance("heli"); h.add(hm); addRotors(hm, "heli"); scene.add(h); life.heli = { mesh: h, a: 0, r: 170, y: 75 }; }
   if (MODELS.gull) for (let k = 0; k < 14; k++) { const gg = new THREE.Group(); gg.add(modelInstance("gull")); scene.add(gg); life.gulls.push({ mesh: gg, a: rand(0, 6.28), r: SHORE + rand(-30, 60), y: rand(10, 30), s: rand(0.04, 0.07) * (k % 2 ? 1 : -1), ph: rand(0, 6) }); }

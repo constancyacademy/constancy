@@ -3294,10 +3294,11 @@ function initFx() {
   const NP = 300, cg = new THREE.PlaneGeometry(1, 1), puffA = new THREE.InstancedBufferAttribute(new Float32Array(NP * 2), 2); cg.setAttribute("puff", puffA);
   FX.cloudMat = { color: new THREE.Color(1, 1, 1), opacity: 0.85 };
   const CT = new THREE.TextureLoader().load("assets/clouds_sheet.jpg"); CT.anisotropy = 4;
-  FX.cloudU = { sheet: { value: CT }, map: { value: puffTexture() }, lit: { value: new THREE.Color(1, 1, 1) }, shade: { value: new THREE.Color(0.62, 0.64, 0.72) }, op: { value: 0.9 } };
+  const CT2 = new THREE.TextureLoader().load("assets/clouds_sunset.jpg"); CT2.anisotropy = 4;
+  FX.cloudU = { sheet2: { value: CT2 }, ks: { value: 0 }, sheet: { value: CT }, map: { value: puffTexture() }, lit: { value: new THREE.Color(1, 1, 1) }, shade: { value: new THREE.Color(0.62, 0.64, 0.72) }, op: { value: 0.9 } };
   const cm = new THREE.ShaderMaterial({ uniforms: FX.cloudU, transparent: true, depthWrite: false, fog: false,
     vertexShader: "attribute vec2 puff; varying vec2 vUv; varying float vLow; varying float vFade; varying float vR; void main(){ vR = puff.y; vec4 c = modelMatrix * instanceMatrix * vec4(0.0,0.0,0.0,1.0); float s = length(instanceMatrix[0].xyz); vec4 mv = viewMatrix * c; mv.xy += position.xy * s; vUv = uv; vLow = puff.x; vFade = 1.0 - smoothstep(2300.0, 3100.0, length(mv.xyz)); gl_Position = projectionMatrix * mv; }",
-    fragmentShader: "uniform sampler2D sheet; uniform vec3 lit; uniform vec3 shade; uniform float op; varying vec2 vUv; varying float vLow; varying float vFade; varying float vR; void main(){ float k = floor(vR * 3.999); vec2 q = vec2(mod(k, 2.0), floor(k / 2.0)) * 0.5; vec2 uv = q + (0.02 + clamp(vUv, 0.0, 1.0) * 0.96) * 0.5; vec3 t = texture2D(sheet, uv).rgb; float m = max(t.r, max(t.g, t.b)); float a = smoothstep(0.06, 0.5, m); vec3 col = mix(shade, lit, 0.55 + 0.45 * smoothstep(0.3, 0.9, m)) * (0.9 + 0.1 * m); gl_FragColor = vec4(col, a * op * vFade); if (gl_FragColor.a < 0.004) discard; }" });
+    fragmentShader: "uniform sampler2D sheet; uniform sampler2D sheet2; uniform float ks; uniform vec3 lit; uniform vec3 shade; uniform float op; varying vec2 vUv; varying float vLow; varying float vFade; varying float vR; void main(){ float k = floor(vR * 3.999); vec2 q = vec2(mod(k, 2.0), floor(k / 2.0)) * 0.5; vec2 uv = q + (0.02 + clamp(vUv, 0.0, 1.0) * 0.96) * 0.5; vec3 t = texture2D(sheet, uv).rgb; float m = max(t.r, max(t.g, t.b)); float a = smoothstep(0.06, 0.5, m); vec3 col = mix(shade, lit, 0.55 + 0.45 * smoothstep(0.3, 0.9, m)) * (0.9 + 0.1 * m); if (ks > 0.01) { vec3 t2 = texture2D(sheet2, uv).rgb; float m2 = max(t2.r, max(t2.g, t2.b)); col = mix(col, t2 / max(m2, 0.25) * 0.97, ks); a = mix(a, smoothstep(0.05, 0.42, m2), ks); } gl_FragColor = vec4(col, a * op * vFade); if (gl_FragColor.a < 0.004) discard; }" });
   FX.clouds = new THREE.InstancedMesh(cg, cm, NP); FX.clouds.frustumCulled = false; FX.clouds.renderOrder = -1; FX.cloudData = [];
   let pi = 0; const mz = new THREE.Matrix4().makeScale(0, 0, 0); for (let k = 0; k < NP; k++) FX.clouds.setMatrixAt(k, mz);
   for (let k = 0; k < 46 && pi < NP; k++) {
@@ -3377,7 +3378,7 @@ function updateFx(dt) {
   // couleurs : blanc éclatant le jour, dessous gris-bleu ; rose et orangé au coucher ; la nuit, rose violacé éclairé par la ville
   const U = FX.cloudU, L = U.lit.value.copy(FX.cloudMat.color), pinkN = new THREE.Color(0.55, 0.22, 0.5);
   L.lerp(pinkN, nightK * 0.75); U.shade.value.copy(L).multiply(new THREE.Color(0.66, 0.69, 0.76)).lerp(new THREE.Color(0.16, 0.07, 0.22), nightK * 0.6);
-  U.op.value = FX.cloudMat.opacity * (1 - nightK * 0.35);
+  U.op.value = FX.cloudMat.opacity * (1 - nightK * 0.35); U.ks.value = typeof skyMat !== "undefined" && skyMat.uniforms && skyMat.uniforms.wSet ? Math.min(1, skyMat.uniforms.wSet.value * 1.3) * (1 - nightK * 0.6) : 0;
 }
 /* ============ V24 : sol détaillé (brins d'herbe, terre, cailloux) au lieu d'aplats de couleur ============ */
 function groundDetailTex() {

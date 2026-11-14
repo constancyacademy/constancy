@@ -821,13 +821,56 @@ function addBlob(parent, w, l) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w, l), new THREE.MeshBasicMaterial({ map: BLOB, transparent: true, depthWrite: false }));
   m.rotation.x = -Math.PI / 2; m.position.y = 0.08; parent.add(m); return m;
 }
+// balises des lieux : colonne d'énergie qui monte (stries animées, fondu vers le ciel), cœur lumineux, anneaux au sol,
+// emblème 3D qui tourne et flotte, étincelles qui s'élèvent (fini l'effet « image posée »)
+let BEACON_TX = null, BEACON_GLOW = null;
+function beaconTex() {
+  if (BEACON_TX) return BEACON_TX; const c = document.createElement("canvas"); c.width = 64; c.height = 128; const g = c.getContext("2d"); g.fillStyle = "#000"; g.fillRect(0, 0, 64, 128);
+  for (let k = 0; k < 22; k++) { const x = Math.random() * 64, w = 1 + Math.random() * 4, y = Math.random() * 128, h = 20 + Math.random() * 70, a = 0.25 + Math.random() * 0.6; const gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(0.5, `rgba(255,255,255,${a})`); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(x, y, w, h); g.fillRect(x, y - 128, w, h); }
+  g.fillStyle = "rgba(255,255,255,.22)"; g.fillRect(0, 0, 64, 128);
+  BEACON_TX = new THREE.CanvasTexture(c); BEACON_TX.wrapS = BEACON_TX.wrapT = THREE.RepeatWrapping; BEACON_TX.repeat.set(3, 2); return BEACON_TX;
+}
+function fadeCyl(r, h, seg, pw) { const g = new THREE.CylinderGeometry(r, r, h, seg, 10, true), P = g.attributes.position, cols = new Float32Array(P.count * 3); for (let i = 0; i < P.count; i++) { const t = (P.getY(i) + h / 2) / h, v = Math.pow(1 - t, pw); cols[i * 3] = cols[i * 3 + 1] = cols[i * 3 + 2] = v; } g.setAttribute("color", new THREE.BufferAttribute(cols, 3)); return g; }
+// concession : grand showroom vitré, les voitures à vendre exposées sur des plateaux tournants avec leur prix
+const SHOWROOM = [];
+function buildShowroom(cx, cz, F, h) {
+  const glass = new THREE.MeshPhongMaterial({ color: 0xa8d4f2, shininess: 140, specular: 0xffffff, transparent: true, opacity: 0.22, depthWrite: false }), metal = new THREE.MeshPhongMaterial({ color: 0x1a1c22, shininess: 60 });
+  const floor = new THREE.MeshPhongMaterial({ color: 0xf2f2f4, shininess: 160, specular: 0xffffff }), lightM = new THREE.MeshBasicMaterial({ color: 0xfff6e8 }), ringM = new THREE.MeshBasicMaterial({ color: new THREE.Color(COL.finance) });
+  addGeo(floor, new THREE.BoxGeometry(F, 0.2, F), cx, 0.35, cz);
+  addGeo(metal, new THREE.BoxGeometry(F, 1.2, F), cx, h - 0.35, cz);                      // plafond / bandeau
+  [[0, 1], [0, -1], [1, 0], [-1, 0]].forEach(([nx, nz]) => { addGeo(glass, new THREE.BoxGeometry(nx ? 0.15 : F, h - 1, nx ? F : 0.15), cx + nx * F / 2, (h - 1) / 2 + 0.3, cz + nz * F / 2);
+    for (let t = -F / 2; t <= F / 2 + 0.01; t += F / 4) addGeo(metal, new THREE.BoxGeometry(0.35, h - 0.6, 0.35), cx + (nx ? nx * F / 2 : t), (h - 0.6) / 2 + 0.25, cz + (nz ? nz * F / 2 : t)); });
+  for (let t = -1; t <= 1; t++) addGeo(lightM, new THREE.BoxGeometry(F - 4, 0.12, 0.5), cx, h - 1.0, cz + t * 8);
+  const spots = [[-7.5, -6.5], [7.5, -6.5], [-7.5, 6.5], [7.5, 6.5]];
+  CARS.slice(1).forEach((c, k) => { const [ox, oz] = spots[k], x = cx + ox, z = cz + oz;
+    addGeo(metal, new THREE.CylinderGeometry(3.3, 3.4, 0.3, 32), x, 0.6, z); addGeo(ringM, new THREE.TorusGeometry(3.32, 0.06, 6, 40), x, 0.76, z, 0, 1, 1, 1, Math.PI / 2);
+    const car = makeCar(c); car.position.set(x, 0.75, z); car.rotation.y = k * 1.3; scene.add(car); SHOWROOM.push(car);
+    const tag = label(`${c.name} · $${fmt(c.price)}`, COL.finance); tag.position.set(x, 4.3, z); tag.scale.set(7.5, 1.9, 1); scene.add(tag); });
+}
 function makeBeacon(color) {
-  const grp = new THREE.Group();
-  const col = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 70, 14, 1, true), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .26, depthWrite: false, side: THREE.DoubleSide }));
+  const grp = new THREE.Group(), add = THREE.AdditiveBlending;
+  const col = new THREE.Mesh(fadeCyl(1.5, 70, 18, 1.6), new THREE.MeshBasicMaterial({ color, map: beaconTex(), vertexColors: true, transparent: true, opacity: .3, depthWrite: false, side: THREE.DoubleSide, blending: add }));
   col.position.y = 35; grp.add(col);
-  const ring = new THREE.Mesh(new THREE.RingGeometry(3.4, 4.4, 36), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .9, side: THREE.DoubleSide }));
+  const core = new THREE.Mesh(fadeCyl(0.32, 46, 8, 2.2), new THREE.MeshBasicMaterial({ color: color.clone().lerp(new THREE.Color(1, 1, 1), 0.45), vertexColors: true, transparent: true, opacity: .55, depthWrite: false, blending: add }));
+  core.position.y = 23; grp.add(core);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(3.4, 4.4, 48), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .9, side: THREE.DoubleSide }));
   ring.rotation.x = -Math.PI / 2; ring.position.y = 0.3; grp.add(ring);
-  grp.userData = { col, ring }; return grp;
+  const ring2 = new THREE.Mesh(new THREE.RingGeometry(4.8, 5.05, 48, 1, 0, Math.PI * 1.6), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false }));
+  ring2.rotation.x = -Math.PI / 2; ring2.position.y = 0.32; grp.add(ring2);
+  BEACON_GLOW = BEACON_GLOW || glowTexture();
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(13, 13), new THREE.MeshBasicMaterial({ color, map: BEACON_GLOW, transparent: true, opacity: .55, depthWrite: false, blending: add })); glow.rotation.x = -Math.PI / 2; glow.position.y = 0.28; grp.add(glow);
+  const marker = new THREE.Mesh(new THREE.OctahedronGeometry(1.05, 0), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.75, metalness: 0.35, roughness: 0.25, flatShading: true }));
+  marker.scale.set(1, 1.55, 1); marker.position.y = 5.2; grp.add(marker);
+  const n = 16, sp = new Float32Array(n * 3), seeds = []; for (let k = 0; k < n; k++) { const a = Math.random() * 6.28, rr = 0.6 + Math.random() * 2.6; sp[k * 3] = Math.cos(a) * rr; sp[k * 3 + 2] = Math.sin(a) * rr; seeds.push([Math.random() * 14, 2 + Math.random() * 3]); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(sp, 3));
+  const spk = new THREE.Points(sg, new THREE.PointsMaterial({ color: color.clone().lerp(new THREE.Color(1, 1, 1), 0.5), size: 0.45, map: BEACON_GLOW, transparent: true, depthWrite: false, blending: add })); spk.frustumCulled = false; grp.add(spk);
+  grp.userData = { col, ring, ring2, marker, spk, seeds, t: Math.random() * 10 }; return grp;
+}
+function beaconFx(b, dt) {
+  if (!b || !b.visible) return; const u = b.userData; u.t += dt;
+  if (u.marker) { u.marker.rotation.y += dt * 1.6; u.marker.position.y = 5.2 + Math.sin(u.t * 2) * 0.35; }
+  if (u.ring2) u.ring2.rotation.z -= dt * 1.3;
+  if (u.spk) { const P = u.spk.geometry.attributes.position; for (let k = 0; k < u.seeds.length; k++) { const [o, v] = u.seeds[k]; P.setY(k, ((u.t * v + o) % 14)); } P.needsUpdate = true; }
 }
 
 /* --- voitures arrondies --- */
@@ -2952,11 +2995,11 @@ function buildWorld() {
     if (i === 7 && j === 6) { buildSupertall(cx, cz, F, glassMats[3], i, j); ZONES.set(i + "," + j, "tower"); continue; }
     if (key) {
       const l = LM[key], h = key === "home" ? 16 : key === "gym" ? 12 : 10;
-      addGeo(deco[key === "home" ? 2 : 3], boxUV(F, h, F), cx, h / 2 + 0.25, cz);
+      if (key === "shop") buildShowroom(cx, cz, F, h); else addGeo(deco[key === "home" ? 2 : 3], boxUV(F, h, F), cx, h / 2 + 0.25, cz);
       addGeo(roofM, new THREE.BoxGeometry(F + 0.6, 0.6, F + 0.6), cx, h + 0.55, cz);
       const stripe = new THREE.Mesh(new THREE.BoxGeometry(F + 0.3, 1.6, F + 0.3), new THREE.MeshBasicMaterial({ color: new THREE.Color(l.color) })); stripe.position.set(cx, h - 1.4, cz); scene.add(stripe);
       // porte / entrée côté sud
-      const door = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 0.3), key === "gym" ? new THREE.MeshPhongMaterial({ color: 0x9fc9e8, shininess: 100, transparent: true, opacity: .8 }) : new THREE.MeshBasicMaterial({ color: new THREE.Color(l.color) })); door.position.set(cx, 2.25, bMax(j) - WALK + 0.1); scene.add(door);
+      const door = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 0.3), key === "gym" || key === "shop" ? new THREE.MeshPhongMaterial({ color: 0x9fc9e8, shininess: 100, transparent: true, opacity: .8 }) : new THREE.MeshBasicMaterial({ color: new THREE.Color(l.color) })); door.position.set(cx, 2.25, bMax(j) - WALK + 0.1); scene.add(door);
       if (key === "gym") { gymDoor = door; gymDoor.userData.x0 = cx; }
       const s = label(l.name, l.color); s.position.set(cx, h + 5, cz + 8); scene.add(s);
       continue;
@@ -3040,7 +3083,7 @@ function buildWorld() {
 
   buildTrafficLights(); buildTraffic(); buildPeds(); buildLife(); buildRentals(); buildRoofNeons();
   PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeInterior(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildGuinguettes(); buildUfo();
-  ownMark = makeBeacon(new THREE.Color(0xffffff)); ownMark.userData.col.scale.set(0.5, 0.35, 0.5); ownMark.userData.col.position.y = 12;
+  ownMark = makeBeacon(new THREE.Color(0xffffff)); ownMark.userData.col.scale.set(0.5, 0.35, 0.5); ownMark.userData.col.position.y = 12; ownMark.userData.marker.visible = false; ownMark.userData.spk.visible = false; ownMark.children[1].visible = false;
   const ol = label("Ta voiture", "#ffffff"); ol.scale.set(9, 2.2, 1); ol.position.y = 6; ownMark.add(ol); ownMark.visible = false; scene.add(ownMark);
   const mlab = label("Mamie", LM.mamie.color); mlab.scale.set(8, 2, 1); mlab.position.set(LM.mamie.x - 4, 4, bMax(0) - 2); scene.add(mlab);
 }
@@ -5850,7 +5893,7 @@ function gate() {
 
 /* ============ Boucle ============ */
 let last = performance.now();
-window.__W = () => ({ GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
+window.__W = () => ({ SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
 window.__X = () => ({ life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
@@ -5883,7 +5926,9 @@ function loop(now) {
   if (G.mode !== "gym" && G.mode !== "quiz") updateWorldLife(playing ? dt : dt * 0.5);
   if (G.started && P) { applySky(hourNow()); updateHud(dt); drawMinimap(); updateCamera(dt, true); }
   else { applySky(18.4); updateCamera(dt, false); }
-  Object.values(beacons).forEach(b => { b.userData.col.material.opacity = .16 + (Math.sin(now / 400) + 1) * .07; b.userData.ring.rotation.z += dt * .8; });
+  Object.values(beacons).forEach(b => { b.userData.col.material.opacity = .22 + (Math.sin(now / 400) + 1) * .08; b.userData.ring.rotation.z += dt * .8; beaconFx(b, dt); });
+  beaconFx(destBeacon, dt); if (BEACON_TX) BEACON_TX.offset.y -= dt * 0.35;
+  if (SHOWROOM.length && SHOWROOM[0].position.distanceToSquared(camera.position) < 62500) SHOWROOM.forEach((c, k) => { c.rotation.y += dt * (0.3 + k * 0.03); });
   updateSound();
   for (let i = 0; i < ANIMATED.length; i++) { const g = ANIMATED[i]; if (!g.visible || !g.parent) continue; const gp = g.parent.isScene ? g.position : g.parent.position; if (gp.distanceToSquared(camera.position) < 160000 && (g.parent.isScene || g.parent.visible)) g.userData.mixer.update(dt); }
   if (mamieMesh && mamieMesh.userData.q && G.started) setClip(mamieMesh, G.alerts.mamieActive && !G.mission ? "Waving" : "Idle_Talking_Loop");

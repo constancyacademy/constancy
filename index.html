@@ -1974,7 +1974,7 @@ function zoneOf(i, j, dist, r) {
   return "mixed";
 }
 const SHOPS = [["CAFÉ", "#f4e9d8", "#2a1d16"], ["PHARMACIE", "#ffffff", "#0f6b3a"], ["BOULANGERIE", "#3a2414", "#f3d9a4"], ["BARBER SHOP", "#ffffff", "#141414"], ["TACOS 24/7", "#ffd23f", "#b3122e"], ["LAVERIE", "#0f2c4f", "#e9f3ff"], ["FLEURISTE", "#ffffff", "#c2457a"], ["PIZZERIA", "#ffffff", "#1d5e2f"]];
-let SHOP_M = null, SHOP_G = null, VIT_M = null, VIT_G = null, SIGN_BOX = null, SIGN_BOXG = null;
+const INT_M = {}; let SHOP_M = null, SHOP_G = null, VIT_M = null, VIT_G = null, SIGN_BOX = null, SIGN_BOXG = null;
 const SHOP_W = [3, 2.2, 3, 1.6, 1.8, 0.35, 1.8, 2], SHOP_WT = SHOP_W.reduce((a, b) => a + b, 0);
 function shopPick(u) { let t = u * SHOP_WT; for (let k = 0; k < SHOP_W.length; k++) { t -= SHOP_W[k]; if (t < 0) return k; } return 0; }
 function vitrines() {
@@ -2022,13 +2022,19 @@ function shopSigns() {
   const tx = new THREE.CanvasTexture(c); tx.anisotropy = 4; SHOP_M = new THREE.MeshBasicMaterial({ map: tx, color: 0xe6e6e6 });
   SHOP_G = SHOPS.map((_, k) => { const g2 = new THREE.PlaneGeometry(6, 0.75), uv = g2.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, (SHOPS.length - 1 - k + uv.getY(i)) / SHOPS.length); return g2; });
 }
+function intMat(file) {
+  if (INT_M[file]) return INT_M[file]; const t = new THREE.TextureLoader().load("assets/" + file); t.anisotropy = 8;
+  return INT_M[file] = new THREE.ShaderMaterial({ uniforms: { map: { value: t }, nk: { value: 0 } },
+    vertexShader: "varying vec2 vUv; varying vec3 vW; varying vec3 vN; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }",
+    fragmentShader: "uniform sampler2D map; uniform float nk; varying vec2 vUv; varying vec3 vW; varying vec3 vN; void main(){ vec3 V = normalize(cameraPosition - vW); vec3 N = normalize(vN); vec3 T = normalize(cross(vec3(0.0, 1.0, 0.0), N)); float ndv = max(dot(V, N), 0.25); vec2 off = vec2(-dot(V, T), -dot(V, vec3(0.0, 1.0, 0.0))) / ndv; vec2 uvB = vec2(0.06 + vUv.x * 0.88, 0.05 + vUv.y * 0.6) + off * vec2(0.05, 0.035); vec2 uvF = vec2(0.03 + vUv.x * 0.94, 0.03 + vUv.y * 0.66) + off * vec2(0.012, 0.008); vec3 c = texture2D(map, clamp(uvB, 0.0, 1.0)).rgb; float edge = min(smoothstep(0.0, 0.05, vUv.x) * smoothstep(1.0, 0.95, vUv.x), smoothstep(0.0, 0.06, vUv.y) * smoothstep(1.0, 0.94, vUv.y)); c *= 0.55 + 0.45 * edge; float fr = pow(1.0 - ndv, 3.0); c = mix(c, vec3(0.75, 0.82, 0.9), fr * 0.45) + vec3(0.06) * smoothstep(0.55, 0.9, vUv.y + vUv.x * 0.25) * (1.0 - nk); c *= 0.62 + 0.38 * (1.0 - nk) + nk * 0.55; gl_FragColor = vec4(c, 1.0); }" }); }
 function addShopSign(x, z, w, d, base, faces, r) {
   shopSigns(); vitrines(); if (!SIGN_BOX) { SIGN_BOX = new THREE.MeshLambertMaterial({ color: 0x1c1c20 }); SIGN_BOXG = new THREE.BoxGeometry(6.25, 0.95, 0.28); }
   faces.forEach(([nx, nz]) => { if (r() < .35) return; const k = shopPick(r()), len = Math.min(nx ? d : w, 8) * 0.8, sc = len / 6;
     const px = x + nx * ((nx ? w : 0) / 2 + 0.07), pz = z + nz * ((nz ? d : 0) / 2 + 0.07), ry = nx ? (nx > 0 ? Math.PI / 2 : -Math.PI / 2) : (nz > 0 ? 0 : Math.PI);
     addGeo(SIGN_BOX, SIGN_BOXG, px + nx * 0.14, base + 4.25, pz + nz * 0.14, ry, sc, sc * 1.1, 1);
     addGeo(SHOP_M, SHOP_G[k], px + nx * 0.29, base + 4.25, pz + nz * 0.29, ry, sc, sc * 1.1, 1);
-    addGeo(VIT_M, VIT_G[k], px + nx * 0.01, base + 1.75, pz + nz * 0.01, ry, sc, 1, 1); });
+    const tt = SHOPS[k][0], im = tt === "PIZZERIA" ? intMat("int_pizzeria.jpg") : tt === "BOULANGERIE" ? intMat("int_boulangerie.jpg") : null;
+    if (im) addGeo(im, new THREE.PlaneGeometry(6, 2.5), px + nx * 0.01, base + 1.75, pz + nz * 0.01, ry, sc, 1, 1); else addGeo(VIT_M, VIT_G[k], px + nx * 0.01, base + 1.75, pz + nz * 0.01, ry, sc, 1, 1); });
 }
 // hôpital : grand bâtiment blanc, croix rouge lumineuse, entrée des urgences, hélistation sur le toit, ambulance
 let HOSP_M = null;
@@ -4888,7 +4894,7 @@ function applySky(h) {
   nightK = 1 - clamp(day * 1.8, 0, 1);
   // Vice City : la nuit, la lumière d'ambiance vire au rose-violet (néons), sans délaver l'image
   hemi.color.setRGB(1, 0.97 - nightK * 0.36, 0.95 - nightK * 0.03); hemi.groundColor.setRGB(0.23 + nightK * 0.2, 0.16, 0.23 + nightK * 0.22);
-  winMats.forEach(m => m.emissiveIntensity = 0.06 + nightK * (FXR.on ? 0.62 : 0.9)); if (DM.shopRow) DM.shopRow.emissiveIntensity = 0.12 + nightK * (FXR.on ? 0.55 : 0.8);
+  winMats.forEach(m => m.emissiveIntensity = 0.06 + nightK * (FXR.on ? 0.62 : 0.9)); if (DM.shopRow) DM.shopRow.emissiveIntensity = 0.12 + nightK * (FXR.on ? 0.55 : 0.8); for (const k in INT_M) INT_M[k].uniforms.nk.value = nightK;
   if (DM.hw) { DM.hw[0].emissiveIntensity = nightK * 1.3; DM.hw[1].emissiveIntensity = nightK * 1.1; }
   if (FX.towerLed) FX.towerLed.emissiveIntensity = 0.05 + nightK * 2.1;
   NEON.mats.forEach(m => m.color.copy(m.userData.base).multiplyScalar(0.06 + nightK * 1.0));

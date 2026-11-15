@@ -2076,7 +2076,7 @@ function addShopSign(x, z, w, d, base, faces, r) {
   faces.forEach(([nx, nz]) => { if (r() < .35) return; const k = shopPick(r()), len = Math.min(nx ? d : w, 8) * 0.8, sc = len / 6;
     const px = x + nx * ((nx ? w : 0) / 2 + 0.07), pz = z + nz * ((nz ? d : 0) / 2 + 0.07), ry = nx ? (nx > 0 ? Math.PI / 2 : -Math.PI / 2) : (nz > 0 ? 0 : Math.PI);
     if (SHOPS[k][0] === "CAFÉ") { if (!CAFE_M) { const L = new THREE.TextureLoader(), t = L.load("assets/cafe_constance.jpg"), e = L.load("assets/cafe_constance_night.jpg"); t.anisotropy = 8; CAFE_M = new THREE.MeshLambertMaterial({ map: t, emissive: 0xffffff, emissiveMap: e, emissiveIntensity: 0.1 }); }
-      addGeo(CAFE_M, new THREE.PlaneGeometry(6, 3.53), px + nx * 0.02, base + 1.62, pz + nz * 0.02, ry, sc, sc, 1); CAFES.push([px, pz, ry]); return; }
+      addGeo(CAFE_M, new THREE.PlaneGeometry(6, 3.53), px + nx * 0.25, base + 1.62, pz + nz * 0.25, ry, sc, sc, 1); CAFES.push([px, pz, ry]); return; }
     addGeo(SIGN_BOX, SIGN_BOXG, px + nx * 0.14, base + 4.25, pz + nz * 0.14, ry, sc, sc * 1.1, 1);
     addGeo(SHOP_M, SHOP_G[k], px + nx * 0.29, base + 4.25, pz + nz * 0.29, ry, sc, sc * 1.1, 1);
     const tt = SHOPS[k][0], im = tt === "PIZZERIA" ? intMat("int_pizzeria.jpg") : tt === "BOULANGERIE" ? intMat("int_boulangerie.jpg") : null;

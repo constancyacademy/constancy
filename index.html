@@ -4267,7 +4267,7 @@ const TRFR = { t: 2 };
 function buildTraffic() {
   // trafic varié : voitures de toutes sortes, taxis, pick-up, bus, et des patrouilles de police et ambulances qui passent
   const mix = ["car_city", "car_city", "car_suv", "car_taxi", "car_pickup", "car_sport", "car_city", "car_suv"];
-  for (let k = 0; k < 38; k++) {
+  for (let k = 0; k < 48; k++) {
     const special = k < 3 ? "car_police" : k < 5 ? "ambulance" : k < 7 ? "bus" : k < 8 ? "firetruck" : null, model = special || pick(mix);
     const paintable = /car_city|car_suv|car_sport/.test(model);
     const mesh = makeCar({ id: "trafic", color: TRAFFIC_COLORS[k % TRAFFIC_COLORS.length] }, { model, keepPaint: !paintable }); scene.add(mesh);
@@ -4919,7 +4919,7 @@ function updateWorldLife(dt) {
   const tcar = TCAM.car && TCAM.car.visible ? TCAM.car.position : null; traffic.forEach(a => { a.mesh.visible = Math.hypot(a.x - me.x, a.z - me.z) < 190 && !(tcar && Math.abs(a.x - tcar.x) < 6 && Math.abs(a.z - tcar.z) < 40); });
   TRFR.t -= dt; if (TRFR.t <= 0 && Math.abs(me.x) < HALF + 30 && Math.abs(me.z) < HALF + 30) { TRFR.t = nightK > 0.6 ? 0.9 : 0.22;
     let near = 0; traffic.forEach(a => { if (Math.hypot(a.x - me.x, a.z - me.z) < 300) near++; });
-    if (near < (nightK > 0.6 ? 14 : 30)) { const a = traffic.find(a => !a.gone && !a.frozen && !a.racer && !a.mesh.userData.patrol && Math.hypot(a.x - me.x, a.z - me.z) > 320);
+    if (near < (nightK > 0.6 ? 15 : 38)) { const a = traffic.find(a => !a.gone && !a.frozen && !a.racer && !a.mesh.userData.patrol && Math.hypot(a.x - me.x, a.z - me.z) > 320);
       if (a) for (let tr = 0; tr < 6; tr++) { const ang = Math.random() * 6.283, r = 205 + Math.random() * 60, i = nearRoad(me.x + Math.cos(ang) * r), j = nearRoad(me.z + Math.sin(ang) * r), x = rc(i), z = rc(j), d = Math.hypot(x - me.x, z - me.z);
         if (d > 195 && d < 290 && !traffic.some(b => b !== a && Math.hypot(b.x - x, b.z - z) < 14)) { a.from = [i, j]; a.to = null; a.prev = null; a.nextTo = null; a.t = 0; a.x = x; a.z = z; a.mesh.position.set(x, a.mesh.position.y, z); a.mesh.visible = false; break; } } } }
   const fewPeds = nightK > 0.6; // la nuit, la ville se vide : il reste surtout ceux qui sortent boire un verre

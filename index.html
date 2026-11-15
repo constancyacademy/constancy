@@ -3042,7 +3042,7 @@ function buildFair() {
   const hubD = new THREE.Mesh(new THREE.CylinderGeometry(6.5, 6.5, 3.8, 48), steel); hubD.rotation.set(0, 0, Math.PI / 2); hubD.position.set(wx, hubY, z0); scene.add(hubD); [-1, 1].forEach(sd => { const face = new THREE.Mesh(new THREE.CircleGeometry(6.3, 48), hubM); face.position.set(wx + sd * 1.95, hubY, z0); face.rotation.y = sd * Math.PI / 2; scene.add(face); });
   // pieds en A et cabines qui restent à l'horizontale
   [-1, 1].forEach(sd => [-1, 1].forEach(fz => { const len = Math.hypot(hubY - Y, 18), leg = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.85, len, 8), steel); leg.position.set(wx + sd * 4.2, (hubY + Y) / 2, z0 + fz * 9); leg.rotation.x = -fz * Math.atan2(18, hubY - Y); scene.add(leg); }));
-  const gcols = [0xff4fa3, 0x7cf3ff, 0xffd36e, 0xa45bff, 0xffffff, 0xff9f1a];
+  const gcols = [0xff4fa3, 0xffc94a, 0x4fa8ff, 0xff8fd0, 0xffe27a, 0x7c8cff];
   const CF = HQ.clips && HQ.clips.m;
   for (let k = 0; k < 24; k++) { const g = new THREE.Group(), gm = new THREE.MeshPhongMaterial({ color: gcols[k % 6], shininess: 90, emissive: gcols[k % 6], emissiveIntensity: 0.12, side: THREE.DoubleSide });
     // nacelle ouverte : bac à mi-hauteur, plancher, banquettes, quatre montants jusqu'au toit (on voit les passagers, et le paysage depuis l'intérieur)
@@ -3766,12 +3766,12 @@ function trailPuff(x, y, z) {
   if (!CTRAIL.pts) { const g = new THREE.BufferGeometry(); CTRAIL.pos = new Float32Array(CTRAIL.n * 3).fill(-9999); CTRAIL.col = new Float32Array(CTRAIL.n * 3); CTRAIL.age = new Float32Array(CTRAIL.n).fill(99);
     g.setAttribute("position", new THREE.BufferAttribute(CTRAIL.pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(CTRAIL.col, 3));
     CTRAIL.pts = new THREE.Points(g, new THREE.PointsMaterial({ size: 1.3, map: glowTexture(), vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false, sizeAttenuation: true })); CTRAIL.pts.frustumCulled = false; scene.add(CTRAIL.pts); }
-  const i = CTRAIL.i = (CTRAIL.i + 1) % CTRAIL.n; if (!CTRAIL.hue) CTRAIL.hue = new Float32Array(CTRAIL.n); { const T = performance.now() / 1000; CTRAIL.hue[i] = 0.5 + 0.5 * Math.sin(T * 0.35 + (i % 2) * 1.6); } CTRAIL.pos[i * 3] = x; CTRAIL.pos[i * 3 + 1] = y; CTRAIL.pos[i * 3 + 2] = z; CTRAIL.age[i] = 0;
+  const i = CTRAIL.i = (CTRAIL.i + 1) % CTRAIL.n; if (!CTRAIL.hue) CTRAIL.hue = new Float32Array(CTRAIL.n); { const T = performance.now() / 1000; CTRAIL.hue[i] = (i % 2) ? 0.5 + 0.5 * Math.sin(T * 0.3) : 0.5 - 0.5 * Math.sin(T * 0.3); } CTRAIL.pos[i * 3] = x; CTRAIL.pos[i * 3 + 1] = y; CTRAIL.pos[i * 3 + 2] = z; CTRAIL.age[i] = 0;
 }
 function updateTrails(dt) {
   if (TRAIL_MAT) { const nk = nightK, T = performance.now() / 1000; TRAIL_MAT.color.setRGB(0.78 + nk * 0.22, 0.8 - nk * 0.12 + 0.05 * Math.sin(T * 0.7), 0.86 - nk * 0.22); TRAIL_MAT.opacity = 0.55 + nk * 0.4; }
   if (!CTRAIL.pts) return; const k = 0.75 + nightK * 0.2, nk2 = nightK;
-  for (let i = 0; i < CTRAIL.n; i++) { const a = CTRAIL.age[i] += dt; const v = a > 4.5 ? 0 : (1 - a / 4.5) * k; const hu = CTRAIL.hue ? CTRAIL.hue[i] : 0; CTRAIL.col[i * 3] = v; CTRAIL.col[i * 3 + 1] = v * (1 - nk2 * (0.2 + hu * 0.4)); CTRAIL.col[i * 3 + 2] = v * (1.02 - nk2 * (0.62 - hu * 0.22)); }
+  for (let i = 0; i < CTRAIL.n; i++) { const a = CTRAIL.age[i] += dt; const v = a > 4.5 ? 0 : (1 - a / 4.5) * k; const hu = CTRAIL.hue ? CTRAIL.hue[i] : 0, w = hu * hu * (3 - 2 * hu), cr = 1, cg = 0.16 + w * 0.68, cb = 0.62 - w * 0.42; CTRAIL.col[i * 3] = v * (1 + (cr - 1) * nk2); CTRAIL.col[i * 3 + 1] = v * (1 + (cg - 1) * nk2); CTRAIL.col[i * 3 + 2] = v * (1 + (cb - 1) * nk2); }
   CTRAIL.pts.geometry.attributes.color.needsUpdate = true; CTRAIL.pts.geometry.attributes.position.needsUpdate = true;
 }
 function emitDust(x, y, z, vx, vz, size) {
@@ -4068,7 +4068,7 @@ function buildMountain(r) {
   // panneau au sommet
   const top = label("Sommet · Mont Constancy", "#ff2d55"); top.position.set(MT.x, mtnH(MT.x, MT.z) + 14, MT.z); top.scale.set(22, 5.5, 1); scene.add(top);
   const flagPole = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 10, 8), pillarM); flagPole.position.set(MT.x + 4, mtnH(MT.x + 4, MT.z) + 4, MT.z); flagPole.scale.y = 1.2; scene.add(flagPole);
-  const fg = new THREE.PlaneGeometry(4, 2.4, 16, 4); fg.translate(2, 0, 0); const flag = new THREE.Mesh(fg, new THREE.MeshLambertMaterial({ color: 0xff2d55, side: THREE.DoubleSide })); flag.position.set(MT.x + 4.2, mtnH(MT.x + 4, MT.z) + 8.6, MT.z); scene.add(flag); FLAGW.list.push({ m: flag, base: fg.attributes.position.array.slice() });
+  const fg = new THREE.PlaneGeometry(4, 2.4, 16, 4); fg.translate(2, 0, 0); const flag = new THREE.Mesh(fg, new THREE.MeshLambertMaterial({ map: (() => { const c = document.createElement("canvas"); c.width = 256; c.height = 154; const g = c.getContext("2d"); const gr = g.createLinearGradient(0, 0, 256, 154); gr.addColorStop(0, "#ff2d95"); gr.addColorStop(0.55, "#ff6fb8"); gr.addColorStop(1, "#ffcf4a"); g.fillStyle = gr; g.fillRect(0, 0, 256, 154); g.fillStyle = "#fff"; g.font = "500 120px 'EB Garamond', Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("C", 128, 84); return new THREE.CanvasTexture(c); })(), emissive: 0x401028, side: THREE.DoubleSide })); flag.position.set(MT.x + 4.2, mtnH(MT.x + 4, MT.z) + 8.6, MT.z); scene.add(flag); FLAGW.list.push({ m: flag, base: fg.attributes.position.array.slice() });
   // dinos (easter egg) : ils marchent en rond dans une clairière sur le versant nord
   [["trex", 0.6], ["stego", 0.95], ["trice", 1.3], ["stego", 1.7], ["trice", 2.1]].forEach(([k, ph], n) => {
     if (!MODELS[k]) return; const g = new THREE.Group(); g.add(modelInstance(k)); scene.add(g);
@@ -4082,11 +4082,13 @@ function buildMountain(r) {
 }
 function buildHollywood() {
   const word = "CONSTANCY", N = word.length, mat = [], sm = new THREE.MeshLambertMaterial({ color: 0x8a8a90 }); HOLLY.mats = mat;
-  for (let i = 0; i < N; i++) { const a = Math.PI / 2 - (i - (N - 1) / 2) * 0.074; let r = MT.R * 0.2; while (r < MT.R && mtnH(MT.x + Math.cos(a) * r, MT.z + Math.sin(a) * r) > 132) r += 2;
-    const x = MT.x + Math.cos(a) * r, z = MT.z + Math.sin(a) * r, y = mtnH(x, z), c = document.createElement("canvas"); c.width = 256; c.height = 300; const g = c.getContext("2d"); g.fillStyle = "#fff"; g.font = "900 300px Anton, Impact, 'Arial Narrow', Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "alphabetic"; let fs = 300; while (g.measureText(word[i]).width > 236 && fs > 120) { fs -= 10; g.font = `900 ${fs}px Anton, Impact, 'Arial Narrow', Arial, sans-serif`; } g.fillText(word[i], 128, 288);
+  let r = MT.R * 0.2; while (r < MT.R && mtnH(MT.x, MT.z + r) > 132) r += 2; const step = 23.5 / r, ang = i => Math.PI / 2 - (i - (N - 1) / 2) * step;
+  let Y = -1e9; for (let i = 0; i < N; i++) for (const dd of [-8, 0, 8]) { const a = ang(i) + dd / r; Y = Math.max(Y, mtnH(MT.x + Math.cos(a) * r, MT.z + Math.sin(a) * r)); }
+  for (let i = 0; i < N; i++) { const a = ang(i);
+    const x = MT.x + Math.cos(a) * r, z = MT.z + Math.sin(a) * r, y = Y, gy = mtnH(x, z), c = document.createElement("canvas"); c.width = 256; c.height = 300; const g = c.getContext("2d"); g.fillStyle = "#fff"; g.font = "900 300px Anton, Impact, 'Arial Narrow', Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "alphabetic"; let fs = 300; while (g.measureText(word[i]).width > 236 && fs > 120) { fs -= 10; g.font = `900 ${fs}px Anton, Impact, 'Arial Narrow', Arial, sans-serif`; } g.fillText(word[i], 128, 288);
     const tx = new THREE.CanvasTexture(c), m = new THREE.MeshLambertMaterial({ map: tx, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide, emissive: 0xffffff, emissiveMap: tx, emissiveIntensity: 0 }); mat.push(m);
-    const L = new THREE.Mesh(new THREE.PlaneGeometry(19, 22), m), grp = new THREE.Group(); grp.position.set(x, y + 9.5, z); grp.rotation.y = Math.atan2(x - MT.x, z - MT.z); L.rotation.x = -0.2; grp.add(L);
-    [-5, 5].forEach(dx => { const po = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 14, 6), sm); po.position.set(dx, -3, -2.5); po.rotation.x = 0.25; grp.add(po); }); scene.add(grp); }
+    const L = new THREE.Mesh(new THREE.PlaneGeometry(19, 22), m), grp = new THREE.Group(); grp.position.set(x, y + 10.5, z); grp.rotation.y = 0; L.rotation.x = -0.06; grp.add(L);
+    const ph = y + 10.5 - gy + 2; [-5, 5].forEach(dx => { const po = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, ph, 6), sm); po.position.set(dx, -ph / 2 + 0.5, -1.2); grp.add(po); }); scene.add(grp); }
 }
 const HOLLY = { mats: [] };
 function updateHolly() { const nk = nightK; HOLLY.mats.forEach(m => { m.emissiveIntensity = 0.1 + nk * 0.8; }); }
@@ -6070,9 +6072,12 @@ function buildAirports(r) {
     const pool = new THREE.MeshBasicMaterial({ map: gt, color: 0xff4fc8, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }); RUNWAY.pool = pool;
     [-13.5, 13.5].forEach(dz => { const pl = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, 9), pool); pl.rotation.x = -Math.PI / 2; pl.position.set((x0 + x1) / 2, 0.12, AP.rz + dz); scene.add(pl); });
     // nom de l'aéroport peint aux deux bouts de la piste
-    const c = document.createElement("canvas"); c.width = 1024; c.height = 256; const x = c.getContext("2d"); x.fillStyle = "rgba(242,240,236,.88)"; x.textAlign = "center"; x.font = "900 170px Georgia, serif"; x.fillText("CONSTANCY", 512, 190);
-    const tm = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false });
-    [[x0 + 62, -Math.PI / 2], [x1 - 62, Math.PI / 2]].forEach(([px, rz]) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(36, 9), tm); m.rotation.set(-Math.PI / 2, 0, rz); m.position.set(px, 0.11, AP.rz); scene.add(m); }); }
+    const c = document.createElement("canvas"); c.width = 4096; c.height = 512; const x = c.getContext("2d"); x.fillStyle = "rgba(242,240,236,.86)"; x.textAlign = "center"; x.textBaseline = "middle"; let fs = 470; x.font = `900 ${fs}px Georgia, serif`; if (x.letterSpacing !== undefined) x.letterSpacing = "60px"; while (x.measureText("CONSTANCY").width > 3900 && fs > 200) { fs -= 10; x.font = `900 ${fs}px Georgia, serif`; } x.fillText("CONSTANCY", 2048, 270);
+    // usure : bandes de gomme sur l'axe des roues, grain, écailles
+    x.globalCompositeOperation = "destination-out"; for (let k = 0; k < 14000; k++) { x.fillStyle = `rgba(0,0,0,${Math.random() * 0.75})`; const w = Math.random() * 16 + 2; x.fillRect(Math.random() * 4096, Math.random() * 512, w, w * 0.5); }
+    [[150, 70], [362, 70], [256, 40]].forEach(([y0, h]) => { const gr = x.createLinearGradient(0, y0 - h, 0, y0 + h); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(0.5, "rgba(0,0,0,.55)"); gr.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = gr; for (let q = 0; q < 4096; q += 64) { x.globalAlpha = 0.4 + Math.random() * 0.6; x.fillRect(q, y0 - h, 64, h * 2); } }); x.globalAlpha = 1; x.globalCompositeOperation = "source-over";
+    const tx = new THREE.CanvasTexture(c); tx.anisotropy = 8; const tm = new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    const L = (x1 - x0) - 150; { const m = new THREE.Mesh(new THREE.PlaneGeometry(L, Math.min(17, L / 8)), tm); m.rotation.set(-Math.PI / 2, 0, 0); m.position.set((x0 + x1) / 2, 0.11, AP.rz); scene.add(m); } }
   // hangar : grande voûte ouverte côté piste
   const hgM = new THREE.MeshLambertMaterial({ color: 0xe9e6df, side: THREE.DoubleSide }), hx = 185, hz = AP.z0 + 26;
   const arch = new THREE.CylinderGeometry(17, 17, 34, 24, 1, true, -Math.PI / 2, Math.PI); arch.rotateZ(Math.PI / 2); arch.rotateY(Math.PI / 2);

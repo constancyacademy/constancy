@@ -2111,7 +2111,7 @@ function streetFurniture(i, j, cx, cz, r, zone) {
   sides.forEach(([sx, sz], si) => {
     const along = (t, off) => sx ? [sx > 0 ? bMax(i) - off : bMin(i) + off, cz + t] : [cx + t, sz > 0 ? bMax(j) - off : bMin(j) + off];
     if ((city && r() < .55) || (zone === "houses" && r() < .5)) for (let t = -12; t <= 12; t += 12) { if (r() < .2) continue; const [x, z] = along(t + (r() - .5) * 2, 1.4);
-      addGeo(D.pit, new THREE.BoxGeometry(1.3, 0.05, 1.3), x, 0.27, z); if (r() < .45) { VEG.flam.spots.push([x, z, 0.26, 6.2 + r() * 2.2, r() * 6.283]); addProp(x, z, 0.3); continue; } const m = r() < .5 ? "c_tree_fat" : "c_tree_oak"; if (addModelGeo(m, x, 0.26, z, r() * 6.28, 0.5 + r() * 0.15)) addProp(x, z, 0.3); }
+      addGeo(D.pit, new THREE.BoxGeometry(1.3, 0.05, 1.3), x, 0.27, z); if (r() < .45) { VEG.flam.spots.push([x, z, 0.26, 6.2 + r() * 2.2, r() * 6.283]); addProp(x, z, 0.3); continue; } if (city && r() < .45) { VEG.royal.spots.push([x, z, 0.26, 12 + r() * 5, r() * 6.283]); addProp(x, z, 0.35); continue; } const m = r() < .5 ? "c_tree_fat" : "c_tree_oak"; if (addModelGeo(m, x, 0.26, z, r() * 6.28, 0.5 + r() * 0.15)) addProp(x, z, 0.3); }
     if ((city || zone === "houses") && r() < .3) { const [x, z] = along(r() < .5 ? -8.5 : 8.5, 1.1); if (addModelGeo("bougain", x, 0.25, z, r() * 6.28, 0.9 + r() * 0.25)) addProp(x, z, 0.65); }
     if (city && r() < .5) { const [x, z] = along((r() - .5) * 20, 0.8); addGeo(D.binM, new THREE.CylinderGeometry(0.3, 0.27, 0.95, 10), x, 0.73, z); addGeo(D.trimDark, new THREE.CylinderGeometry(0.33, 0.33, 0.06, 10), x, 1.22, z); addProp(x, z, 0.3); }
     if (si === 0 && r() < .7) { const [x, z] = along(6 + r() * 6, 0.7); if (addModelGeo("hydrant", x, 0.25, z, r() * 6.28, 1)) addProp(x, z, 0.25); }
@@ -2779,7 +2779,7 @@ function updateGuing(dt) {
   GUING.list.forEach(g => { const d = Math.hypot(me.x - g.x, me.z - g.z); near = Math.min(near, d); g.glow.material.opacity = nk * 0.42; g.pts.forEach(p => { p.visible = d < 1100; }); });
   const on = nk > 0.45;
   GUING.people.forEach(h => { h.visible = (on || h.userData.day) && Math.hypot(me.x - h.position.x, me.z - h.position.z) < 170; if (h.userData.cup) h.userData.cup.visible = h.visible; });
-  guingMusic(dt, near); updateFires(dt); updateFair(dt); updateWheelRide(); updateShopFolks(dt); updateGantry(); updateBanner(dt); updateRadio2(); updateFlags(); updateHolly(); updateRunway(); updateNavLights(); updateBeachLife(dt); updateLift(dt); updateCountry(dt); updateJungle(dt); updateGpsTrail(dt); updateGarage(dt); updatePalms(dt); updatePosts(dt); updateVeg(VEG.flam, dt);
+  guingMusic(dt, near); updateFires(dt); updateFair(dt); updateWheelRide(); updateShopFolks(dt); updateGantry(); updateBanner(dt); updateRadio2(); updateFlags(); updateHolly(); updateRunway(); updateNavLights(); updateBeachLife(dt); updateLift(dt); updateCountry(dt); updateJungle(dt); updateGpsTrail(dt); updateGarage(dt); updatePalms(dt); updatePosts(dt); updateVeg(VEG.flam, dt); updateVeg(VEG.royal, dt);
   if (on && near < 48 && G.mode === "play") { GUING.clinkT -= dt; if (GUING.clinkT <= 0) { GUING.clinkT = rand(0.35, 2.2); clink(0.055 * (1 - near / 48) + 0.004); } }
 }
 // cloche de l'église de Saint-Constant : elle sonne les heures (on l'entend dans la campagne)
@@ -4079,11 +4079,12 @@ function buildRoofNeons() { // bandeaux néon au niveau des vitrines (rose, cyan
     list.forEach((e, k) => { const dx = e[2] - e[0], dz = e[3] - e[1], L = Math.hypot(dx, dz); v.set((e[0] + e[2]) / 2, e[4], (e[1] + e[3]) / 2); q.setFromAxisAngle(Y, -Math.atan2(dz, dx)); sc.set(L, 1, 1); m.compose(v, q, sc); im.setMatrixAt(k, m); });
     scene.add(im); });
   // palmiers éclairés en rose par le bas
-  if (PALM_SPOTS.length) { buildGlowPosts(); buildPalms(); } buildVeg(VEG.flam);
+  if (PALM_SPOTS.length) { buildGlowPosts(); buildPalms(); } buildVeg(VEG.flam); buildVeg(VEG.royal);
 }
 const PALM_SPOTS = [], POSTS = { M: null };
 // végétation générique : modèle 3D (Tripo) près de la caméra + photo détourée en croix au loin
-const VEG = { flam: { spots: [], glb: "assets/veg_flamboyant.json", img: "assets/tree_flamboyant.webp", aspect: 1, N: 28, R: 80, far: null, near: null, nearIdx: [], t: 0 } };
+const VEG = { flam: { spots: [], glb: "assets/veg_flamboyant.json", img: "assets/tree_flamboyant.webp", aspect: 1, N: 28, R: 80, far: null, near: null, nearIdx: [], t: 0 },
+  royal: { spots: [], glb: "assets/veg_royal.json", img: "assets/veg_royal.webp", aspect: 0.666, N: 26, R: 85, far: null, near: null, nearIdx: [], t: 0 } };
 function buildVeg(V) {
   if (!V.spots.length) return; const n = V.spots.length, d = new THREE.Object3D(), tex = new THREE.TextureLoader().load(V.img); tex.anisotropy = 4;
   const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.42, side: THREE.DoubleSide }), a = new THREE.PlaneGeometry(V.aspect, 1); a.translate(0, 0.5, 0); const b = a.clone(); b.rotateY(Math.PI / 2); const c = a.clone(); c.rotateY(Math.PI / 4);

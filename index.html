@@ -1491,7 +1491,7 @@ function syncAllRigs(dt = 1 / 60) {
 
 /* --- textures photo et sons réels (fichiers publiés à côté de la page) --- */
 const IMG = {}, SNDRAW = {};
-const IMG_FILES = { asphalt: "assets/tex_asphalt.jpg", pave: "assets/tex_pave.jpg", sand: "assets/tex_sand.jpg", plaster: "assets/tex_plaster.jpg", plaster2: "assets/tex_plaster2.jpg", rubber: "assets/tex_rubber.jpg", tiles: "assets/tex_tiles.jpg", sky: "assets/sky.jpg" };
+const IMG_FILES = { asphalt: "assets/tex_asphalt.jpg", pave: "assets/tex_pave.jpg", sand: "assets/tex_sand.jpg", plaster: "assets/tex_plaster.jpg", plaster2: "assets/tex_plaster2.jpg", rubber: "assets/tex_rubber.jpg", tiles: "assets/tex_tiles.jpg", sky: "assets/sky.jpg", poolw: "assets/tex_poolwater.jpg" };
 const SND_FILES = { race: "assets/eng_race.mp3", moto: "assets/eng_moto.mp3", scoot: "assets/eng_scoot.mp3", v8: "assets/snd_v8.mp3", siren: "assets/snd_siren.mp3", waves: "assets/amb_waves.mp3", city: "assets/amb_city.mp3", gull: "assets/amb_gull.mp3", gymamb: "assets/amb_gym.mp3", engine: "assets/snd_engine.mp3", door: "assets/snd_door.mp3", weight: "assets/snd_weight.mp3", cheer: "assets/snd_cheer.mp3", ping: "assets/snd_ping.mp3", ui: "assets/snd_ui.mp3", splash: "assets/snd_splash.mp3" };
 /* --- modèles 3D (voitures, bus, avions, bateaux, animaux, mobilier) --- */
 // face : direction du nez du modèle d'origine ; len : longueur voulue dans le monde (h : hauteur à la place)
@@ -1956,7 +1956,7 @@ function contactShadows() { // ombre douce au sol au pied de chaque bâtiment
 function districtMats() {
   if (DM.grass) return DM;
   DM.grass = new THREE.MeshLambertMaterial({ color: 0xffffff, map: noiseTex("#4f9a45", 34, 128, 4, (g, s) => { for (let k = 0; k < 400; k++) { g.fillStyle = Math.random() < .5 ? "rgba(255,255,160,.12)" : "rgba(0,40,0,.12)"; g.fillRect(Math.random() * s, Math.random() * s, 2, 2); } }) });
-  DM.pool = causticMat(new THREE.MeshPhongMaterial({ color: 0x2fd0e6, shininess: 120, specular: 0xffffff, emissive: 0x0a3d48 }));
+  DM.pool = causticMat(new THREE.MeshPhongMaterial(IMG.poolw ? { color: 0xffffff, map: imgTex("poolw", 1), shininess: 120, specular: 0xffffff, emissive: 0x062a33 } : { color: 0x2fd0e6, shininess: 120, specular: 0xffffff, emissive: 0x0a3d48 }));
   DM.poolEdge = new THREE.MeshLambertMaterial({ color: 0xf2efe8 });
   DM.roofTile = new THREE.MeshLambertMaterial({ color: 0xc8643c });
   DM.houseCols = [0xfff4e0, 0xf6d4c8, 0xd8eef0, 0xf5e6b8, 0xe9d8f4, 0xffffff].map(c => new THREE.MeshLambertMaterial({ color: c }));
@@ -2204,7 +2204,7 @@ function buildDistrictBlock(i, j, cx, cz, F, dist, r, M) {
       addGeo(DM.glassShop, new THREE.BoxGeometry(w * 0.5, 1.6, 0.1), hx, base + 1.6, hz + Math.sign(oz) * (d / 2 + 0.03));
       houseWindows(hx, base, hz, w, d, h, 0, r);
       boxes.push([hx - w / 2, hz - d / 2, hx + w / 2, hz + d / 2]);
-      if (r() < .6) { const px = x0 + Math.sign(ox) * 3.2, pz = z0 + Math.sign(oz) * 3.4; addGeo(D.poolEdge, new THREE.BoxGeometry(5, 0.3, 3.4), px, base + 0.15, pz); addGeo(D.pool, new THREE.BoxGeometry(4.3, 0.05, 2.7), px, base + 0.31, pz); }
+      if (r() < .6) { const px = x0 + Math.sign(ox) * 3.2, pz = z0 + Math.sign(oz) * 3.4; addGeo(D.poolEdge, new THREE.BoxGeometry(5, 0.3, 3.4), px, base + 0.15, pz); addGeo(D.pool, new THREE.BoxGeometry(4.3, 0.05, 2.7), px, base + 0.31, pz); POOLS.push([px, pz, base + 0.31]); }
       if (r() < .7) palm(x0 + Math.sign(ox) * 5.5, z0 - Math.sign(oz) * 4.5, r);
       addGeo(D.hedge, new THREE.BoxGeometry(15, 1, 0.6), x0, base + 0.5, z0 + Math.sign(oz) * 7.4);
       grassTufts(hx, hz + Math.sign(oz) * (d / 2 + 1.0), w, 1.2, 9, r, base + 0.1, null, 0.85); // massif fleuri devant la maison
@@ -2606,7 +2606,33 @@ function buildBeachLife() {
     const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.6), new THREE.MeshLambertMaterial({ color: 0x2fbf5a, side: THREE.DoubleSide })); flag.position.set(x + 1.45, 5.7, z + 1); scene.add(flag);
     if (C.Sitting_Idle_Loop) { const h = makeHuman({ shirt: 0xd8302f, pants: 0xd8302f, skin: pick(SKINS), hair: pick(HAIRS), lite: true, shorts: true }); h.position.set(x, 2.75, z); h.rotation.y = side === 2 ? 0 : Math.PI / 2; scene.add(h); setClip(h, "Sitting_Idle_Loop"); h.userData.manual = true; BEACH.night.push(h); } });
 }
+// piscines : un petit groupe de baigneurs (adultes, enfants à brassards) s'installe dans les piscines les plus proches de la caméra
+const POOLS = [], POOLF = { folks: [], t: 9, built: false };
+function buildPoolLife() {
+  const C = HQ.clips && HQ.clips.m; if (POOLF.built || !C || !C.Swim_Idle_Loop || !POOLS.length) return; POOLF.built = true;
+  const SW = [0xff2d55, 0x34e0ff, 0xf6c945, 0x9b5cff, 0xffffff, 0x111114], band = new THREE.MeshLambertMaterial({ color: 0xff7a1a, emissive: 0x3a1400 });
+  for (let k = 0; k < 10; k++) { const kid = k === 5 || k === 6, h = bodyVar(makeHuman({ female: k % 2 === 1, shirt: pick(SW), pants: pick([0x111114, 0x2d5aa8, 0xff6b9a]), skin: pick(SKINS), hair: pick(HAIRS), lite: true, sleeve: 0.2, shorts: true }));
+    if (kid) { h.scale.multiplyScalar(0.62); h.updateMatrixWorld(true);
+      ["l", "r"].forEach(sd => { const up = h.getObjectByName("upperarm_" + sd), lo = h.getObjectByName("lowerarm_" + sd); if (!up) return; const ws = new THREE.Vector3(); up.getWorldScale(ws);
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.04, 8, 16), band); ring.rotation.x = Math.PI / 2; ring.scale.setScalar(0.62 / (ws.x || 1)); if (lo) ring.position.copy(lo.position).multiplyScalar(0.45); up.add(ring); }); }
+    h.visible = false; scene.add(h); h.userData.manual = true; const fwd = !kid && k % 2 === 0; setClip(h, fwd ? "Swim_Fwd_Loop" : "Swim_Idle_Loop", 0.7 + Math.random() * 0.3);
+    POOLF.folks.push({ h, kid, fwd, pool: null, u: Math.random() * 6, off: 0, sp: 0 }); }
+}
+function updatePoolLife(dt) {
+  if (!POOLF.built) { if (HQ.ready) buildPoolLife(); return; }
+  const cam = camera.position, day = nightK < 0.55 && !G.inside && cam.y < 140;
+  POOLF.t += dt; if (POOLF.t > 1.5) { POOLF.t = 0;
+    const near = day ? POOLS.map(q => [Math.hypot(q[0] - cam.x, q[1] - cam.z), q]).filter(a => a[0] < 150).sort((a, b) => a[0] - b[0]).slice(0, 5).map(a => a[1]) : [];
+    POOLF.folks.forEach((f, i) => { const slot = i < 5 ? 0 : 1; const pool = near[i % 5] && (slot === 0 || (i % 5) < 3) ? near[i % 5] : null;
+      if (pool !== f.pool) { f.pool = pool; f.off = slot ? 0.9 : -0.9; f.u = Math.random() * 6; } }); }
+  const T = performance.now() / 1000;
+  POOLF.folks.forEach(f => { const q = f.pool; f.h.visible = !!q && day; if (!f.h.visible) return; f.u += dt;
+    const along = f.fwd ? Math.sin(f.u * 0.35) * 1.3 : Math.sin(f.u * 0.4) * 0.35, x = q[0] + along, z = q[1] + f.off * 0.6;
+    f.h.position.set(x, q[2] - (f.kid ? -0.02 : 0.06) + Math.sin(T * 1.6 + f.u) * 0.04, z); f.h.rotation.y = f.fwd ? (Math.cos(f.u * 0.35) > 0 ? Math.PI / 2 : -Math.PI / 2) : f.u * 0.15 + f.off;
+    if (Math.random() < dt * (f.fwd ? 1.8 : f.kid ? 1.2 : 0.4) && FX.pts) { FX.mat.uniforms.col.value.setHex(0xeaf8ff); for (let n = 0; n < 4; n++) emitDust(x + (Math.random() - 0.5) * 0.6, q[2] + 0.05, z + (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 1.6, (Math.random() - 0.5) * 1.6, 0.35); } });
+}
 function updateBeachLife(dt) {
+  updatePoolLife(dt);
   if (!BEACH.built) return; const cam = camera.position, T = performance.now() / 1000, day = nightK < 0.55, nearB = Math.max(Math.abs(cam.x), Math.abs(cam.z)) > HALF - 120 && cam.z > -HALF - 80 && cam.y < 160;
   BEACH.walk.forEach(w => { const show = nearB && (day || w.night); w.h.visible = show; if (!show) return; w.u += w.sp * dt; const k = w.u % 2, fwd = k < 1, t = w.t0 + (fwd ? k : 2 - k) * w.L, [x, z] = beachAt(w.side, t, w.off);
     if (!beachOK(x, z)) { w.h.visible = false; return; } w.h.position.set(x, 0.05, z); const d = fwd ? 1 : -1; w.h.rotation.y = w.side === 2 ? (d > 0 ? Math.PI / 2 : -Math.PI / 2) : (d > 0 ? 0 : Math.PI); });
@@ -7333,7 +7359,7 @@ function envCar(mesh) { mesh.traverse(o => { if (!o.isMesh || !o.material) retur
 function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "number" && nightK > 0.5) ? ENVR.night : ENVR.day; if (ENVR.cur === want) return; ENVR.cur = want;
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
 window.__W = () => ({ spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

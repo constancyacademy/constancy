@@ -1716,7 +1716,7 @@ const MODEL_DEFS = {
   plane_liner: { len: 64, face: "x" }, plane_small: { len: 12, face: "-z" }, heli: { len: 15, face: "-x" },
   yacht: { len: 24, face: "x" }, sailboat: { len: 10 }, gull: { len: 1.8, face: "x" }, shark: { len: 4.5, anim: "Swim" }, dolphin: { len: 3.2, anim: "Swim" },
   dog: { len: 1.3, anim: "Walk" }, cat: { h: 0.7 }, flamingo: { h: 1.7 }, trex: { len: 13, anim: "Walk" }, stego: { len: 10, anim: "Walk" }, trice: { len: 9, anim: "Walk" },
-  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, jetski: { len: 3.3, vc: true }, icecream: { h: 2.7, vc: true }, popcorn: { h: 2.35, vc: true }, speedboat: { len: 9.6, vc: true }, sofa: { len: 5.2, vc: true }, bed: { len: 3.6, vc: true }, dino_sleep: { len: 12, vc: true }, croc: { len: 4.6, vc: true }, heli_amb: { len: 13, vc: true, face: "-x" }, kitchen: { h: 1.85, vc: true, face: "-x" }, tvunit: { len: 3.4, vc: true }, monstera: { h: 2.7, vc: true }, moto_cross: { len: 2.2, vc: true, face: "x" },
+  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, jetski: { len: 3.3, vc: true }, icecream: { h: 2.7, vc: true }, popcorn: { h: 2.35, vc: true }, speedboat: { len: 9.6, vc: true }, sofa: { len: 5.2, vc: true }, bed: { len: 3.6, vc: true }, dino_sleep: { len: 12, vc: true }, croc: { len: 4.6, vc: true }, heli_amb: { len: 13, vc: true, face: "-x" }, kitchen: { h: 1.85, vc: true, face: "-x" }, tvunit: { len: 3.4, vc: true }, monstera: { h: 2.7, vc: true }, crewcar: { len: 5.3, vc: true }, moto_cross: { len: 2.2, vc: true, face: "x" },
   // montagne : faune et nature (Quaternius / Kenney, CC0)
   w_deer: { len: 1.9, anim: "Eating" }, w_stag: { len: 2.2, anim: "Idle" }, w_wolf: { len: 1.7, anim: "Idle" }, w_fox: { len: 1.05, anim: "Idle" },
   w_yeti: { h: 2.7, anim: "Idle" }, w_raptor: { len: 3.2, anim: "Velociraptor_Idle" }, w_bat: { len: 0.7, anim: "Bat_Flying" },
@@ -4076,6 +4076,9 @@ function buildRangers() {
     const bar = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.16, 0.3), new THREE.MeshBasicMaterial({ color: 0xff8a1a })); bar.position.y = (MODELS.car_suv.size.y || 1.8) + 0.1; j.add(bar); JUNGLE.rjeep = { j, bar }; }
   const sg = label("Animal endormi · gardes en intervention", "#ffb84a"); sg.position.set(x, y + 8.5, z + 2); sg.scale.set(13, 3.25, 1); scene.add(sg); JUNGLE.rsign = sg;
 }
+let crewT = 0; function updateCrew(dt) { crewT -= dt; const c = SND.ctx; if (!c || !SND.on || crewT > 0) return; let bd = 1e9; for (const a of traffic) if (a.crew && a.mesh) { const d = camera.position.distanceTo(a.mesh.position); if (d < bd) bd = d; } if (bd > 55) return; crewT = 3.2 + Math.random() * 2;
+  const v = Math.pow(1 - bd / 55, 1.5), t = c.currentTime, o = c.createOscillator(), o2 = c.createOscillator(), f = c.createBiquadFilter(), g = c.createGain(); o.type = "sawtooth"; o2.type = "square"; o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(190, t + 0.9); o.frequency.exponentialRampToValueAtTime(95, t + 1.6); o2.frequency.setValueAtTime(35, t); o2.frequency.exponentialRampToValueAtTime(96, t + 0.9); o2.frequency.exponentialRampToValueAtTime(48, t + 1.6); f.type = "lowpass"; f.frequency.value = 900; f.Q.value = 3;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3 * v + 0.001, t + 0.12); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.7); o.connect(f); o2.connect(f); f.connect(g).connect(c.destination); o.start(t); o2.start(t); o.stop(t + 1.8); o2.stop(t + 1.8); }
 let crocT = 0; function updateCrocs(dt) { const L = JUNGLE.crocs; if (!L || !L.length) return; crocT -= dt; const c = SND.ctx; let best = null, bd = 1e9; for (const k of L) { const d = Math.hypot(k.position.x - G.me.x, k.position.z - G.me.z); if (d < bd) { bd = d; best = k; } k.position.y += Math.sin(performance.now() * 0.0011 + k.position.x) * 0.0006; }
   if (bd < 14 && crocT <= 0 && c && SND.on) { crocT = 4 + Math.random() * 4; const o = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(), o2 = c.createOscillator(), g2 = c.createGain(); o.buffer = noiseBuf(1.1, x => Math.min(1, x * 6) * Math.exp(-x * 2.2)); f.type = "bandpass"; f.frequency.value = 2600; f.Q.value = 0.7; g.gain.value = 0.32 * (1 - bd / 14); o.connect(f).connect(g).connect(c.destination); o2.type = "sawtooth"; o2.frequency.value = 48; g2.gain.setValueAtTime(0.0001, c.currentTime); g2.gain.exponentialRampToValueAtTime(0.22 * (1 - bd / 14), c.currentTime + 0.15); g2.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.9); o2.connect(g2).connect(c.destination); o.start(); o2.start(); o2.stop(c.currentTime + 1); if (bd < 6) { best.rotation.y += 0.25; navigator.vibrate && navigator.vibrate(30); } } }
 function buildCrocs() { if (!MODELS.croc) return; const L = JG.lag; for (let k = 0; k < 4; k++) { const a = 0.9 + k * 1.1, r = L[2] * (0.98 + (k % 2) * 0.06), x = L[0] + Math.cos(a) * r, z = L[1] + Math.sin(a) * r, c = modelInstance("croc"); c.position.set(x, Math.max(-0.3, jgH(x, z)) - 0.15, z); c.rotation.y = -a + Math.PI / 2 + (k % 2 ? 0.4 : -0.3); scene.add(c); (JUNGLE.crocs = JUNGLE.crocs || []).push(c); } }
@@ -4828,7 +4831,7 @@ function updateLamps(dt) {
     L.oy = 0.16 * Math.sin(L.th); lampMatrix(i); });
 }
 function updatePosts(dt) {
-  if (SHOREW.u) { SHOREW.u.uT.value += dt; SHOREW.u.nk.value = nightK; } updateAura(dt); updateBreath(dt); updateHeliAmb(dt); updateCrocs(dt); updateGrassField(dt); updateLamps(dt); updateER(dt); updateAmbulance(dt); updateMarket(dt); updateShops3D(dt); updateCranes(dt); updateWorkers(dt); if (!POSTS.moving) return; let any = 0;
+  if (SHOREW.u) { SHOREW.u.uT.value += dt; SHOREW.u.nk.value = nightK; } updateAura(dt); updateBreath(dt); updateHeliAmb(dt); updateCrocs(dt); updateCrew(dt); updateGrassField(dt); updateLamps(dt); updateER(dt); updateAmbulance(dt); updateMarket(dt); updateShops3D(dt); updateCranes(dt); updateWorkers(dt); if (!POSTS.moving) return; let any = 0;
   POSTS.list.forEach((q, i) => { if (q.hit !== 1) return; any = 1; q.vy -= 22 * dt; q.x += q.vx * dt; q.z += q.vz * dt; q.oy += q.vy * dt; q.rx += q.ax * dt; q.rz += q.ax * 0.7 * dt;
     const gy = GH(q.x, q.z) - q.y; if (q.oy <= gy + 0.2 && q.vy < 0) { q.oy = gy + 0.2; q.vy *= -0.25; q.vx *= 0.55; q.vz *= 0.55; q.ax *= 0.5; if (Math.hypot(q.vx, q.vz) < 0.6) { q.hit = 2; q.rx = Math.PI / 2 * Math.sign(q.rx || 1); POSTS.moving--; } }
     postMatrix(i); });
@@ -4885,13 +4888,13 @@ function buildTraffic() {
   // trafic varié : voitures de toutes sortes, taxis, pick-up, bus, et des patrouilles de police et ambulances qui passent
   const mix = ["car_city", "car_city", "car_suv", "car_taxi", "car_pickup", "car_sport", "car_city", "car_suv"];
   for (let k = 0; k < 48; k++) {
-    const special = k < 3 ? "car_police" : k < 5 ? "ambulance" : k < 7 ? "bus" : k < 8 ? "firetruck" : null, model = special || pick(mix);
+    const crew = k >= 8 && k < 12 && !!MODELS.crewcar, special = k < 3 ? "car_police" : k < 5 ? "ambulance" : k < 7 ? "bus" : k < 8 ? "firetruck" : null, model = crew ? "crewcar" : special || pick(mix);
     const paintable = /car_city|car_suv|car_sport/.test(model);
     const mesh = makeCar({ id: "trafic", color: TRAFFIC_COLORS[k % TRAFFIC_COLORS.length] }, { model, keepPaint: !paintable }); scene.add(mesh);
     if (special === "car_police" || special === "ambulance") mesh.userData.patrol = special;
     if (MODELS[model] && model !== "bus" && model !== "firetruck") { const hgt = MODELS[model].size.y, dr = makeDriver(); dr.position.set(0.44, Math.max(0.05, hgt - 1.32), -0.1); mesh.add(dr); }
     const a = agent(mesh, special === "bus" ? rand(9, 11) : rand(12, 18), [Math.floor(rand(0, NB + 1)), Math.floor(rand(0, NB + 1))], special === "bus" || special === "firetruck" ? 6 : 3.6);
-    a.model = model; a.x = rc(a.from[0]); a.z = rc(a.from[1]); if (!special && k % 6 === 3) { a.base = a.speed = rand(22, 27); a.fou = true; } traffic.push(a);
+    a.model = model; a.x = rc(a.from[0]); a.z = rc(a.from[1]); if (!special && k % 6 === 3) { a.base = a.speed = rand(22, 27); a.fou = true; } if (crew) { a.base = a.speed = rand(23, 28); a.fou = true; a.crew = true; } traffic.push(a);
     if (MODELS[model] && MODELS[model].size) { const S = MODELS[model].size, L = Math.max(S.x, S.z), W = Math.min(S.x, S.z); if (L > 2.5 && L < 15) { a.hl = L / 2 - 0.1; a.hw = clamp(W / 2 - 0.25, 0.55, 1.2); } }
   }
 }

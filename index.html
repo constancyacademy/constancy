@@ -189,7 +189,7 @@ body{font-family:var(--font-ui);-webkit-user-select:none;user-select:none;touch-
 #screen.titled .ttl .btn.alt:active{transform:translateY(3px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 1px 0 rgba(0,0,0,.4),0 6px 14px rgba(0,0,0,.4)}
 @media (hover:hover){#screen.titled .ttl .btn.alt:hover{border-color:rgba(255,124,192,.55)}#screen.titled .ttl .btn:not(.alt):hover{transform:translateY(-1px)}}
 /* séparateur de l'écran de démarrage : néon rose et turquoise qui flashe */
-.boot .bootline{height:2px;background:linear-gradient(90deg,transparent,#ff2d95 25%,#ff9ad6 50%,#3ff0ff 75%,transparent);box-shadow:0 0 12px rgba(255,45,149,.7),0 0 26px rgba(63,240,255,.35);animation:bootLine 1.4s 1s ease forwards,vcFlash 2.4s 2.4s ease-in-out infinite}
+.boot .bootline{height:2px;background:linear-gradient(90deg,transparent,#ff2d95 25%,#ff9ad6 50%,#3ff0ff 75%,transparent);box-shadow:0 0 12px rgba(255,45,149,.7),0 0 26px rgba(63,240,255,.35);animation:bootLine 1.4s 1s ease forwards,bootFlash 2.4s 2.4s ease-in-out infinite}
 .boot .bootsub{color:#ffd1ea;text-shadow:0 0 14px rgba(255,79,163,.6)}
 
 #screen.mail{z-index:55;background:radial-gradient(120% 70% at 50% 0%,rgba(255,63,164,.24),transparent 62%),linear-gradient(180deg,rgba(9,7,16,.93),rgba(9,7,16,.98))}
@@ -198,7 +198,7 @@ body{font-family:var(--font-ui);-webkit-user-select:none;user-select:none;touch-
 .ptr.br{bottom:calc(6px + env(safe-area-inset-bottom,0px));right:calc(22px + env(safe-area-inset-right,0px))}
 .ptr.bc{bottom:calc(6px + env(safe-area-inset-bottom,0px));left:50%;margin-left:-20px}
 .ptr.tr{animation-name:ptrT}
-.boot{background:none!important;border:0!important;box-shadow:none!important;text-align:center}.bootlogo span{display:inline-block;opacity:0;transform:translateY(18px) scale(.96);filter:blur(8px);animation:bootIn .9s cubic-bezier(.2,.8,.2,1) forwards}.bootline{height:1px;width:0;margin:18px auto 0;background:linear-gradient(90deg,transparent,#c9a24a,transparent);animation:bootLine 1.4s 1s ease forwards}.bootsub{margin:14px 0 0;font:500 13px Inter,sans-serif;letter-spacing:.42em;text-transform:uppercase;color:rgba(242,240,236,.7);opacity:0;animation:bootFade 1s 1.5s ease forwards}@keyframes bootIn{to{opacity:1;transform:none;filter:none}}@keyframes bootLine{to{width:min(320px,70vw)}}@keyframes bootFade{to{opacity:1}}
+.boot{background:none!important;border:0!important;box-shadow:none!important;text-align:center}.bootlogo span{display:inline-block;opacity:0;transform:translateY(18px) scale(.96);will-change:transform,opacity;animation:bootIn .9s cubic-bezier(.2,.8,.2,1) forwards}.bootline{position:relative;overflow:hidden;height:1px;width:min(320px,70vw);margin:18px auto 0;transform:scaleX(0);will-change:transform,opacity;background:linear-gradient(90deg,transparent,#c9a24a,transparent);animation:bootLine 1.4s 1s ease forwards}.bootline::after{content:'';position:absolute;top:-2px;bottom:-2px;left:0;width:34%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);transform:translateX(-120%);will-change:transform;animation:bootShine 1.3s 2.2s cubic-bezier(.5,0,.5,1) infinite}@keyframes bootShine{to{transform:translateX(320%)}}.bootsub{margin:14px 0 0;font:500 13px Inter,sans-serif;letter-spacing:.42em;text-transform:uppercase;color:rgba(242,240,236,.7);opacity:0;animation:bootFade 1s 1.5s ease forwards}@keyframes bootIn{to{opacity:1;transform:none}}@keyframes bootLine{to{transform:scaleX(1)}}@keyframes bootFlash{0%,100%{opacity:.9}8%{opacity:.25}11%{opacity:1}14%{opacity:.4}17%{opacity:1}}@keyframes bootFade{to{opacity:1}}
 @keyframes ptrB{from{transform:translateY(-14px)}to{transform:translateY(4px)}}
 @keyframes ptrT{from{transform:translate(-4px,16px)}to{transform:translate(4px,0)}}
 .steps{text-align:left;margin:10px 0 4px;padding:0;list-style:none;counter-reset:st}
@@ -1096,6 +1096,15 @@ function buildShoreWaves() {
         gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.92)); }` });
   const mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false; mesh.renderOrder = 2; scene.add(mesh); SHOREW.mesh = mesh;
 }
+// halo néon autour du perso la nuit : une lumière rose qui suit, un anneau lumineux au sol (on voit le perso sans éclairer toute la ville)
+const AURA = { light: null, ring: null, light2: null };
+function updateAura(dt) {
+  if (!AURA.light) { AURA.light = new THREE.PointLight(0xff6fc8, 0, 14, 1.5); scene.add(AURA.light);
+    AURA.ring = new THREE.Mesh(new THREE.RingGeometry(0.8, 0.94, 48), new THREE.MeshBasicMaterial({ color: 0xff5fc0, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })); AURA.ring.rotation.x = -Math.PI / 2; scene.add(AURA.ring); }
+  const o = target(), foot = G.onFoot, T = performance.now() / 1000, k = G.mode === "play" && !G.inside && o ? nightK : 0, y = foot ? GH(o.x, o.z) : 0;
+  AURA.light.intensity = k * (foot ? 1.9 : 1.2); if (o) AURA.light.position.set(o.x, y + 2.4, o.z);
+  AURA.ring.visible = foot && k > 0.05 && !G.ufoRide; if (AURA.ring.visible) { AURA.ring.position.set(o.x, y + 0.06 + (G.me.jy || 0), o.z); AURA.ring.material.opacity = k * (0.28 + 0.1 * Math.sin(T * 2.2)); const sc = 1 + 0.06 * Math.sin(T * 2.2); AURA.ring.scale.set(sc, sc, sc); AURA.ring.material.color.setHSL(0.9 + 0.05 * Math.sin(T * 0.4), 1, 0.62); }
+}
 function makeBeacon(color) {
   const grp = new THREE.Group(), add = THREE.AdditiveBlending;
   const col = new THREE.Mesh(fadeCyl(1.5, 70, 18, 1.6), new THREE.MeshBasicMaterial({ color, map: beaconTex(), vertexColors: true, transparent: true, opacity: .3, depthWrite: false, side: THREE.DoubleSide, blending: add }));
@@ -1320,6 +1329,7 @@ function makeRide(kind) {
     wk.visible = false; g.add(wk); g.userData.wake = wk; return g;
   }
   if (kind === "voiture") return makeCar({ id: pick(["citadine", "coupe"]), color: pick([0x3fd16b, 0x2d5aa8, 0xe8e4dc, 0x9b5cff]) });
+  if (kind === "moto" && MOTO_X && MODELS.moto_cross) { const m = modelInstance("moto_cross"); g.add(m); g.userData.cross = true; addBlob(g, 0.9, 2.3); return g; }
   if (kind === "moto" && MODELS.moto) { const m = modelInstance("moto"); g.add(m); addBlob(g, 0.9, 2.4); return g; }
   if (kind === "trottinette") {
     const deck = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 1.05), RENT_M); deck.position.y = 0.2; g.add(deck);
@@ -1360,7 +1370,7 @@ function buildStuntPark() {
   for (let a = -70; a <= 70; a += 14) [-1, 1].forEach(sd => { const [x, z] = at(a, sd * 22); addGeo(white, new THREE.CylinderGeometry(0.06, 0.06, 2.4, 5), x, GH(x, z) + 1.2, z); addGeo(a / 14 % 2 ? stripe : white, new THREE.BoxGeometry(0.05, 0.6, 0.9), x, GH(x, z) + 2.1, z + 0.45, ph); });
   const sg = label("Stunt Park · Tremplins", "#ff4fa3"), [lx, lz] = at(-74, 0); sg.position.set(lx, base + 6, lz); sg.scale.set(12, 3, 1); scene.add(sg);
   // motos de cross à louer au départ de la piste
-  [-6, -3, 0, 3].forEach((b, k) => { const [x, z] = at(-70, b), mesh = makeRide("moto"); mesh.position.set(x, GH(x, z) + 0.25, z); mesh.rotation.y = ph; scene.add(mesh); rentals.push({ kind: "moto", mesh, x, z, h: ph }); });
+  [-6, -3, 0, 3].forEach((b, k) => { const [x, z] = at(-70, b), mesh = makeCross(); mesh.position.set(x, GH(x, z) + 0.25, z); mesh.rotation.y = ph; scene.add(mesh); rentals.push({ kind: "moto", mesh, x, z, h: ph }); });
 }
 function landJump(dist, t) {
   const best = P.bestJump || 0, rec = dist > best + 0.2 && dist > 6; sfx.bump && sfx.bump(); if (typeof thump === "function") thump(0.35);
@@ -1673,7 +1683,7 @@ const MODEL_DEFS = {
   plane_liner: { len: 64, face: "x" }, plane_small: { len: 12, face: "-z" }, heli: { len: 15, face: "-x" },
   yacht: { len: 24, face: "x" }, sailboat: { len: 10 }, gull: { len: 1.8, face: "x" }, shark: { len: 4.5, anim: "Swim" }, dolphin: { len: 3.2, anim: "Swim" },
   dog: { len: 1.3, anim: "Walk" }, cat: { h: 0.7 }, flamingo: { h: 1.7 }, trex: { len: 13, anim: "Walk" }, stego: { len: 10, anim: "Walk" }, trice: { len: 9, anim: "Walk" },
-  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 },
+  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, moto_cross: { len: 2.25, vc: true, face: "z" },
   // montagne : faune et nature (Quaternius / Kenney, CC0)
   w_deer: { len: 1.9, anim: "Eating" }, w_stag: { len: 2.2, anim: "Idle" }, w_wolf: { len: 1.7, anim: "Idle" }, w_fox: { len: 1.05, anim: "Idle" },
   w_yeti: { h: 2.7, anim: "Idle" }, w_raptor: { len: 3.2, anim: "Velociraptor_Idle" }, w_bat: { len: 0.7, anim: "Bat_Flying" },
@@ -1682,6 +1692,7 @@ const MODEL_DEFS = {
   c_tree_oak: { h: 11, col: { leafsGreen: 0x3d6b2c, woodBark: 0x5a4030 } }, c_tree_fat: { h: 9, col: { leafsGreen: 0x4a7a32, woodBark: 0x5a4030 } }, c_tree_autumn: { h: 10, col: { leafsFall: 0xc9862f, woodBirch: 0xe6e0d2 } }, c_bush_large: { h: 2.2, col: { grass: 0x3f6a2e } }, c_fence: { len: 3.4, col: { wood: 0x8a6a48, woodDark: 0x6e5238 } }, c_tractor: { len: 5 }, c_truck: { len: 11 }
 };
 const MODELS = {};
+var MOTO_X = false; function makeCross() { MOTO_X = true; try { return makeRide("moto"); } finally { MOTO_X = false; } }
 const WHEELED = /^(car_|c_sedan|c_hatchback|c_suv|ambulance|bus|firetruck|c_delivery|c_truck)/;
 function prepModel(key, gltf) {
   const def = MODEL_DEFS[key], root = gltf.scene; root.updateMatrixWorld(true);
@@ -1691,7 +1702,7 @@ function prepModel(key, gltf) {
   if (skinned) inner.add(root);
   else { // statique : on fusionne tout par matériau, une fois pour toutes
     const by = new Map();
-    root.traverse(o => { if (!o.isMesh) return; const gg = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()); Object.keys(gg.attributes).forEach(n => { if (!/^(position|normal|uv)$/.test(n)) gg.deleteAttribute(n); }); if (!gg.attributes.normal) gg.computeVertexNormals(); gg.applyMatrix4(o.matrixWorld);
+    root.traverse(o => { if (!o.isMesh) return; const gg = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()); Object.keys(gg.attributes).forEach(n => { if (!(def.vc ? /^(position|normal|uv|color)$/ : /^(position|normal|uv)$/).test(n)) gg.deleteAttribute(n); }); if (!gg.attributes.normal) gg.computeVertexNormals(); gg.applyMatrix4(o.matrixWorld);
       const mats = Array.isArray(o.material) ? o.material : [o.material]; const m = mats[0]; if (m.map) m.map.encoding = THREE.LinearEncoding;
       if (!gg.attributes.uv) { const n = gg.attributes.position.count; gg.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array(n * 2), 2)); }
       if (/propeller/i.test(o.name || "") || (o.parent && /propeller/i.test(o.parent.name || ""))) { (by.props = by.props || []).push([gg, m]); return; } // hélice : gardée à part pour tourner sur son axe
@@ -1704,7 +1715,7 @@ function prepModel(key, gltf) {
       const wm = new Map(); by.wheels.forEach(([gg, m, front]) => { gg.computeBoundingBox(); const bb = gg.boundingBox, c = bb.getCenter(new THREE.Vector3()); wr = Math.max(wr, (bb.max.y - bb.min.y) / 2); gg.translate(-c.x, -c.y, -c.z);
         if (!wm.has(m)) wm.set(m, new THREE.MeshLambertMaterial({ color: m.color, map: m.map || null })); const wh = new THREE.Mesh(gg, wm.get(m)); wh.position.copy(c); wh.name = front ? "wheelF" : "wheelB"; wh.rotation.order = "YXZ"; inner.add(wh); });
       by.wr = wr; }
-    by.forEach((list, m) => { const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(list); if (merged) { const o0 = { color: def.col && def.col[m.name] != null ? new THREE.Color(def.col[m.name]) : m.color, map: m.map || null, transparent: m.transparent, opacity: m.opacity, side: m.side, emissive: /light/i.test(m.name) ? m.color : 0x000000 };
+    by.forEach((list, m) => { const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(list); if (merged) { const o0 = { color: def.col && def.col[m.name] != null ? new THREE.Color(def.col[m.name]) : m.color, map: m.map || null, transparent: m.transparent, opacity: m.opacity, side: m.side, emissive: /light/i.test(m.name) ? m.color : 0x000000, vertexColors: !!(def.vc && merged.attributes.color) }; if (def.vc) o0.color = new THREE.Color(0xffffff);
         // voitures : peinture vernie et vitres qui brillent au soleil (reflets), pneus mats
         const glossy = WHEELED.test(key) && !/light/i.test(m.name) && !/black|tire|rubber/i.test(m.name), win = /window|glass/i.test(m.name);
         const lm = glossy ? new THREE.MeshPhongMaterial(Object.assign(o0, { shininess: win ? 160 : /grey|gray|chrome|metal/i.test(m.name) ? 70 : 95, specular: win ? 0xaabbcc : 0x8a8a8a }, win ? { transparent: true, opacity: 0.62, depthWrite: false } : {})) : new THREE.MeshLambertMaterial(o0); lm.name = m.name; bodyG.add(new THREE.Mesh(merged, lm)); } });
@@ -1825,7 +1836,9 @@ function addModelGeo(key, x, y, z, ry = 0, sc = 1) {
 function loadModels() {
   if (!THREE.GLTFLoader) return Promise.resolve();
   const L = new THREE.GLTFLoader();
-  return Promise.all(Object.keys(MODEL_DEFS).map(k => new Promise(ok => L.load("assets/m_" + k + ".json", g => { try { prepModel(k, g); } catch (e) {} ok(); }, undefined, () => ok()))));
+  const keys = Object.keys(MODEL_DEFS), idle = () => new Promise(r => setTimeout(r, 0));
+  let i = 0; const worker = async () => { while (i < keys.length) { const k = keys[i++]; const g = await new Promise(ok => L.load("assets/m_" + k + ".json", ok, undefined, () => ok(null))); await idle(); if (g) { try { prepModel(k, g); } catch (e) {} } await idle(); } };
+  return Promise.all([worker(), worker(), worker(), worker()]);
 }
 function loadMedia() {
   const L = new THREE.ImageLoader();
@@ -2436,21 +2449,21 @@ function grassMat(flowers) {
     float gp = position.x * 0.37 + position.z * 0.29; float tip = uv.y * uv.y; transformed.x += sin(uSway * 2.3 + gp) * 0.09 * tip; transformed.z += cos(uSway * 1.9 + gp * 1.3) * 0.06 * tip;`); };
   return m;
 }
-const GFIELD = { im: null, cx: 1e9, cz: 1e9, t: 0, N: 3400 };
+const GFIELD = { im: null, cx: 1e9, cz: 1e9, t: 0, N: 6000 };
 function grassKind(x, z) { if (z > -470 || onHighway(x, z)) return 0;
   if (z < -2380) { const j = jgH(x, z); if (j > 0.9 && jgMask(x, z) < 0.95 && nearJT(x, z) > 5.5) return 3; }
   const c = csH(x, z); if (c > 0.5 && csMask(x, z) < 1.02 && nearNat(x, z) > 9) return 2;
   const m = mtnH(x, z); if (m > 1.2 && m < 95 && Math.abs(m - landH(x, z)) < 0.3 && nearMRoad(x, z) > 7) return 1; return 0; }
 function updateGrassField(dt) {
   const o = target(); if (!o || G.inside || o.z > -440) { if (GFIELD.im) GFIELD.im.visible = false; return; }
-  if (!GFIELD.im) { if (!GRASS_M) { GRASS_M = grassMat(false); FLOWER_M = grassMat(true); } GFIELD.im = new THREE.InstancedMesh(GRASS_G, GRASS_M, GFIELD.N); GFIELD.im.frustumCulled = false; GFIELD.im.count = 0; scene.add(GFIELD.im); }
+  if (!GFIELD.im) { if (!GRASS_M) { GRASS_M = grassMat(false); FLOWER_M = grassMat(true); } GFIELD.im = new THREE.InstancedMesh(GRASS_G, grassMat(false), GFIELD.N); GFIELD.im.setColorAt(0, new THREE.Color(0.6, 0.9, 0.5)); GFIELD.im.frustumCulled = false; GFIELD.im.count = 0; scene.add(GFIELD.im); }
   GFIELD.im.visible = true; GFIELD.t -= dt; if (Math.hypot(o.x - GFIELD.cx, o.z - GFIELD.cz) < 7 && GFIELD.t > 0) return; GFIELD.t = 2.5; GFIELD.cx = o.x; GFIELD.cz = o.z;
-  const R = 32, st = 0.95, d = new THREE.Object3D(), col = new THREE.Color(), tint = [null, [0.62, 0.95, 0.5], [0.95, 0.92, 0.55], [0.45, 0.85, 0.42]]; let n = 0;
+  const R = 30, st = 0.7, d = new THREE.Object3D(), col = new THREE.Color(), tint = [null, [0.62, 0.95, 0.5], [0.95, 0.92, 0.55], [0.45, 0.85, 0.42]]; let n = 0;
   const gx0 = Math.floor((o.x - R) / st), gz0 = Math.floor((o.z - R) / st);
   for (let i = gx0; i * st < o.x + R && n < GFIELD.N; i++) for (let j = gz0; j * st < o.z + R && n < GFIELD.N; j++) {
     const h1 = Math.abs(Math.sin(i * 12.9898 + j * 78.233) * 43758.5453) % 1, h2 = Math.abs(Math.sin(i * 39.346 + j * 11.135) * 23421.631) % 1, x = (i + h1) * st, z = (j + h2) * st;
-    if ((x - o.x) ** 2 + (z - o.z) ** 2 > R * R) continue; const k = grassKind(x, z); if (!k) continue; const y = landH(x, z), sc = 1.0 + h1 * 0.8;
-    d.position.set(x, y - 0.05, z); d.rotation.set(0, h2 * 6.28, 0); d.scale.set(sc * 1.25, 0.55 + h2 * 0.55 + (k === 3 ? 0.35 : 0), sc * 1.25); d.updateMatrix(); GFIELD.im.setMatrixAt(n, d.matrix);
+    const dd2 = (x - o.x) ** 2 + (z - o.z) ** 2; if (dd2 > R * R || dd2 < 2.2) continue; const k = grassKind(x, z); if (!k) continue; const y = landH(x, z), sc = 0.62 + h1 * 0.5;
+    d.position.set(x, y - 0.05, z); d.rotation.set(0, h2 * 6.28, 0); d.scale.set(sc, 0.38 + h2 * 0.4 + (k === 3 ? 0.25 : 0), sc); d.updateMatrix(); GFIELD.im.setMatrixAt(n, d.matrix);
     const t = tint[k], v = 0.85 + h1 * 0.3; GFIELD.im.setColorAt(n, col.setRGB(t[0] * v, t[1] * v, t[2] * v)); n++; }
   GFIELD.im.count = n; GFIELD.im.instanceMatrix.needsUpdate = true; if (GFIELD.im.instanceColor) GFIELD.im.instanceColor.needsUpdate = true;
 }
@@ -3200,7 +3213,7 @@ const UFO = { spots: [[330, -975], [-470, -905], [-360, -1870]], st: null, seen:
 function buildUfo() {
   const g = new THREE.Group(), metal = new THREE.MeshPhongMaterial({ color: 0x9aa3ad, shininess: 120, specular: 0xffffff });
   const disc = new THREE.Mesh(new THREE.SphereGeometry(7, 28, 12), metal); disc.scale.set(1, 0.22, 1); g.add(disc);
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(2.6, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshPhongMaterial({ color: 0x9fe8ff, emissive: 0x2a8aa8, transparent: true, opacity: 0.85, shininess: 150 })); dome.position.y = 1.1; g.add(dome);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(2.6, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshPhongMaterial({ color: 0x9fe8ff, emissive: 0x2a8aa8, transparent: true, opacity: 0.85, shininess: 150 })); dome.position.y = 1.1; g.add(dome); UFO.dome = dome;
   UFO.lights = []; for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, l = new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 6), new THREE.MeshBasicMaterial({ color: 0x7dffb0 })); l.position.set(Math.cos(a) * 6.4, -0.3, Math.sin(a) * 6.4); g.add(l); UFO.lights.push(l); }
   const beam = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 9, 1, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0xbfffd8, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
   g.add(beam); UFO.beam = beam; g.visible = false; scene.add(g); UFO.mesh = g;
@@ -3216,14 +3229,19 @@ function callUfo() {
 function ufoAliens() {
   if (UFO.crew) return; const U = UFO, skin = new THREE.MeshLambertMaterial({ color: 0x9cc9a4 }), eye = new THREE.MeshPhongMaterial({ color: 0x050608, shininess: 160, specular: 0x88aaff }), suit = new THREE.MeshPhongMaterial({ color: 0x3a4250, shininess: 80 }), seatM = new THREE.MeshPhongMaterial({ color: 0xc9d2dc, shininess: 120 });
   U.crew = [];
-  [[-1.05, 0.55, 0.5], [1.05, 0.55, -0.5]].forEach(([x, z, ry]) => { const a = new THREE.Group(); a.position.set(x, 1.5, z); a.rotation.y = ry;
+  [[-1.15, 0.25, 0.12], [1.15, 0.25, -0.12]].forEach(([x, z, ry]) => { const a = new THREE.Group(); a.position.set(x, 1.5, z); a.rotation.y = ry;
+    if (MODELS.alien) { const m = modelInstance("alien"); a.add(m); const hd = new THREE.Object3D(); a.add(hd); a.userData.head = hd; a.userData.body = m; a.visible = false; U.mesh.add(a); U.crew.push(a); return; }
     const seat = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.12, 0.6), seatM); seat.position.y = 0.06; a.add(seat);
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.62, 10), suit); body.position.y = 0.45; a.add(body);
     [-1, 1].forEach(sd => { const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.5, 6), skin); arm.position.set(sd * 0.21, 0.42, 0.08); arm.rotation.x = -0.9; a.add(arm); const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.45, 6), suit); leg.position.set(sd * 0.08, 0.14, 0.22); leg.rotation.x = Math.PI / 2; a.add(leg); });
     const head = new THREE.Group(); head.position.y = 0.95; a.add(head); const sk = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), skin); sk.scale.set(0.26, 0.32, 0.28); head.add(sk); const chin = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), skin); chin.scale.set(0.12, 0.14, 0.12); chin.position.set(0, -0.2, 0.08); head.add(chin);
-    [-1, 1].forEach(sd => { const e = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), eye); e.scale.set(0.095, 0.055, 0.04); e.position.set(sd * 0.11, -0.02, 0.24); e.rotation.z = sd * 0.5; head.add(e); });
+    [-1, 1].forEach(sd => { const e = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), eye); e.scale.set(0.11, 0.065, 0.05); e.position.set(sd * 0.115, -0.02, 0.235); e.rotation.z = sd * 0.5; head.add(e); const gl = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 5), new THREE.MeshBasicMaterial({ color: 0xffffff })); gl.position.set(sd * 0.1, 0.0, 0.285); head.add(gl); });
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.2, 8), skin); neck.position.y = 0.8; a.add(neck); const trim = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.02, 6, 20), new THREE.MeshBasicMaterial({ color: 0x7dffb0 })); trim.rotation.x = Math.PI / 2; trim.position.y = 0.7; a.add(trim);
+    [-1, 1].forEach(sd => { for (let f = 0; f < 3; f++) { const fg = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.006, 0.13, 4), skin); fg.position.set(sd * 0.21 + (f - 1) * 0.02, 0.2, 0.33); fg.rotation.x = -0.4; a.add(fg); } });
     a.userData.head = head; a.visible = false; U.mesh.add(a); U.crew.push(a); });
-  const ps = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.12, 0.7), seatM); ps.position.set(0, 1.56, -0.6); ps.visible = false; U.mesh.add(ps); U.crew.push(ps);
+  const ps = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.12, 0.7), seatM); ps.position.set(0, 1.56, 0.25); ps.visible = false; U.mesh.add(ps); U.crew.push(ps);
+  const con = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.5, 0.4), new THREE.MeshPhongMaterial({ color: 0x2a3038, shininess: 90 })); con.position.set(0, 1.7, 1.6); con.rotation.x = -0.5; con.visible = false; U.mesh.add(con); U.crew.push(con);
+  for (let k = 0; k < 7; k++) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.02, 0.1), new THREE.MeshBasicMaterial({ color: [0x7dffb0, 0x3fe8ff, 0xff5fc0][k % 3] })); b.position.set(-0.9 + k * 0.3, 2.1, 1.47); b.rotation.x = -0.5; b.visible = false; U.mesh.add(b); U.crew.push(b); }
 }
 function ufoSound(on) {
   const c = SND.ctx; if (!c || !SND.on) return; const t = c.currentTime;
@@ -3243,22 +3261,35 @@ function updateUfoRide(dt) {
     if (R.t > 2.2) { U.beam.visible = true; const L = U.mesh.position.y - R.gy; U.beam.scale.y = L; U.beam.position.y = -L / 2; U.beam.material.opacity = 0.2 + Math.sin(R.t * 8) * 0.05;
       const lift = Math.min(1, (R.t - 2.4) / 1.9); G.me.x = R.x; G.me.z = R.z; if (meMesh && lift > 0) { meMesh.position.set(R.x, R.gy + 0.25 + lift * lift * 21, R.z); meMesh.rotation.y += dt * 2; } }
     return; }
-  if (!R.in) { R.in = true; U.beam.visible = false; R.h = Math.atan2(dest.x - R.x, dest.z - R.z); R.y0 = U.mesh.position.y; U.crew.forEach(a => a.visible = true);
-    if (meMesh) { U.mesh.add(meMesh); meMesh.position.set(0, 1.62, -0.6); meMesh.rotation.set(0, 0, 0); meMesh.visible = true; if (!setClip(meMesh, "Sitting_Idle_Loop")) { const u = meMesh.userData; u.lL.rotation.x = u.lR.rotation.x = -1.4; } }
+  if (!R.in) { R.in = true; U.beam.visible = false; if (U.dome) { U.dome.material.opacity = 0.14; U.dome.material.emissive.setHex(0x061820); U.dome.material.depthWrite = false; } R.h = Math.atan2(dest.x - R.x, dest.z - R.z); R.y0 = U.mesh.position.y; U.crew.forEach(a => a.visible = true);
+    if (meMesh) { U.mesh.add(meMesh); meMesh.position.set(0, 1.62, 0.25); meMesh.rotation.set(0, 0, 0); meMesh.visible = true; if (!setClip(meMesh, "Sitting_Idle_Loop")) { const u = meMesh.userData; u.lL.rotation.x = u.lR.rotation.x = -1.4; } }
     help("<b>À bord.</b> Ils ont l'air sympas. Accroche-toi.", 3); }
-  const ft = R.t - 4.4; U.mesh.rotation.y += ((R.h - U.mesh.rotation.y + Math.PI * 3) % (Math.PI * 2) - Math.PI) * Math.min(1, dt * 3);
-  U.crew.forEach((a, i) => { if (a.userData.head) a.userData.head.rotation.y = ft < 1.6 ? Math.sin(ft * 2 + i) * 0.35 + (i ? 0.6 : -0.6) * Math.min(1, ft) : Math.sin(ft * 0.8 + i) * 0.15; });
-  if (ft < 1.4) U.mesh.position.y = R.y0 + ft * 6; else { const k = Math.min(1, (ft - 1.4) / 3.0), e = k * k * k; if (!R.wh) { R.wh = true; ufoWhoosh(); }
-    U.mesh.position.set(R.x + (dest.x - R.x) * e, R.y0 + 8.4 + Math.sin(Math.PI * k) * 60 + (130 - R.y0) * e * 0, R.z + (dest.z - R.z) * e); R.fov = 70 + e * 35; }
-  if (ft > 4.4 && !R.flash) { R.flash = true; const fl = $("pFlash"); if (fl) { fl.style.transition = "none"; fl.style.opacity = 1; } ufoSound(false);
-    setTimeout(() => { const x = dest.x, z = dest.z; if (meMesh) { scene.add(meMesh); setClip(meMesh, null); } U.crew.forEach(a => a.visible = false); G.me.x = x; G.me.z = z; G.me.h = Math.PI; G.me.v = 0; G.snapCam = true; resetPose(); camera.fov = window.innerWidth < window.innerHeight ? 74 : 62; camera.updateProjectionMatrix();
-      if (G.parked && Math.hypot(G.parked.x - x, G.parked.z - z) > 300) { G.parked.x = x - 5; G.parked.z = z + 6; G.parked.h = Math.PI; G.parked.mesh.position.set(G.parked.x, 0, G.parked.z); G.parked.mesh.rotation.set(0, G.parked.h, 0); }
-      U.mesh.visible = false; U.beam.visible = false; G.ufoRide = null; const fl = $("pFlash"); if (fl) requestAnimationFrame(() => { fl.style.transition = "opacity 1.2s"; fl.style.opacity = 0; });
-      notify("gold", "<b>Déposé en centre-ville.</b> Les extraterrestres aussi aiment la régularité. Ta voiture t'attend juste à côté.", 6); }, 450); }
+  const ft = R.t - 4.4, E = k => k <= 0 ? 0 : k >= 1 ? 1 : k * k * (3 - 2 * k);
+  if (!R.plan) { let top = 0; for (let k = 0; k <= 80; k++) { const x = R.x + (dest.x - R.x) * k / 80, z = R.z + (dest.z - R.z) * k / 80; top = Math.max(top, z < -470 ? landH(x, z) : 0, buildingTop(x, z)); }
+    const dist = Math.hypot(dest.x - R.x, dest.z - R.z); dest.gy = GH(dest.x, dest.z); R.plan = { cy: Math.max(top + 50, R.y0 + 70, 150), dist, dur: clamp(dist / 50, 14, 28) }; }
+  const PL = R.plan, T1 = 4.5, T2 = T1 + 6, T3 = T2 + PL.dur, T4 = T3 + 6.5, T5 = T4 + 3.6; R.T = [T1, T2, T3, T4, T5];
+  let px = R.x, pz = R.z, py; const yLow = dest.gy + 30;
+  if (ft < T1) py = R.y0 + E(ft / T1) * 10;
+  else if (ft < T2) { py = R.y0 + 10 + (PL.cy - R.y0 - 10) * E((ft - T1) / (T2 - T1)); if (!R.wh) { R.wh = true; ufoWhoosh(); } }
+  else if (ft < T3) { const k = (ft - T2) / PL.dur, e = E(k); px = R.x + (dest.x - R.x) * e; pz = R.z + (dest.z - R.z) * e; py = PL.cy + Math.sin(k * Math.PI) * 12; if (!R.lookHint) { R.lookHint = true; G.lookYaw = 0; G.lookPitch = 0; help("Glisse le doigt sur l'écran pour regarder autour de la soucoupe.", 5); } }
+  else if (ft < T4) { px = dest.x; pz = dest.z; py = PL.cy + (yLow - PL.cy) * E((ft - T3) / (T4 - T3)); }
+  else { px = dest.x; pz = dest.z; py = yLow; }
+  U.mesh.position.set(px, py, pz); U.mesh.rotation.y += ((R.h - U.mesh.rotation.y + Math.PI * 3) % (Math.PI * 2) - Math.PI) * Math.min(1, dt * 2); U.mesh.rotation.z = ft > T2 && ft < T3 ? Math.sin(ft * 0.9) * 0.05 : 0;
+  U.crew.forEach((a, i) => { if (a.userData.body) { a.userData.body.rotation.y = Math.sin(ft * 0.7 + i * 2) * 0.12; a.userData.body.position.y = Math.sin(ft * 1.8 + i) * 0.012; } if (a.userData.head) a.userData.head.rotation.y = ft < T1 ? Math.sin(ft * 1.6 + i) * 0.5 + (i ? -0.5 : 0.5) * 0.6 : Math.sin(ft * 0.6 + i * 2) * 0.35; });
+  // descente du perso dans le rayon, au-dessus du centre-ville
+  if (ft >= T4) { U.beam.visible = true; const L = py - dest.gy; U.beam.scale.y = L; U.beam.position.y = -L / 2; U.beam.material.opacity = 0.2 + Math.sin(ft * 8) * 0.05;
+    if (!R.drop) { R.drop = true; if (meMesh) { scene.add(meMesh); setClip(meMesh, null); resetPose && resetPose(); } U.crew.forEach(a => { if (!a.userData.head) a.visible = false; }); }
+    const k = E((ft - T4) / (T5 - T4)); if (meMesh) { meMesh.position.set(px, py - 1 - k * (py - 1 - dest.gy - 0.25), pz); meMesh.rotation.y += dt * 2.2; } G.me.x = px; G.me.z = pz; }
+  if (ft > T5 && !R.flash) { R.flash = true; ufoSound(false);
+    const x = dest.x, z = dest.z; if (meMesh) { meMesh.position.set(x, dest.gy + 0.25, z); setClip(meMesh, null); } U.crew.forEach(a => a.visible = false); G.me.x = x; G.me.z = z; G.me._lx = x; G.me._lz = z; G.me.h = Math.PI; G.me.v = 0; G.snapCam = true; G.lookYaw = 0; G.lookPitch = 0; resetPose(); camera.fov = window.innerWidth < window.innerHeight ? 74 : 62; camera.updateProjectionMatrix();
+    if (G.parked && Math.hypot(G.parked.x - x, G.parked.z - z) > 300) { G.parked.x = x - 5; G.parked.z = z + 6; G.parked.h = Math.PI; G.parked.mesh.position.set(G.parked.x, 0, G.parked.z); G.parked.mesh.rotation.set(0, G.parked.h, 0); }
+    U.beam.visible = false; G.ufoRide = null; UFO.leave = { t: 0, x: px, y: py, z: pz }; if (U.dome) { U.dome.material.opacity = 0.85; U.dome.material.emissive.setHex(0x2a8aa8); }
+    notify("gold", "<b>Déposé en centre-ville.</b> Les extraterrestres aussi aiment la régularité. Ta voiture t'attend juste à côté.", 6); }
 }
 function updateUfo(dt) {
   if (!UFO.mesh || !P) return;
   if (G.ufoRide) return updateUfoRide(dt);
+  if (UFO.leave) { const L = UFO.leave; L.t += dt; UFO.mesh.visible = true; UFO.mesh.position.set(L.x, L.y + L.t * L.t * 14, L.z); UFO.mesh.rotation.y += dt * 3; if (L.t > 4.5) { UFO.leave = null; UFO.mesh.visible = false; } return; }
   const h = hourNow(), night = h >= 23 || h < 4, U = UFO;
   // une nuit sur deux, il apparaît au-dessus d'un des trois endroits
   if (!U.st && night && G.started && U.seen !== P.day && mulberry(P.day * 31 + 5)() < 0.5) { const sp = U.spots[P.day % U.spots.length]; U.st = { x: sp[0], z: sp[1], y: landH(sp[0], sp[1]) + 26, mode: "hover", t: 0 }; }
@@ -4035,8 +4066,8 @@ function buildMountain(r) {
     dinos.push({ mesh: g, cx: MT.x + Math.cos(-Math.PI / 2) * MT.R * 0.55, cz: MT.z + Math.sin(-Math.PI / 2) * MT.R * 0.55, r: 30 + n * 14, a: ph * 3, s: 0.05 + n * 0.01 });
   });
   // motos de cross à louer au pied de la montagne
-  for (let k = 0; k < 3; k++) { const x = HW.x + 14 + k * 3, z = HW.z1 + 8, mesh = makeRide("moto"); mesh.position.set(x, GH(x, z), z); scene.add(mesh); rentals.push({ kind: "moto", mesh, x, z, h: 0 }); }
-  { const s0 = MROAD[0], s1 = MROAD[4], hh = Math.atan2(s1[0] - s0[0], s1[1] - s0[1]), ox = Math.cos(hh), oz = -Math.sin(hh); for (let k = 0; k < 6; k++) { const x = s0[0] + ox * (12 + (k % 3) * 2.6) + Math.sin(hh) * (Math.floor(k / 3) * 4 - 6), z = s0[1] + oz * (12 + (k % 3) * 2.6) + Math.cos(hh) * (Math.floor(k / 3) * 4 - 6), mesh = makeRide("moto"); mesh.position.set(x, GH(x, z), z); mesh.rotation.y = hh; scene.add(mesh); rentals.push({ kind: "moto", mesh, x, z, h: hh }); }
+  for (let k = 0; k < 3; k++) { const x = HW.x + 14 + k * 3, z = HW.z1 + 8, mesh = makeCross(); mesh.position.set(x, GH(x, z), z); scene.add(mesh); rentals.push({ kind: "moto", mesh, x, z, h: 0 }); }
+  { const s0 = MROAD[0], s1 = MROAD[4], hh = Math.atan2(s1[0] - s0[0], s1[1] - s0[1]), ox = Math.cos(hh), oz = -Math.sin(hh); for (let k = 0; k < 6; k++) { const x = s0[0] + ox * (12 + (k % 3) * 2.6) + Math.sin(hh) * (Math.floor(k / 3) * 4 - 6), z = s0[1] + oz * (12 + (k % 3) * 2.6) + Math.cos(hh) * (Math.floor(k / 3) * 4 - 6), mesh = makeCross(); mesh.position.set(x, GH(x, z), z); mesh.rotation.y = hh; scene.add(mesh); rentals.push({ kind: "moto", mesh, x, z, h: hh }); }
     const ml = label("Motocross · à louer", "#ff9f1a"); ml.position.set(s0[0] + ox * 15, GH(s0[0] + ox * 15, s0[1] + oz * 15) + 4.5, s0[1] + oz * 15); ml.scale.set(10, 2.5, 1); scene.add(ml); }
   buildHollywood();
 }
@@ -4235,7 +4266,7 @@ function buildCountryside(r) {
   { const x = 210, z = -1080, wm = new THREE.Mesh(new THREE.CircleGeometry(34, 32), new THREE.MeshLambertMaterial({ color: 0x2f7f8c, transparent: true, opacity: 0.92 })); wm.rotation.x = -Math.PI / 2; wm.position.set(x, csH(x, z) + 0.15, z); wm.scale.set(1.4, 1, 1); scene.add(wm); }
   // camions sur la nationale (garés) et 4x4 à prendre au pied de la montagne
   { const tk = makeCar({ id: "trafic", color: 0x8a2a24 }, { model: "car_pickup", keepPaint: true }); if (tk) { tk.position.set(124, csH(124, -865.4) + 0.75, -865.4); tk.rotation.y = Math.PI / 2; scene.add(tk); } }
-  [[18, -1478], [26, -1484]].forEach(([x, z], i) => { const mesh = i ? makeRide("moto") : makeCar({ id: "trafic", color: 0x2e3a2a }, { model: "car_suv" }); mesh.position.set(x, csH(x, z), z); scene.add(mesh); rentals.push({ kind: i ? "moto" : "voiture", mesh, x, z, h: Math.PI, offroad: true }); });
+  [[18, -1478], [26, -1484]].forEach(([x, z], i) => { const mesh = i ? makeCross() : makeCar({ id: "trafic", color: 0x2e3a2a }, { model: "car_suv" }); mesh.position.set(x, csH(x, z), z); scene.add(mesh); rentals.push({ kind: i ? "moto" : "voiture", mesh, x, z, h: Math.PI, offroad: true }); });
 }
 let lineM_ref = null, mamieMesh = null;
 /* --- grues à tour et ouvriers du chantier --- */
@@ -4652,7 +4683,7 @@ function updateLamps(dt) {
     L.oy = 0.16 * Math.sin(L.th); lampMatrix(i); });
 }
 function updatePosts(dt) {
-  if (SHOREW.u) { SHOREW.u.uT.value += dt; SHOREW.u.nk.value = nightK; } updateGrassField(dt); updateLamps(dt); updateER(dt); updateAmbulance(dt); updateMarket(dt); updateShops3D(dt); updateCranes(dt); updateWorkers(dt); if (!POSTS.moving) return; let any = 0;
+  if (SHOREW.u) { SHOREW.u.uT.value += dt; SHOREW.u.nk.value = nightK; } updateAura(dt); updateGrassField(dt); updateLamps(dt); updateER(dt); updateAmbulance(dt); updateMarket(dt); updateShops3D(dt); updateCranes(dt); updateWorkers(dt); if (!POSTS.moving) return; let any = 0;
   POSTS.list.forEach((q, i) => { if (q.hit !== 1) return; any = 1; q.vy -= 22 * dt; q.x += q.vx * dt; q.z += q.vz * dt; q.oy += q.vy * dt; q.rx += q.ax * dt; q.rz += q.ax * 0.7 * dt;
     const gy = GH(q.x, q.z) - q.y; if (q.oy <= gy + 0.2 && q.vy < 0) { q.oy = gy + 0.2; q.vy *= -0.25; q.vx *= 0.55; q.vz *= 0.55; q.ax *= 0.5; if (Math.hypot(q.vx, q.vz) < 0.6) { q.hit = 2; q.rx = Math.PI / 2 * Math.sign(q.rx || 1); POSTS.moving--; } }
     postMatrix(i); });
@@ -5453,9 +5484,9 @@ function applySky(h) {
   const ang = (h - 6) / 12 * Math.PI, sd = skyMat.uniforms.sunDir.value; sd.set(-Math.cos(ang), Math.max(-0.2, Math.sin(ang)), 0.35).normalize();
   const day = clamp(Math.sin(ang), 0, 1);
   skyMat.uniforms.sunCol.value.setRGB(1, 0.65 + day * 0.3, 0.45 + day * 0.4).multiplyScalar(day > 0 ? 1 : 0);
-  sun.intensity = 0.12 + day * 0.85; hemi.intensity = 0.32 + day * 0.55; if (IMG.sky) skyMat.uniforms.cloudK.value = 0.25 + day * 0.4;
+  sun.intensity = 0.34 + day * 0.63; hemi.intensity = 0.66 + day * 0.21; if (IMG.sky) skyMat.uniforms.cloudK.value = 0.25 + day * 0.4;
   sun.color.setRGB(1, 0.74 + day * 0.18, 0.56 + day * 0.24);
-  nightK = 1 - clamp(day * 1.8, 0, 1);
+  nightK = 1 - clamp(day * 1.8, 0, 1); sun.color.lerp(new THREE.Color(0.62, 0.7, 1.0), nightK * 0.85); // clair de lune bleuté
   // Vice City : la nuit, la lumière d'ambiance vire au rose-violet (néons), sans délaver l'image
   hemi.color.setRGB(1, 0.97 - nightK * 0.36, 0.95 - nightK * 0.03); hemi.groundColor.setRGB(0.23 + nightK * 0.2, 0.16, 0.23 + nightK * 0.22);
   winMats.forEach(m => m.emissiveIntensity = 0.06 + nightK * (FXR.on ? 0.62 : 0.9)); if (DM.shopRow) DM.shopRow.emissiveIntensity = 0.12 + nightK * (FXR.on ? 0.55 : 0.8); if (DM.shopRow2) DM.shopRow2.emissiveIntensity = 0.12 + nightK * (FXR.on ? 0.55 : 0.8); if (CAFE_M) CAFE_M.emissiveIntensity = 0.1 + nightK * 0.85; for (const k in INT_M) INT_M[k].uniforms.nk.value = nightK;
@@ -5471,7 +5502,7 @@ function applySky(h) {
   { const cy = camera ? camera.position.y : 0, away = camera && camera.position.z < -HALF - 120 ? 1.7 : 1, fk = Math.max(away, 1 + Math.min(3.2, Math.max(0, cy - 8) / 40)), vk = clamp((cy - 70) / 150, 0, 1);
     // points de vue (belvédère, sommet, avion) : on voit loin, la montagne depuis la tour et la ville depuis la montagne, avec une légère brume
     scene.fog.near = Math.min(160 * fk, 520) + vk * 650; scene.fog.far = Math.min(620 * fk, 1180) + vk * 3700;
-    if (camera) { const want = vk > 0.01 ? 5600 : 2000, wn = (!G.fpv && cy > 30) ? Math.min(4, 0.4 + (cy - 30) / 35) : 0.4; if (camera.far !== want || Math.abs(camera.near - wn) > 0.05) { camera.far = want; camera.near = wn; camera.updateProjectionMatrix(); } } }
+    if (camera) { const want = vk > 0.01 ? 5600 : 2000, wn = (!G.fpv && !G.ufoRide && !(G.ride && isPlane(G.ride.kind) && G.fpv) && cy > 30) ? Math.min(4, 0.4 + (cy - 30) / 35) : 0.2; if (camera.far !== want || Math.abs(camera.near - wn) > 0.05) { camera.far = want; camera.near = wn; camera.updateProjectionMatrix(); } } }
   su.fogColor.value.copy(scene.fog.color); su.fogNear.value = scene.fog.near; su.fogFar.value = scene.fog.far; su.lightK.value = 0.3 + day * 0.7;
   applyWeatherSky(day);
   if (FW.flash) hemi.intensity += FW.flash * 0.4;
@@ -6552,9 +6583,16 @@ function updateCamera(dt, follow) {
     sky.position.copy(camera.position); sun.position.set(c.x - 160, c.alt + 220, c.z + 100); sun.target.position.set(c.x, c.alt, c.z);
     return;
   }
-  if (foot && G.ufoRide && UFO.mesh && G.ufoRide.in) {
-    const R = G.ufoRide, M = UFO.mesh; M.updateMatrixWorld(true); const cp = new THREE.Vector3(0, 2.75, -2.15).applyMatrix4(M.matrixWorld), lk = new THREE.Vector3(0, 2.05, 5).applyMatrix4(M.matrixWorld);
-    camera.position.copy(cp); camera.lookAt(lk); const fv = R.fov || 70; if (Math.abs(camera.fov - fv) > 0.3) { camera.fov = fv; camera.updateProjectionMatrix(); } sky.position.copy(camera.position); return;
+  if (foot && G.ufoRide && UFO.mesh && G.ufoRide.in && G.ufoRide.T) {
+    const R = G.ufoRide, M = UFO.mesh, [T1, T2, T3, T4] = R.T, ft = R.t - 4.4, d = R.dest; M.updateMatrixWorld(true); let fv = 60;
+    const loc = (x, y, z) => new THREE.Vector3(x, y, z).applyMatrix4(M.matrixWorld);
+    if (ft < T1) { const port = window.innerWidth < window.innerHeight; camera.position.copy(loc(0.2, 3.0, port ? 5.6 : 4.4)); camera.lookAt(loc(0, 2.0, 0.2)); fv = port ? 72 : 58; } // plan de face : toi entre les deux extraterrestres
+    else if (ft < T2) { camera.position.set(R.x + 34, R.gy + 2.5, R.z + 26); camera.lookAt(M.position); fv = 55; } // plan du sol : la soucoupe monte droit dans le ciel
+    else if (ft < T2 + 3.5) { camera.position.copy(loc(0, 2.7, -1.7)); camera.lookAt(loc(0, 2.0, 8)); fv = 72; } // vue à bord vers la destination
+    else if (ft < T3) { const yaw = M.rotation.y + Math.PI + (G.lookYaw || 0), pit = clamp(0.35 - (G.lookPitch || 0) * 0.6, -0.4, 1.2), D = 30, tx = M.position.x + Math.sin(yaw) * Math.cos(pit) * D, tz = M.position.z + Math.cos(yaw) * Math.cos(pit) * D, ty = M.position.y + Math.sin(pit) * D, k = 1 - Math.exp(-dt * 4);
+      if (!R.orb) { R.orb = true; camera.position.set(tx, ty, tz); } camera.position.x += (tx - camera.position.x) * k; camera.position.y += (ty - camera.position.y) * k; camera.position.z += (tz - camera.position.z) * k; camera.lookAt(M.position); fv = 62; } // caméra libre au doigt
+    else { const gy = GH(d.x, d.z); camera.position.set(d.x + 26, gy + 3, d.z + 30); camera.lookAt(d.x, Math.max(gy + 2, M.position.y * (ft < T4 ? 1 : 0.35)), d.z); fv = 56; } // arrivée vue du trottoir
+    if (Math.abs(camera.fov - fv) > 0.3) { camera.fov = fv; camera.updateProjectionMatrix(); } sky.position.copy(camera.position); return;
   }
   if (foot && G.ufoRide && UFO.mesh) {
     const R = G.ufoRide, tx = R.x - Math.sin(G.me.h) * 14, tz = R.z - Math.cos(G.me.h) * 14, k = 1 - Math.exp(-dt * 2.5);
@@ -7929,7 +7967,7 @@ function envCar(mesh) { mesh.traverse(o => { if (!o.isMesh || !o.material) retur
 function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "number" && nightK > 0.5) ? ENVR.night : ENVR.day; if (ENVR.cur === want) return; ENVR.cur = want;
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
 window.__W = () => ({ spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ planes, SND, sfx, updateMusic, screech, traffic, SH3, CS_BOX, pushCsBoxes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ planes, callUfo, SND, sfx, updateMusic, screech, traffic, SH3, CS_BOX, pushCsBoxes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
@@ -8064,7 +8102,8 @@ if (!renderer || typeof THREE === "undefined" || !THREE.BufferGeometryUtils) {
 } else {
   show(`<div class="panel boot"><div class="logo bootlogo">${[..."Constancy"].map((ch, i) => `<span style="animation-delay:${0.15 + i * 0.09}s">${ch}</span>`).join("")}</div><div class="bootline"></div><p class="bootsub">Le jeu</p></div>`);
   const fontsReady = document.fonts && document.fonts.load ? Promise.race([Promise.all([document.fonts.load("86px 'EB Garamond'"), document.fonts.load("italic 24px 'EB Garamond'"), document.fonts.load("500 190px 'EB Garamond'")]), new Promise(ok => setTimeout(ok, 4000))]).catch(() => {}) : Promise.resolve();
-  Promise.all([loadHumans(), loadMedia(), fontsReady]).then(() => { buildWorld(); drawMapBase(); buildCockpit(); buildPlaneCockpit(); envInit(); fxInit(); resize(); titleScreen(); requestAnimationFrame(loop); });
+  const introPlayed = new Promise(ok => setTimeout(ok, 2300));
+  Promise.all([loadHumans(), loadMedia(), fontsReady, introPlayed]).then(() => new Promise(ok => requestAnimationFrame(() => setTimeout(ok, 30)))).then(() => { buildWorld(); drawMapBase(); buildCockpit(); buildPlaneCockpit(); envInit(); fxInit(); resize(); titleScreen(); requestAnimationFrame(loop); });
 }
 })();
 </script>

@@ -1716,7 +1716,7 @@ const MODEL_DEFS = {
   plane_liner: { len: 64, face: "x" }, plane_small: { len: 12, face: "-z" }, heli: { len: 15, face: "-x" },
   yacht: { len: 24, face: "x" }, sailboat: { len: 10 }, gull: { len: 1.8, face: "x" }, shark: { len: 4.5, anim: "Swim" }, dolphin: { len: 3.2, anim: "Swim" },
   dog: { len: 1.3, anim: "Walk" }, cat: { h: 0.7 }, flamingo: { h: 1.7 }, trex: { len: 13, anim: "Walk" }, stego: { len: 10, anim: "Walk" }, trice: { len: 9, anim: "Walk" },
-  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, jetski: { len: 3.3, vc: true }, icecream: { h: 2.7, vc: true }, popcorn: { h: 2.35, vc: true }, speedboat: { len: 9.6, vc: true }, sofa: { len: 5.2, vc: true }, bed: { len: 3.6, vc: true }, moto_cross: { len: 2.2, vc: true, face: "x" },
+  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, jetski: { len: 3.3, vc: true }, icecream: { h: 2.7, vc: true }, popcorn: { h: 2.35, vc: true }, speedboat: { len: 9.6, vc: true }, sofa: { len: 5.2, vc: true }, bed: { len: 3.6, vc: true }, dino_sleep: { len: 12, vc: true }, croc: { len: 4.6, vc: true }, moto_cross: { len: 2.2, vc: true, face: "x" },
   // montagne : faune et nature (Quaternius / Kenney, CC0)
   w_deer: { len: 1.9, anim: "Eating" }, w_stag: { len: 2.2, anim: "Idle" }, w_wolf: { len: 1.7, anim: "Idle" }, w_fox: { len: 1.05, anim: "Idle" },
   w_yeti: { h: 2.7, anim: "Idle" }, w_raptor: { len: 3.2, anim: "Velociraptor_Idle" }, w_bat: { len: 0.7, anim: "Bat_Flying" },
@@ -4014,7 +4014,7 @@ function buildJungle(r) {
   [["trex", 1, 0.09], ["stego", 2, 0.05], ["stego", 0, 0.045], ["trice", 2, 0.06], ["trice", 0, 0.055], ["trex", 3, 0.08]].forEach(([k, ci, sp], n) => { if (!MODELS[k]) return; const g = new THREE.Group(); g.add(modelInstance(k)); g.scale.setScalar(k === "trex" ? 1.6 : 1.3); scene.add(g); const [cx, cz, cr] = clear[ci]; JUNGLE.dinos.push({ g, cx, cz, r: cr * (0.35 + n * 0.08), a: n * 1.7, s: sp * (n % 2 ? -1 : 1) }); });
   { const L = JG.lag; [[0x5f6a50, 0.3], [0x6a6450, 3.4]].forEach(([cc, a0]) => { const g = makeSauropod(cc); scene.add(g); JUNGLE.sauro.push({ g, cx: L[0], cz: L[1], r: L[2] * 0.48, a: a0, s: 0.022, ph: Math.random() * 6, wade: true }); }); }
   buildJFence(clear.concat([[JG.lag[0], JG.lag[1], JG.lag[2] * 1.05]]));
-  buildSafari();
+  buildSafari(); buildRangers(); buildCrocs();
   // ptérodactyles qui planent au-dessus de la jungle
   const wing = new THREE.MeshLambertMaterial({ color: 0x8a5a3a, side: THREE.DoubleSide });
   for (let k = 0; k < 4; k++) { const g = new THREE.Group(), b = new THREE.Mesh(new THREE.ConeGeometry(0.5, 4, 6), wing); b.rotation.x = Math.PI / 2; g.add(b); const cr = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.6, 4), wing); cr.rotation.x = -Math.PI / 2.4; cr.position.set(0, 0.5, 1.8); g.add(cr);
@@ -4052,7 +4052,19 @@ function buildSafari() {
     const dr = makeDriver(); dr.position.set(0.44, Math.max(0.05, (MODELS.car_suv.size.y || 1.8) - 1.32), -0.1); m.add(dr); const p2 = makeDriver(); p2.position.set(-0.44, Math.max(0.05, (MODELS.car_suv.size.y || 1.8) - 1.32), -1.1); m.add(p2);
     scene.add(m); SAFARI.jeeps.push({ m, u: k / 3, sp: 0.0045 + k * 0.0006 }); }
 }
+function buildRangers() {
+  if (!MODELS.dino_sleep || !(HQ.clips && HQ.clips.m)) return; const x = 440, z = -2738, y = Math.max(0.8, jgH(x, z));
+  const d = modelInstance("dino_sleep"); d.position.set(x, y - 0.2, z); d.rotation.y = 0.6; scene.add(d); JUNGLE.sleep = d;
+  const rifle = () => { const g = new THREE.Group(), m = new THREE.MeshPhongMaterial({ color: 0x1b1d20, shininess: 60 }), st = new THREE.MeshLambertMaterial({ color: 0xff8a1a }); const b = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.09, 1.05), m); g.add(b); const sc = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.32, 8), m); sc.rotation.x = Math.PI / 2; sc.position.set(0, 0.08, 0.1); g.add(sc); const tp = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.12), st); tp.position.z = 0.55; g.add(tp); return g; };
+  [[x - 6, z + 7, 2.6], [x + 7, z + 5, 3.6], [x - 2, z - 8, 0.4]].forEach(([hx, hz, ry], k) => { const h = bodyVar(makeHuman({ shirt: 0x6b6a3a, pants: 0x3a3a2a, skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k === 1 })); h.position.set(hx, Math.max(0.8, jgH(hx, hz)), hz); h.rotation.y = ry; scene.add(h); setClip(h, k === 2 ? "Idle_Talking_Loop" : "Idle_Loop", 0.8); h.userData.manual = true;
+    const r = rifle(); r.position.set(0.18, 1.18, 0.32); r.rotation.set(-0.35, 0.15, 0); h.add(r); (JUNGLE.rangers = JUNGLE.rangers || []).push(h); });
+  if (MODELS.car_suv) { const j = makeCar({ id: "trafic", color: 0x2f3b2a }, { model: "car_suv" }); j.position.set(x + 12, Math.max(0.8, jgH(x + 12, z - 4)) + 0.05, z - 4); j.rotation.y = -0.9; scene.add(j);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.16, 0.3), new THREE.MeshBasicMaterial({ color: 0xff8a1a })); bar.position.y = (MODELS.car_suv.size.y || 1.8) + 0.1; j.add(bar); JUNGLE.rjeep = { j, bar }; }
+  const sg = label("Animal endormi · gardes en intervention", "#ffb84a"); sg.position.set(x, y + 8.5, z + 2); sg.scale.set(13, 3.25, 1); scene.add(sg); JUNGLE.rsign = sg;
+}
+function buildCrocs() { if (!MODELS.croc) return; const L = JG.lag; for (let k = 0; k < 4; k++) { const a = 0.9 + k * 1.1, r = L[2] * (0.98 + (k % 2) * 0.06), x = L[0] + Math.cos(a) * r, z = L[1] + Math.sin(a) * r, c = modelInstance("croc"); c.position.set(x, Math.max(-0.3, jgH(x, z)) - 0.15, z); c.rotation.y = -a + Math.PI / 2 + (k % 2 ? 0.4 : -0.3); scene.add(c); (JUNGLE.crocs = JUNGLE.crocs || []).push(c); } }
 function updateSafari(dt) {
+  if (JUNGLE.rjeep) { const on = Math.floor(performance.now() / 380) % 2; JUNGLE.rjeep.bar.material.color.setHex(on ? 0xff8a1a : 0x5a2a00); }
   if (!SAFARI.loop) return; const cam = camera.position, near = cam.z < -2250; const L = SAFARI.loop, n = L.length;
   SAFARI.jeeps.forEach(j => { j.m.visible = near; if (!near) return; j.u = (j.u + j.sp * dt) % 1; const f = j.u * n, i = Math.floor(f), t = f - i, A = L[i], B = L[(i + 1) % n], x = A[0] + (B[0] - A[0]) * t, z = A[1] + (B[1] - A[1]) * t;
     j.m.position.set(x, Math.max(0.6, jgH(x, z)) + 0.05, z); j.m.rotation.y = Math.atan2(B[0] - A[0], B[1] - A[1]); spinWheels && spinWheels(j.m, 9, 0, dt);

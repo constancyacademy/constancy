@@ -384,6 +384,7 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
   <button class="act joker hidden" id="jokerBtn" type="button">JOKER</button>
   <button class="act hidden" id="scopeBtn" type="button">LONGUE-VUE</button>
   <button class="act ufo hidden" id="ufoBtn" type="button">🛸 RETOUR EN VILLE</button>
+  <button class="act hidden" id="sirenBtn" type="button">SIRÈNE</button>
   <button class="act turbo hidden" id="turboBtn" type="button">TURBO<i id="nitroBar"></i></button>
   <button class="act" id="exitBtn" type="button">SORTIR</button>
 </div>
@@ -839,7 +840,7 @@ function updateSound() {
   loopVol("gymamb", playing && G.inside && G.inside !== "home" ? 0.35 : 0, t, 0.5);
   if (playing) ambientEvents(pos, inCity);
   if (playing && pos && nearSea > 0.6 && Math.random() < 0.0015) playBuf("gull", 0.25, 0.9 + Math.random() * 0.2);
-  const sirOn = playing && G.police, realSir = SND.loops.siren;
+  const sirOn = playing && (G.police || (G.siren && G.ride && G.ride.amb && !G.onFoot)), realSir = SND.loops.siren;
   SND.sir.frequency.setTargetAtTime(Math.floor(performance.now() / 450) % 2 ? 900 : 640, t, 0.02);
   SND.sirGain.gain.setTargetAtTime(sirOn && !realSir ? 0.02 : 0, t, 0.1);
   loopVol("siren", sirOn ? 0.3 : 0, t, 0.3);
@@ -2176,10 +2177,28 @@ function buildHospital(i, j, cx, cz, F, base, D) {
   }
   const M = HOSP_M, H = 22, w = 30, d = 19, bz = cz - 5.5, front = bz + d / 2;
   addGeo(D.lot, new THREE.BoxGeometry(F, 0.06, F), cx, base + 0.03, cz);
-  addGeo(M.wall, new THREE.BoxGeometry(w, H, d), cx, base + H / 2, bz);
+  const hx0 = cx - 0.4, hx1 = cx + 8.4, hd = 7.5, hy = 4.6, x0 = cx - w / 2, x1 = cx + w / 2, z0 = bz - d / 2;
+  const wm = (pw, ph) => { const m = M.wall.clone(); m.map = M.wall.map.clone(); m.map.repeat.set(4 * pw / w, 3 * ph / H); m.map.needsUpdate = true; m.emissiveMap = M.wall.emissiveMap.clone(); m.emissiveMap.repeat.copy(m.map.repeat); m.emissiveMap.needsUpdate = true; return m; };
+  addGeo(wm(hx0 - x0, H), new THREE.BoxGeometry(hx0 - x0, H, d), (x0 + hx0) / 2, base + H / 2, bz);
+  addGeo(wm(x1 - hx1, H), new THREE.BoxGeometry(x1 - hx1, H, d), (x1 + hx1) / 2, base + H / 2, bz);
+  addGeo(wm(hx1 - hx0, H), new THREE.BoxGeometry(hx1 - hx0, H, d - hd), (hx0 + hx1) / 2, base + H / 2, z0 + (d - hd) / 2);
+  addGeo(wm(hx1 - hx0, H - hy), new THREE.BoxGeometry(hx1 - hx0, H - hy, hd), (hx0 + hx1) / 2, base + hy + (H - hy) / 2, front - hd / 2);
   addGeo(M.white, new THREE.BoxGeometry(w + 0.6, 0.7, d + 0.6), cx, base + H + 0.35, bz);
+  // intérieur du hall : sol carrelé, murs blancs, plafond lumineux, accueil, salle d'attente
+  { const tile = new THREE.MeshLambertMaterial({ color: 0xdfe5ea }), inner = new THREE.MeshLambertMaterial({ color: 0xf6f8fa, side: THREE.DoubleSide }), lamp = new THREE.MeshBasicMaterial({ color: 0xf4fbff }), mx = (hx0 + hx1) / 2, mz = front - hd / 2;
+    addGeo(tile, new THREE.BoxGeometry(hx1 - hx0, 0.08, hd), mx, base + 0.04, mz);
+    addGeo(inner, new THREE.PlaneGeometry(hx1 - hx0, hy), mx, base + hy / 2, front - hd + 0.04);
+    [hx0 + 0.04, hx1 - 0.04].forEach(x => addGeo(inner, new THREE.PlaneGeometry(hd, hy), x, base + hy / 2, mz, Math.PI / 2));
+    addGeo(new THREE.MeshBasicMaterial({ color: 0xdde4ea }), new THREE.BoxGeometry(hx1 - hx0, 0.06, hd), mx, base + hy - 0.03, mz);
+    [-1.6, 1.6].forEach(dz => addGeo(lamp, new THREE.BoxGeometry(hx1 - hx0 - 1.4, 0.04, 0.35), mx, base + hy - 0.08, mz + dz));
+    addGeo(M.white, new THREE.BoxGeometry(3.2, 1.1, 0.8), hx1 - 2.3, base + 0.55, front - hd + 1.6); addGeo(M.red, new THREE.BoxGeometry(3.22, 0.14, 0.82), hx1 - 2.3, base + 0.95, front - hd + 1.6);
+    const acc = wallSign("Accueil · Urgences", "#ff1a35", 4.2, 0.8); acc.position.set(hx1 - 2.3, base + 2.7, front - hd + 0.1); scene.add(acc);
+    const chairM = new THREE.MeshLambertMaterial({ color: 0x3d8bd6 }); for (let k = 0; k < 5; k++) addGeo(chairM, new THREE.BoxGeometry(0.55, 0.5, 0.55), hx0 + 0.55, base + 0.25, front - hd + 1.3 + k * 0.85);
+    ER.hall = { hx0, hx1, front, hd, base, cx, chairs: [...Array(5)].map((_, k) => [hx0 + 0.6, front - hd + 1.3 + k * 0.85]) };
+    // portes coulissantes vitrées
+    [[hx0, cx + 2.4], [cx + 5.6, hx1]].forEach(([a, b]) => addGeo(M.glass, new THREE.BoxGeometry(b - a, hy - 0.3, 0.12), (a + b) / 2, base + (hy - 0.3) / 2, front + 0.06));
+    ER.doors = [-1, 1].map(sd => { const m = new THREE.Mesh(new THREE.BoxGeometry(1.62, hy - 0.4, 0.08), M.glass); m.position.set(cx + 4 + sd * 0.8, base + (hy - 0.4) / 2, front + 0.16); scene.add(m); return { m, x0: cx + 4 + sd * 0.8, sd }; }); }
   addGeo(M.white, new THREE.BoxGeometry(12, 9, 6), cx - 9, base + 4.5, front + 2.2);            // aile basse des urgences
-  addGeo(M.glass, new THREE.BoxGeometry(8, 3.6, 0.2), cx + 4, base + 1.8, front + 0.12);           // hall vitré
   addGeo(M.white, new THREE.BoxGeometry(11, 0.4, 5.5), cx + 4, base + 4.2, front + 2.8);           // auvent
   [[-1.2, 5.2], [9.2, 5.2]].forEach(([ox, oz]) => addGeo(M.white, new THREE.BoxGeometry(0.4, 4, 0.4), cx + ox, base + 2, front + oz));
   // croix rouge lumineuse (façade et toit) et marquage de l'hélistation
@@ -2191,12 +2210,41 @@ function buildHospital(i, j, cx, cz, F, base, D) {
   const ur = wallSign("Urgences", "#ff1a35", 7, 1.75); ur.position.set(cx - 9, base + 7.4, front + 5.25); scene.add(ur);
   // ambulance garée devant les urgences, gyrophare bleu
   const ax = cx - 9, az = front + 9.5;
-  if (addModelGeo("ambulance", ax, base, az, 0, 1)) { setBoxes(i, j, [[cx - w / 2, bz - d / 2, cx + w / 2, bz + d / 2], [cx - 15, front, cx - 3, front + 5.2], [ax - 1.2, az - 3.8, ax + 1.2, az + 3.8]]); return; }
+  const hb = [[cx - w / 2, bz - d / 2, cx - 0.4, bz + d / 2], [cx + 8.4, bz - d / 2, cx + w / 2, bz + d / 2], [cx - 0.4, bz - d / 2, cx + 8.4, front - 7.5], [cx - 15, front, cx - 3, front + 5.2]];
+  { const am = MODELS.ambulance ? makeCar({ id: "trafic", color: 0xffffff }, { model: "ambulance", keepPaint: true }) : null;
+    if (am) { am.position.set(ax, base, az); am.rotation.y = Math.PI; scene.add(am); ambLights(am); rentals.push({ kind: "voiture", mesh: am, x: ax, z: az, h: Math.PI, amb: true }); setBoxes(i, j, hb); return; } }
   addGeo(M.white, new THREE.BoxGeometry(2.3, 2.5, 4.2), ax, base + 1.55, az - 0.6); addGeo(M.white, new THREE.BoxGeometry(2.2, 1.6, 1.6), ax, base + 1.1, az + 2.3);
   addGeo(M.red, new THREE.BoxGeometry(2.34, 0.35, 4.24), ax, base + 1.5, az - 0.6); addGeo(M.glass, new THREE.BoxGeometry(2.0, 0.8, 0.1), ax, base + 1.6, az + 3.1);
   addGeo(M.blue, new THREE.BoxGeometry(1.6, 0.25, 0.4), ax, base + 2.95, az + 1.3);
   [[-1, -2], [1, -2], [-1, 2], [1, 2]].forEach(([sx, sz]) => addGeo(D.trimDark, new THREE.CylinderGeometry(0.42, 0.42, 0.3, 10), ax + sx * 1.1, base + 0.42, az + sz * 0.95 - 0.2, 0, 1, 1, 1, 0, Math.PI / 2));
-  setBoxes(i, j, [[cx - w / 2, bz - d / 2, cx + w / 2, bz + d / 2], [cx - 15, front, cx - 3, front + 5.2], [ax - 1.2, az - 2.8, ax + 1.2, az + 3.2]]);
+  setBoxes(i, j, hb.concat([[ax - 1.2, az - 2.8, ax + 1.2, az + 3.2]]));
+}
+const ER = { doors: null, hall: null, staff: [], built: false };
+function updateAmbulance(dt) { if (!G.ride || !G.ride.amb || G.onFoot) { G.siren = false; } const m = carMesh && carMesh.userData.ambL; if (!m) return; const on = G.siren && G.ride && G.ride.amb && !G.onFoot, ph = Math.floor(performance.now() / 180) % 2;
+  m.red.color.setHex(on && ph ? 0xff2440 : 0x551018); m.blue.color.setHex(on && !ph ? 0x3a7bff : 0x0f1d55); }
+// gyrophares d'ambulance : barre rouge et bleue sur le toit
+function ambLights(mesh) { const hy = MODELS.ambulance ? MODELS.ambulance.size.y : 2.8, red = new THREE.MeshBasicMaterial({ color: 0x551018 }), blue = new THREE.MeshBasicMaterial({ color: 0x0f1d55 });
+  [[-0.45, red], [0.45, blue]].forEach(([x, m]) => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.3), m); b.position.set(x, hy + 0.08, 0.6); mesh.add(b); }); mesh.userData.ambL = { red, blue }; }
+// personnel des urgences : brancardiers qui poussent des chariots, patients qui attendent
+function erStaff() {
+  const Hh = ER.hall; if (!Hh || !HQ.clips || !HQ.clips.m) return; ER.built = true;
+  const frameM = new THREE.MeshPhongMaterial({ color: 0xc9ced6, shininess: 90 }), sheet = new THREE.MeshLambertMaterial({ color: 0xffffff }), blueM = new THREE.MeshLambertMaterial({ color: 0x7fb6e6 });
+  const gurney = () => { const g = new THREE.Group(); const top = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.14, 2.0), sheet); top.position.y = 0.9; g.add(top); const pil = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.35), blueM); pil.position.set(0, 1.02, -0.75); g.add(pil);
+    const fr = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.06, 1.9), frameM); fr.position.y = 0.55; g.add(fr); [[-0.28, -0.85], [0.28, -0.85], [-0.28, 0.85], [0.28, 0.85]].forEach(([x, z]) => { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.85, 6), frameM); l.position.set(x, 0.45, z); g.add(l); const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 10), frameM); wh.rotation.z = Math.PI / 2; wh.position.set(x, 0.07, z); g.add(wh); }); return g; };
+  const scrub = [0x2f9e8f, 0x3d6fd6, 0x2f9e8f], mk = (sh, f) => { const h = bodyVar(makeHuman({ shirt: sh, pants: sh, skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: f, sleeve: 0.25 })); scene.add(h); h.userData.manual = true; return h; };
+  const routes = [[Hh.hx0 + 1.6, Hh.front - 3.0, Hh.hx1 - 1.6, Hh.front - 3.0], [Hh.cx + 4, Hh.front + 1.6, Hh.cx + 4, Hh.front + 9], [Hh.cx - 6, Hh.front + 7, Hh.cx + 1, Hh.front + 7]];
+  routes.forEach((rt, k) => { const gr = gurney(); scene.add(gr); const nu = mk(scrub[k], k === 1); setClip(nu, "Walk_Loop", 0.75);
+    let pat = null; if (k !== 1) { const bl = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.22, 1.3), blueM); bl.position.set(0, 1.06, 0.25); gr.add(bl); const hd = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshLambertMaterial({ color: pick(SKINS) })); hd.position.set(0, 1.12, -0.6); gr.add(hd); } if (false) { pat = makeHuman({ shirt: 0xe9eef4, pants: 0xe9eef4, skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k === 2 }); gr.add(pat); pat.position.set(0, 0.98, 0.15); pat.rotation.set(-Math.PI / 2, 0, 0); pat.scale.multiplyScalar(0.95); setClip(pat, "Sitting_Idle_Loop", 0.4); pat.userData.manual = true; }
+    ER.staff.push({ gr, nu, rt, u: k * 0.33, sp: 0.07 + k * 0.01, dir: 1 }); });
+  Hh.chairs.forEach(([x, z], k) => { if (k % 2 && k !== 3) return; const h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0x111114, 0xf6c945, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k === 2, sleeve: 0.25 })); h.position.set(x + 0.1, Hh.base + 0.02, z); h.rotation.y = Math.PI / 2; scene.add(h); setClip(h, "Sitting_Idle_Loop", 0.6); h.userData.manual = true; ER.staff.push({ seat: h }); });
+  { const h = mk(0xffffff, true); h.position.set(Hh.hx1 - 2.3, Hh.base, Hh.front - Hh.hd + 0.9); setClip(h, "Idle_Talking_Loop", 0.8); ER.staff.push({ seat: h }); }
+}
+function updateER(dt) {
+  if (!ER.hall) return; if (!ER.built) erStaff(); const cam = camera.position, near = Math.hypot(cam.x - (ER.hall.cx + 4), cam.z - ER.hall.front) < 140, me = target();
+  if (ER.doors) { const dd = Math.hypot(me.x - (ER.hall.cx + 4), me.z - ER.hall.front), staffNear = ER.staff.some(q => q.nu && Math.hypot(q.nu.position.x - (ER.hall.cx + 4), q.nu.position.z - ER.hall.front) < 3); ER.op = (ER.op || 0) + ((dd < 5 || staffNear ? 1 : 0) - (ER.op || 0)) * Math.min(1, dt * 4); ER.doors.forEach(D => { D.m.position.x = D.x0 + D.sd * ER.op * 1.5; }); }
+  ER.staff.forEach(q => { if (q.seat) { q.seat.visible = near; return; } q.gr.visible = q.nu.visible = near; if (!near) return; q.u += q.sp * dt * q.dir; if (q.u > 1) { q.u = 1; q.dir = -1; } if (q.u < 0) { q.u = 0; q.dir = 1; }
+    const [ax, az, bx, bz] = q.rt, x = ax + (bx - ax) * q.u, z = az + (bz - az) * q.u, h = Math.atan2((bx - ax) * q.dir, (bz - az) * q.dir), fx = Math.sin(h), fz = Math.cos(h);
+    q.gr.position.set(x, ER.hall.base, z); q.gr.rotation.y = h; q.nu.position.set(x - fx * 1.45, ER.hall.base, z - fz * 1.45); q.nu.rotation.y = h; });
 }
 function buildingDetail(x0, z0, w, d, h, base, r) {
   const D = districtMats(), floors = Math.floor((h - 4) / 3.3);
@@ -4366,7 +4414,7 @@ function updateLamps(dt) {
     L.oy = 0.16 * Math.sin(L.th); lampMatrix(i); });
 }
 function updatePosts(dt) {
-  updateLamps(dt); if (!POSTS.moving) return; let any = 0;
+  updateLamps(dt); updateER(dt); updateAmbulance(dt); if (!POSTS.moving) return; let any = 0;
   POSTS.list.forEach((q, i) => { if (q.hit !== 1) return; any = 1; q.vy -= 22 * dt; q.x += q.vx * dt; q.z += q.vz * dt; q.oy += q.vy * dt; q.rx += q.ax * dt; q.rz += q.ax * 0.7 * dt;
     const gy = GH(q.x, q.z) - q.y; if (q.oy <= gy + 0.2 && q.vy < 0) { q.oy = gy + 0.2; q.vy *= -0.25; q.vx *= 0.55; q.vz *= 0.55; q.ax *= 0.5; if (Math.hypot(q.vx, q.vz) < 0.6) { q.hit = 2; q.rx = Math.PI / 2 * Math.sign(q.rx || 1); POSTS.moving--; } }
     postMatrix(i); });
@@ -5287,6 +5335,7 @@ function updateHud(dt) {
     const ub = $("ufoBtn"); const show = !!G.farT && nowS - G.farT > 4; if (show && !P.ufoTip) { P.ufoTip = true; help("<b>Perdu loin de la ville ?</b> Appelle l'OVNI : Il te dépose en centre-ville en quelques secondes.", 6); } ub.classList.toggle("hidden", !show); }
   { const dS = Math.hypot(G.me.x - SCOPE.x, G.me.z - SCOPE.z); if (G.onFoot && !G.inside && dS < 230 && dS > 6 && !P.scopeTip) { P.scopeTip = true; help("<b>Hé, regarde !</b> Une longue-vue t'attend au belvédère, juste à côté. Avec un peu de chance, tu verras un dinosaure.", 8); destBeacon.position.set(SCOPE.x, 0, SCOPE.z); destBeacon.visible = true; setTimeout(() => { if (!G.mission) destBeacon.visible = false; }, 45000); } }
   { const sb = $("scopeBtn"); sb.classList.toggle("hidden", !(scopeNear() || SCOPE.on)); sb.textContent = SCOPE.on ? "QUITTER" : "LONGUE-VUE"; }
+  { const sb2 = $("sirenBtn"); if (sb2) { sb2.classList.toggle("hidden", !(G.ride && G.ride.amb && !G.onFoot)); sb2.classList.toggle("on", !!G.siren); } }
   const tbB = $("turboBtn"); tbB.classList.toggle("hidden", G.onFoot || !!G.inside); tbB.classList.toggle("on", !!G.tbOn); $("nitroBar").style.width = (G.nitro == null ? 100 : G.nitro) + "%";
   const jb = $("jokerBtn"); jb.classList.toggle("hidden", !(G.stars > 0 && P.jokers > 0)); jb.textContent = "JOKER · " + P.jokers;
 }
@@ -6370,7 +6419,7 @@ function finishEnter(n) {
     const list = n.traffic ? traffic : rentals, i = list.indexOf(n.r); if (i >= 0) list.splice(i, 1);
     G.rideHome = { x: n.r.x, z: n.r.z, h: n.r.h };
     carMesh = n.r.mesh; carMesh.visible = true; [...carMesh.children].forEach(ch => { if (ch.material === DRIVER_M) carMesh.remove(ch); }); // le conducteur descend
-    G.car.x = n.r.x; G.car.z = n.r.z; G.car.h = n.r.h; G.ride = { kind: n.kind, offroad: !!n.r.offroad };
+    G.car.x = n.r.x; G.car.z = n.r.z; G.car.h = n.r.h; G.ride = { kind: n.kind, offroad: !!n.r.offroad, amb: !!(n.r.amb || (n.r.mesh && n.r.mesh.userData.patrol === "ambulance")) }; G.siren = false; if (G.ride.amb) { if (!carMesh.userData.ambL) ambLights(carMesh); help("<b>Ambulance</b> : appuie sur <b>SIRÈNE</b> (touche H) pour allumer la sirène et les gyrophares.", 6); }
     meMesh.visible = !RIDES[n.kind].car;
     help(n.traffic ? "Le conducteur te laisse le volant. Bonne route !" : `${RIDES[n.kind].name} : elle est à toi. Descends quand tu veux, elle reste là.`);
   }
@@ -7696,6 +7745,7 @@ $("exitBtn").addEventListener("click", toggleCar);
 cv.addEventListener("contextmenu", e => e.preventDefault());
 { let td = null; cv.addEventListener("pointerdown", e => { td = { x: e.clientX, y: e.clientY, t: performance.now() }; }, true); cv.addEventListener("pointerup", e => { if (td && performance.now() - td.t < 320 && Math.hypot(e.clientX - td.x, e.clientY - td.y) < 9) showroomTap(e); td = null; }); }
 $("scopeBtn").addEventListener("click", toggleScope);
+$("sirenBtn").addEventListener("click", () => { G.siren = !G.siren; });
 $("ufoBtn").addEventListener("click", callUfo);
 ["pointerdown"].forEach(ev => $("turboBtn").addEventListener(ev, e => { e.preventDefault(); G.turbo = true; }));
 ["pointerup", "pointercancel", "pointerleave"].forEach(ev => $("turboBtn").addEventListener(ev, () => { G.turbo = false; }));
@@ -7737,6 +7787,7 @@ window.addEventListener("keydown", e => {
   if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.code === "KeyN") G.turbo = true;
   if (e.code === "KeyJ") useJoker();
   if (e.code === "KeyV") $("viewBtn").click();
+  if (e.code === "KeyH" && G.ride && G.ride.amb && !G.onFoot) G.siren = !G.siren;
   if (e.code === "Escape" || e.code === "KeyP") openMenu();
 });
 window.addEventListener("keyup", e => { keys.delete(e.code); if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.code === "KeyN") G.turbo = false; });

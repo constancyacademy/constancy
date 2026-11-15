@@ -124,7 +124,11 @@ body{font-family:var(--font-ui);-webkit-user-select:none;user-select:none;touch-
 
 /* ---------- Écrans ---------- */
 #screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:linear-gradient(180deg,rgba(5,5,5,.5),rgba(5,5,5,.88));overflow-y:auto;pointer-events:auto;touch-action:pan-y}
-#screen.clear{background:rgba(5,5,5,.6)}body.lifting #energy,body.lifting #help,body.lifting #tip,body.lifting #actions,body.lifting #joy{display:none!important}#wheelUI{position:fixed;inset:0;z-index:5;display:none;touch-action:none;color:#f2f0ec}#wheelUI.on{display:block}#wheelUI .wtop{position:absolute;top:calc(64px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(10,6,16,.5);border:1px solid rgba(255,79,163,.45);border-radius:14px;padding:10px 18px;backdrop-filter:blur(6px)}#wheelUI .lk{font:600 11px Inter,sans-serif;letter-spacing:4px;text-transform:uppercase;color:#ff5fc2}#wheelUI .wbar{width:150px;height:4px;border-radius:2px;background:rgba(255,255,255,.18);overflow:hidden}#wheelUI .wbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff4fa3,#ffd36e)}#wheelUI .wbot{position:absolute;left:0;right:0;bottom:calc(30px + env(safe-area-inset-bottom,0px));text-align:center;font:13px Inter,sans-serif;opacity:.75;text-shadow:0 2px 10px rgba(0,0,0,.7)}#liftUI{position:fixed;inset:0;z-index:5;display:none;touch-action:none;color:#f2f0ec}#liftUI.on{display:block}#liftUI .lfl,#liftUI .ltop{display:none}#liftUI.ride .lfl{display:flex;flex-direction:column;align-items:center;position:absolute;top:calc(70px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:rgba(10,6,16,.55);border:1px solid rgba(255,213,138,.4);border-radius:14px;padding:8px 18px;backdrop-filter:blur(6px)}#liftUI .lfl span{font:600 34px Georgia,serif;color:#ffd58a;line-height:1}#liftUI .lfl small{font:600 10px Inter,sans-serif;letter-spacing:3px;opacity:.8;margin-top:4px}#liftUI.top .ltop{display:flex;flex-direction:column;align-items:center;gap:6px;position:absolute;left:16px;right:16px;bottom:calc(24px + env(safe-area-inset-bottom,0px));text-align:center;text-shadow:0 2px 12px rgba(0,0,0,.7)}#liftUI .lk{font:600 11px Inter,sans-serif;letter-spacing:4px;text-transform:uppercase;color:#ff5fc2}#liftUI .lt{font:italic 26px Georgia,serif}#liftUI .lh{font:13px Inter,sans-serif;opacity:.75;margin-bottom:6px}#liftUI .btn{max-width:260px;width:100%;pointer-events:auto}#screen.titled{background:linear-gradient(180deg,rgba(5,3,10,0) 0%,rgba(5,3,10,.1) 40%,rgba(5,3,10,.82) 72%,rgba(5,3,10,.94) 100%);align-items:flex-end}#screen.titled .panel{margin:auto 0 0;gap:10px}#screen.titled .lead,#screen.titled .note{display:none}#screen.titled .logo{text-shadow:0 4px 30px rgba(0,0,0,.6)}#screen.titled .btn.alt{padding-top:11px;padding-bottom:11px;font-size:15px}
+#screen.clear{background:rgba(5,5,5,.6)}#screen.map3d{background:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;pointer-events:none;align-items:flex-end;z-index:6}#screen.map3d .m3s{pointer-events:auto;width:100%;max-width:560px;margin:0 auto;padding:14px 16px 16px;border-radius:24px;background:linear-gradient(180deg,rgba(26,12,38,.72),rgba(10,6,18,.86));border:1px solid rgba(255,180,225,.22);box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 24px 60px rgba(0,0,0,.55),0 0 40px rgba(255,45,149,.12);backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);display:flex;flex-direction:column;gap:10px;animation:m3in .5s cubic-bezier(.2,.9,.25,1) both}@keyframes m3in{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+#screen.map3d .m3h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}#screen.map3d .m3h b{font:400 26px 'EB Garamond',Georgia,serif;color:#fff;text-shadow:0 2px 10px rgba(255,45,149,.45)}#screen.map3d .m3h span{font:600 10px Inter,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:#ffc94a}
+#screen.map3d .m3c{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}#screen.map3d .m3c::-webkit-scrollbar{display:none}#screen.map3d .m3c .chip{flex:none}#screen.map3d .m3b{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}#screen.map3d .m3b .btn{padding:11px 8px;font-size:13px}
+body.m3on #hud,body.m3on #help,body.m3on #tip,body.m3on #actions,body.m3on #joy,body.m3on #toasts{display:none!important}#m3pad{position:fixed;inset:0;z-index:5;touch-action:none;cursor:grab}#m3tools{position:fixed;right:max(14px,env(safe-area-inset-right,0px));top:calc(84px + env(safe-area-inset-top,0px));z-index:7;display:flex;flex-direction:column;gap:10px}#m3tools button{width:46px;height:46px;border-radius:15px;border:1px solid rgba(255,190,230,.3);background:linear-gradient(180deg,rgba(40,18,56,.82),rgba(14,8,24,.9));color:#fff;font:500 20px Inter,sans-serif;box-shadow:0 1px 0 rgba(255,255,255,.14) inset,0 8px 22px rgba(0,0,0,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}#m3tools button:active{transform:scale(.94)}
+#m3hint{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:7;pointer-events:none;font:600 10px Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.85);text-shadow:0 1px 6px #000;white-space:nowrap}body.lifting #energy,body.lifting #help,body.lifting #tip,body.lifting #actions,body.lifting #joy{display:none!important}#wheelUI{position:fixed;inset:0;z-index:5;display:none;touch-action:none;color:#f2f0ec}#wheelUI.on{display:block}#wheelUI .wtop{position:absolute;top:calc(64px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(10,6,16,.5);border:1px solid rgba(255,79,163,.45);border-radius:14px;padding:10px 18px;backdrop-filter:blur(6px)}#wheelUI .lk{font:600 11px Inter,sans-serif;letter-spacing:4px;text-transform:uppercase;color:#ff5fc2}#wheelUI .wbar{width:150px;height:4px;border-radius:2px;background:rgba(255,255,255,.18);overflow:hidden}#wheelUI .wbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff4fa3,#ffd36e)}#wheelUI .wbot{position:absolute;left:0;right:0;bottom:calc(30px + env(safe-area-inset-bottom,0px));text-align:center;font:13px Inter,sans-serif;opacity:.75;text-shadow:0 2px 10px rgba(0,0,0,.7)}#liftUI{position:fixed;inset:0;z-index:5;display:none;touch-action:none;color:#f2f0ec}#liftUI.on{display:block}#liftUI .lfl,#liftUI .ltop{display:none}#liftUI.ride .lfl{display:flex;flex-direction:column;align-items:center;position:absolute;top:calc(70px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:rgba(10,6,16,.55);border:1px solid rgba(255,213,138,.4);border-radius:14px;padding:8px 18px;backdrop-filter:blur(6px)}#liftUI .lfl span{font:600 34px Georgia,serif;color:#ffd58a;line-height:1}#liftUI .lfl small{font:600 10px Inter,sans-serif;letter-spacing:3px;opacity:.8;margin-top:4px}#liftUI.top .ltop{display:flex;flex-direction:column;align-items:center;gap:6px;position:absolute;left:16px;right:16px;bottom:calc(24px + env(safe-area-inset-bottom,0px));text-align:center;text-shadow:0 2px 12px rgba(0,0,0,.7)}#liftUI .lk{font:600 11px Inter,sans-serif;letter-spacing:4px;text-transform:uppercase;color:#ff5fc2}#liftUI .lt{font:italic 26px Georgia,serif}#liftUI .lh{font:13px Inter,sans-serif;opacity:.75;margin-bottom:6px}#liftUI .btn{max-width:260px;width:100%;pointer-events:auto}#screen.titled{background:linear-gradient(180deg,rgba(5,3,10,0) 0%,rgba(5,3,10,.1) 40%,rgba(5,3,10,.82) 72%,rgba(5,3,10,.94) 100%);align-items:flex-end}#screen.titled .panel{margin:auto 0 0;gap:10px}#screen.titled .lead,#screen.titled .note{display:none}#screen.titled .logo{text-shadow:0 4px 30px rgba(0,0,0,.6)}#screen.titled .btn.alt{padding-top:11px;padding-bottom:11px;font-size:15px}
 #tankOv{position:fixed;inset:0;z-index:3;pointer-events:none;display:none;background:radial-gradient(ellipse 46% 40% at 50% 46%,rgba(0,0,0,0) 62%,rgba(8,10,6,.92) 74%,#07080a 100%)}
 #tankOv .tv-ring{position:absolute;left:50%;top:46%;width:min(70vw,70vh);height:min(70vw,70vh);transform:translate(-50%,-50%);border-radius:50%;box-shadow:0 0 0 2px rgba(150,255,170,.35),inset 0 0 60px rgba(0,0,0,.6)}
 #tankOv .tv-x,#tankOv .tv-y{position:absolute;left:50%;top:46%;background:rgba(150,255,170,.6)}#tankOv .tv-x{width:min(30vw,30vh);height:1px;transform:translate(-50%,0)}#tankOv .tv-y{height:min(30vw,30vh);width:1px;transform:translate(0,-50%)}
@@ -766,7 +770,7 @@ function updateMusic(on) {
   const M = SND.mus, t = c.currentTime, title = G.mode === "title";
   // écran titre : le thème Constancy (synthwave façon Vice City) en boucle ; il s'efface quand on lance la partie
   if (SND.buf && SND.buf.theme) { const want = title && SND.on;
-    if (want && !SND.th) { const sN = c.createBufferSource(), g = c.createGain(); sN.buffer = SND.buf.theme; sN.loop = true; sN.loopStart = 0; sN.loopEnd = Math.min(SND.buf.theme.duration, 29.0909); g.gain.value = 0; sN.connect(g); g.connect(c.destination); sN.start(); g.gain.setTargetAtTime(0.5, t, 0.8); SND.th = { sN, g }; }
+    if (want && !SND.th) { const sN = c.createBufferSource(), g = c.createGain(); sN.buffer = SND.buf.theme; sN.loop = true; sN.loopStart = 0; sN.loopEnd = Math.min(SND.buf.theme.duration, THEME[1]); g.gain.value = 0; sN.connect(g); g.connect(c.destination); sN.start(); g.gain.setTargetAtTime(0.5, t, 0.8); SND.th = { sN, g }; }
     if (!want && SND.th) { const th = SND.th; SND.th = null; th.g.gain.setTargetAtTime(0, t, 0.5); setTimeout(() => { try { th.sN.stop(); } catch (e) {} }, 3000); }
     if (SND.th) { M.out.gain.setTargetAtTime(0, t, 0.4); return; } }
   M.out.gain.setTargetAtTime(on && SND.on ? (title ? 0.075 : 0.05) : 0, t, on ? 1.2 : 0.4);
@@ -1683,7 +1687,9 @@ function syncAllRigs(dt = 1 / 60) {
 /* --- textures photo et sons réels (fichiers publiés à côté de la page) --- */
 const IMG = {}, SNDRAW = {};
 const IMG_FILES = { asphalt: "assets/tex_asphalt.jpg", pave: "assets/tex_pave.jpg", sand: "assets/tex_sand.jpg", plaster: "assets/tex_plaster.jpg", plaster2: "assets/tex_plaster2.jpg", rubber: "assets/tex_rubber.jpg", tiles: "assets/tex_tiles.jpg", sky: "assets/sky.jpg", poolw: "assets/tex_poolwater.jpg", dirt: "assets/tex_dirt.jpg" };
-const SND_FILES = { intro: "assets/snd_intro.mp3", theme: "assets/mus_rock.mp3", race: "assets/eng_race.mp3", moto: "assets/eng_moto.mp3", scoot: "assets/eng_scoot.mp3", v8: "assets/snd_v8.mp3", siren: "assets/snd_siren.mp3", waves: "assets/amb_waves.mp3", city: "assets/amb_city.mp3", gull: "assets/amb_gull.mp3", gymamb: "assets/amb_gym.mp3", engine: "assets/snd_engine.mp3", door: "assets/snd_door.mp3", weight: "assets/snd_weight.mp3", cheer: "assets/snd_cheer.mp3", ping: "assets/snd_ping.mp3", ui: "assets/snd_ui.mp3", splash: "assets/snd_splash.mp3" };
+// thème de l'écran titre : un morceau différent à chaque lancement (rock, synthwave)
+const THEMES = [["assets/mus_rock.mp3", 29.0909], ["assets/mus_theme.mp3", 38.4]], THEME = THEMES[Math.floor(Math.random() * THEMES.length)];
+const SND_FILES = { intro: "assets/snd_intro.mp3", theme: THEME[0], race: "assets/eng_race.mp3", moto: "assets/eng_moto.mp3", scoot: "assets/eng_scoot.mp3", v8: "assets/snd_v8.mp3", siren: "assets/snd_siren.mp3", waves: "assets/amb_waves.mp3", city: "assets/amb_city.mp3", gull: "assets/amb_gull.mp3", gymamb: "assets/amb_gym.mp3", engine: "assets/snd_engine.mp3", door: "assets/snd_door.mp3", weight: "assets/snd_weight.mp3", cheer: "assets/snd_cheer.mp3", ping: "assets/snd_ping.mp3", ui: "assets/snd_ui.mp3", splash: "assets/snd_splash.mp3" };
 /* --- modèles 3D (voitures, bus, avions, bateaux, animaux, mobilier) --- */
 // face : direction du nez du modèle d'origine ; len : longueur voulue dans le monde (h : hauteur à la place)
 const MODEL_DEFS = {
@@ -6605,6 +6611,7 @@ function titleCam(dt) {
   return true;
 }
 function updateCamera(dt, follow) {
+  if (G.mode === "map" && G.map3d) { map3dCam(dt); return; }
   if (updateScope(dt)) return;
   if (G.lookId == null) { const mv = G.onFoot ? (G.joy && Math.hypot(G.joy.x, G.joy.y) > 0.15) || Math.abs(G.me.v || 0) > 0.6 : Math.abs(G.car.v || 0) > 1.5, k = Math.exp(-dt * (mv ? 2.2 : 0)); G.lookYaw = (G.lookYaw || 0) * k; G.lookPitch = (G.lookPitch || 0) * k; }
   if (!G.started && !window.__camK && titleCam(dt)) return;
@@ -7372,6 +7379,7 @@ function openEmailGate(after) {
   on("emLater", () => { P.emailLater = (P.emailLater || 0) + 1; saveNow(); stat("email-plus-tard"); G.emailGate = false; if (after) after(); else resume(); });
 }
 function setMode(m) {
+  if (m !== "map" && G.map3d) m3Clean();
   G.mode = m; const play = m === "play";
   $("hud").classList.toggle("hidden", !G.started);
   $("actions").classList.toggle("hidden", !play);
@@ -7773,6 +7781,52 @@ function confirmQuit() {
   on("stay", resume);
   on("quit", () => { addCash(-Math.min(QUIT_COST, P.cash)); const M = G.mission; if (M) { if (M.agent) scene.remove(M.agent.mesh); destBeacon.visible = false; G.mission = null; } saveNow(); resume(); help("Mission abandonnée."); });
 }
+/* Carte 3D : on s'envole au-dessus de la vraie ville (lumières, avions, faisceaux), on glisse, on pince, on tourne */
+const M3 = { x: 0, z: 0, d: 600, yaw: 0, t: 0, from: null, fromQ: null, beams: null, tags: null, pad: null, tools: null, hint: null };
+function m3Whoosh() { const c = SND.ctx; if (!c || !SND.on) return; const t = c.currentTime, n = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); n.buffer = noiseBuf(1.2, x => Math.sin(Math.PI * Math.pow(x, 0.6))); f.type = "bandpass"; f.frequency.setValueAtTime(400, t); f.frequency.exponentialRampToValueAtTime(3200, t + 0.7); f.frequency.exponentialRampToValueAtTime(900, t + 1.2); f.Q.value = 0.7; g.gain.value = 0.28; n.connect(f); f.connect(g); g.connect(c.destination); n.start(t); }
+function gpsPos(k) { const d = GPS_DEST[k]; if (!d) return null; if (k === "car") return G.parked ? { x: G.parked.x, z: G.parked.z } : null; if (d.key && LM[d.key]) return { x: LM[d.key].x, z: LM[d.key].z }; if (d.x) return { x: d.x(), z: d.z() }; return null; }
+function m3Want() { try { return localStorage.getItem("map3d") !== "0"; } catch (e) { return true; } }
+function m3Set(v) { try { localStorage.setItem("map3d", v ? "1" : "0"); } catch (e) {} }
+function openMap(zone) { if (m3Want() && !zone) openMap3D(); else openBigMap(zone); }
+function m3Clean() { G.map3d = false; document.body.classList.remove("m3on"); ["pad", "tools", "hint"].forEach(k => { if (M3[k]) { M3[k].remove(); M3[k] = null; } }); if (M3.beams) M3.beams.forEach(b => b.visible = false); if (M3.tags) M3.tags.forEach(t => t.visible = false); }
+function openMap3D() {
+  setMode("map"); G.map3d = true; const o = target(); M3.x = o.x; M3.z = o.z; M3.d = 560; M3.yaw = (G.onFoot ? G.me.h : G.car.h) || 0; M3.t = 0; M3.from = camera.position.clone(); M3.fromQ = camera.quaternion.clone();
+  if (!M3.beams) { M3.beams = [lightBeam(520, 2.2, 9, 0xff3fa4), lightBeam(520, 2.2, 9, 0xffc94a)]; M3.beams.forEach(b => scene.add(b)); M3.tags = Object.entries(LM).map(([k, l]) => { const t = label(l.name, l.color); t.userData.k = k; t.scale.set(46, 11.5, 1); t.material.depthTest = false; t.renderOrder = 10; scene.add(t); return t; }); }
+  M3.beams.forEach(b => b.visible = true); M3.tags.forEach(t => t.visible = true);
+  const chips = Object.entries(GPS_DEST).filter(([k]) => k !== "pin" || G.pin).map(([k, d]) => `<button type="button" class="chip gpsd${G.gpsDest === k ? " on" : ""}" data-d="${k}">${d.name}</button>`).join("");
+  show(`<div class="m3s"><div class="m3h"><b>Constancy City</b><span>Carte · Vue 3D</span></div><div class="m3c">${chips}</div><div class="m3b"><button class="btn alt" id="m3flat" type="button">Vue 2D</button><button class="btn alt" id="m3me" type="button">Ma position</button><button class="btn" id="close" data-focus type="button">Fermer</button></div></div>`, "map3d");
+  const pad = M3.pad = document.createElement("div"); pad.id = "m3pad"; document.body.appendChild(pad);
+  const tools = M3.tools = document.createElement("div"); tools.id = "m3tools"; tools.innerHTML = `<button type="button" id="m3in" aria-label="Zoomer">+</button><button type="button" id="m3out" aria-label="Dézoomer">−</button><button type="button" id="m3rl" aria-label="Tourner à gauche">⟲</button><button type="button" id="m3rr" aria-label="Tourner à droite">⟳</button>`; document.body.appendChild(tools);
+  const hint = M3.hint = document.createElement("div"); hint.id = "m3hint"; hint.textContent = "Glisse · Pince · Touche pour un repère"; document.body.classList.add("m3on"); document.body.appendChild(hint);
+  const zoom = k => { M3.dW = clamp((M3.dW || M3.d) * k, 110, 2600); }, turn = a => { M3.yW = (M3.yW == null ? M3.yaw : M3.yW) + a; };
+  $("m3in").onclick = () => zoom(0.7); $("m3out").onclick = () => zoom(1 / 0.7); $("m3rl").onclick = () => turn(-Math.PI / 4); $("m3rr").onclick = () => turn(Math.PI / 4);
+  on("m3flat", () => { m3Set(false); m3Clean(); openBigMap(); }); on("m3me", () => { const p = target(); M3.goX = p.x; M3.goZ = p.z; });
+  on("close", resume); m3Whoosh();
+  document.querySelectorAll("#screen .gpsd").forEach(bt => bt.addEventListener("click", () => { G.gpsDest = bt.dataset.d || null; const d = GPS_DEST[G.gpsDest]; if (d) { const p = gpsPos(G.gpsDest); if (p) { M3.goX = p.x; M3.goZ = p.z; } help(`GPS : direction <b>${d.name}</b>.`); document.querySelectorAll("#screen .gpsd").forEach(b => b.classList.toggle("on", b === bt)); } }));
+  const ptr = new Map(); let moved = 0, p2 = null;
+  pad.addEventListener("pointerdown", e => { pad.setPointerCapture(e.pointerId); ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; M3.goX = null; if (ptr.size === 2) { const [a, b] = [...ptr.values()]; p2 = { d: Math.hypot(a.x - b.x, a.y - b.y), a: Math.atan2(b.y - a.y, b.x - a.x) }; } });
+  pad.addEventListener("pointermove", e => { const p0 = ptr.get(e.pointerId); if (!p0) return; const dx = e.clientX - p0.x, dy = e.clientY - p0.y; p0.x = e.clientX; p0.y = e.clientY;
+    if (ptr.size === 1) { moved += Math.abs(dx) + Math.abs(dy); const k = M3.d / window.innerHeight * 1.5, cy = Math.cos(M3.yaw), sy = Math.sin(M3.yaw); M3.x += (cy * dx + sy * dy) * k; M3.z += (-sy * dx + cy * dy) * k; }
+    else if (ptr.size === 2 && p2) { moved += 99; const [a, b] = [...ptr.values()], d = Math.hypot(a.x - b.x, a.y - b.y), an = Math.atan2(b.y - a.y, b.x - a.x); M3.d = clamp(M3.d * p2.d / Math.max(1, d), 110, 2600); M3.dW = null; M3.yaw -= (an - p2.a); M3.yW = null; p2 = { d, a: an }; } });
+  const up = e => { const had = ptr.delete(e.pointerId); if (ptr.size < 2) p2 = null;
+    if (had && ptr.size === 0 && moved < 8) { const r = new THREE.Raycaster(); r.setFromCamera({ x: e.clientX / window.innerWidth * 2 - 1, y: -(e.clientY / window.innerHeight) * 2 + 1 }, camera); const gy = GH(M3.x, M3.z), t = (gy - r.ray.origin.y) / r.ray.direction.y;
+      if (t > 0) { const wx = r.ray.origin.x + r.ray.direction.x * t, wz = r.ray.origin.z + r.ray.direction.z * t; if (CREATOR) { m3Clean(); creatorTeleport(wx, wz); return; } G.pin = { x: wx, z: wz }; G.gpsDest = "pin"; sfx.ping && sfx.ping(); help("Repère posé. Le GPS trace la route.", 3); } } };
+  pad.addEventListener("pointerup", up); pad.addEventListener("pointercancel", up);
+  pad.addEventListener("wheel", e => { e.preventDefault(); M3.d = clamp(M3.d * (e.deltaY > 0 ? 1.12 : 1 / 1.12), 110, 2600); M3.dW = null; }, { passive: false });
+}
+function map3dCam(dt) {
+  M3.t += dt; if (M3.dW != null) { M3.d += (M3.dW - M3.d) * Math.min(1, dt * 6); if (Math.abs(M3.dW - M3.d) < 1) M3.dW = null; } if (M3.yW != null) { M3.yaw += (M3.yW - M3.yaw) * Math.min(1, dt * 6); if (Math.abs(M3.yW - M3.yaw) < 0.002) M3.yW = null; }
+  if (M3.goX != null) { M3.x += (M3.goX - M3.x) * Math.min(1, dt * 3); M3.z += (M3.goZ - M3.z) * Math.min(1, dt * 3); if (Math.hypot(M3.goX - M3.x, M3.goZ - M3.z) < 2) M3.goX = null; }
+  M3.x = clamp(M3.x, -1500, 1500); M3.z = clamp(M3.z, -3400, 1400);
+  const pitch = 0.72 + 0.42 * clamp((M3.d - 110) / 1400, 0, 1), gy = Math.max(0, GH(M3.x, M3.z)), fx = Math.sin(M3.yaw), fz = Math.cos(M3.yaw), hz = M3.d * Math.cos(pitch);
+  const P = new THREE.Vector3(M3.x - fx * hz, gy + M3.d * Math.sin(pitch), M3.z - fz * hz), T = new THREE.Vector3(M3.x, gy, M3.z);
+  const e = M3.t < 1.3 ? 1 - Math.pow(1 - M3.t / 1.3, 3) : 1; camera.position.copy(M3.from).lerp(P, e); camera.lookAt(T); if (e < 1) { const q = camera.quaternion.clone(); camera.quaternion.copy(M3.fromQ).slerp(q, e); }
+  if (camera.fov !== 50) { camera.fov = 50; camera.updateProjectionMatrix(); }
+  sky.position.copy(camera.position);
+  const o = target(), sc = M3.d / 600; M3.beams[0].position.set(o.x, GH(o.x, o.z), o.z); M3.beams[0].scale.set(sc, Math.max(0.6, sc), sc); M3.beams[0].material.uniforms.k.value = 0.9;
+  const gp = G.gpsDest ? gpsPos(G.gpsDest) : null; M3.beams[1].visible = !!gp; if (gp) { M3.beams[1].position.set(gp.x, GH(gp.x, gp.z), gp.z); M3.beams[1].scale.set(sc, Math.max(0.6, sc), sc); M3.beams[1].material.uniforms.k.value = 0.9; }
+  M3.tags.forEach(t => { const l = LM[t.userData.k]; t.position.set(l.x, GH(l.x, l.z) + 26 * sc + 8, l.z); t.scale.set(46 * sc, 11.5 * sc, 1); });
+}
 /* Grande carte */
 function openBigMap(zone) {
   setMode("map"); const o0 = target(), mtn = zone ? zone === "mtn" : o0.z < -SHORE - 40;
@@ -7788,6 +7842,7 @@ function openBigMap(zone) {
     <div style="position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:8px"><button type="button" class="menu-btn ico" id="mzIn" aria-label="Zoomer" style="font:400 24px Inter,sans-serif">+</button><button type="button" class="menu-btn ico" id="mzOut" aria-label="Dézoomer" style="font:400 24px Inter,sans-serif">−</button><button type="button" class="menu-btn ico" id="mzMe" aria-label="Centrer sur moi" style="font:600 11px Inter,sans-serif">MOI</button></div>
     <div style="position:absolute;left:10px;bottom:10px;font:500 11px Inter,sans-serif;color:rgba(255,255,255,.75);text-shadow:0 1px 3px #000;pointer-events:none">Glisse pour te déplacer · pince pour zoomer · touche pour poser un repère</div></div>
     <div class="note" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">${Object.entries(LM).map(([k, l]) => `<button type="button" class="chip gpsd leg${G.gpsDest === k ? " on" : ""}" data-d="${k}" style="display:inline-flex;align-items:center;gap:6px"><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${l.color}"></i>${l.name}</button>`).join("")}<span style="display:inline-flex;align-items:center;gap:5px"><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff3fa4"></i>Ta voiture</span><span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#9aa3ad"></i>Location</span></div>
+    <button class="btn alt" id="to3d" type="button">✦ Voir la carte en 3D</button>
     <button class="btn alt" id="swapMap" type="button">${mtn ? "Voir la ville" : "Voir la campagne et la montagne"}</button>
     <button class="btn" id="close" data-focus type="button">Fermer</button></div>`);
   const c = $("bigmap"), g = c.getContext("2d"); let s = c.width / VB.w;
@@ -7796,6 +7851,7 @@ function openBigMap(zone) {
   const zoomAt = (k, px, pz) => { const wx = VB.x0 + px / c.width * VB.w, wz = VB.z0 + pz / c.height * VB.w; VB.w *= k; VB.x0 = wx - px / c.width * VB.w; VB.z0 = wz - pz / c.height * VB.w; clampV(); };
   let fly = null; const flyTo = (x, z, w) => { fly = { x: x - w / 2, z: z - w / 2, w }; };
   on("swapMap", () => { const toM = VB.z0 + VB.w / 2 > -SHORE - 200; flyTo(toM ? -150 : 0, toM ? -1450 : 0, toM ? 2000 : (SHORE + 70) * 2); const b = $("swapMap"); if (b) b.textContent = toM ? "Voir la ville" : "Voir la campagne et la montagne"; });
+  on("to3d", () => { m3Set(true); openMap3D(); });
   on("mzIn", () => zoomAt(0.7, c.width / 2, c.height / 2)); on("mzOut", () => zoomAt(1 / 0.7, c.width / 2, c.height / 2));
   on("mzMe", () => { const o = target(); flyTo(o.x, o.z, Math.min(VB.w, 600)); });
   c.addEventListener("wheel", e => { e.preventDefault(); const r = c.getBoundingClientRect(); zoomAt(e.deltaY > 0 ? 1.15 : 1 / 1.15, (e.clientX - r.left) / r.width * c.width, (e.clientY - r.top) / r.height * c.height); }, { passive: false });
@@ -8163,7 +8219,7 @@ $("pTime").addEventListener("click", () => { P.dayT = (P.dayT + DAY_SECONDS / 8)
   d.addEventListener("wheel", e => { e.preventDefault(); PHOTO.dist = clamp(PHOTO.dist * (1 + e.deltaY * 0.001), 2.2, 28); }, { passive: false }); }
 $("viewBtn").addEventListener("click", () => { G.camView = ((G.camView || 0) + 1) % 4; G.fpv = G.camView === 3; $("viewBtn").classList.toggle("on", !!G.fpv); if (P) { P.camView = G.camView; } stat("vue-" + G.camView);
   help(["Vue <b>proche</b>", "Vue <b>moyenne</b>", "Vue <b>lointaine</b>", "Vue <b>intérieure</b>"][G.camView], 1.4); });
-$("minimap").addEventListener("click", () => { if (G.mode === "play") openBigMap(); });
+$("minimap").addEventListener("click", () => { if (G.mode === "play") openMap(); });
 $("soundBtn").addEventListener("click", () => { audioInit(); SND.on = !SND.on; $("soundBtn").textContent = SND.on ? "SON" : "MUET"; if (SND.on) sfx.ping(); });
 // petit son doux sur chaque bouton, choix et menu
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest("button, .choice, .sw, .menu-btn, #minimap")) playBuf("ui", 0.18, 1.05); }, true);
@@ -8178,7 +8234,7 @@ window.addEventListener("keydown", e => {
   if (G.mode === "gym" && e.code === "Space") { e.preventDefault(); if (!e.repeat && G.gymKey) G.gymKey(); return; }
   if (e.code === "Escape" && G.mode !== "play" && !screen.classList.contains("hidden")) { const b = ["res", "close", "ok", "back", "bdBack", "mBack", "no"].map(id => screen.querySelector("#" + id)).find(x => x && x.offsetParent !== null); if (b) { e.preventDefault(); b.click(); return; } }
   if (G.mode !== "play") return;
-  if (e.code === "KeyM" && !e.repeat) { openBigMap(); return; }
+  if (e.code === "KeyM" && !e.repeat) { openMap(); return; }
   if (GK.includes(e.code)) { keys.add(e.code); e.preventDefault(); }
   if (e.code === "KeyF" || e.code === "KeyE") toggleCar();
   if (e.code === "Space" && G.onFoot && !e.repeat) jump();

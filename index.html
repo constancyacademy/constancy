@@ -2190,7 +2190,7 @@ function shopSigns() {
   if (SHOP_M) return; const c = document.createElement("canvas"); c.width = 1024; c.height = 64 * SHOPS.length; const g = c.getContext("2d");
   SHOPS.forEach(([t, fg, bg], k) => { const y = k * 64; g.fillStyle = bg; g.fillRect(0, y, 1024, 64); g.fillStyle = fg; g.font = "bold 40px Inter, Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
     if (t === "PHARMACIE") { g.fillStyle = "#3dff7a"; g.fillRect(70, y + 14, 36, 36); g.fillStyle = bg; g.fillRect(70, y + 14, 12, 12); g.fillRect(94, y + 14, 12, 12); g.fillRect(70, y + 38, 12, 12); g.fillRect(94, y + 38, 12, 12); g.fillStyle = fg; }
-    g.fillText(t, 512, y + 34); g.strokeStyle = "rgba(255,255,255,.18)"; g.lineWidth = 3; g.strokeRect(4, y + 4, 1016, 56); });
+    g.fillText(t === "CAFÉ" ? "CAFÉ DE LA CONSTANCE" : t, 512, y + 34); g.strokeStyle = "rgba(255,255,255,.18)"; g.lineWidth = 3; g.strokeRect(4, y + 4, 1016, 56); });
   const tx = new THREE.CanvasTexture(c); tx.anisotropy = 4; SHOP_M = new THREE.MeshBasicMaterial({ map: tx, color: 0xe6e6e6 });
   SHOP_G = SHOPS.map((_, k) => { const g2 = new THREE.PlaneGeometry(6, 0.75), uv = g2.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, (SHOPS.length - 1 - k + uv.getY(i)) / SHOPS.length); return g2; });
 }
@@ -2200,15 +2200,65 @@ function intMat(file) {
     vertexShader: "varying vec2 vUv; varying vec3 vW; varying vec3 vN; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }",
     fragmentShader: "uniform sampler2D map; uniform float nk; varying vec2 vUv; varying vec3 vW; varying vec3 vN; void main(){ vec3 V = normalize(cameraPosition - vW); vec3 N = normalize(vN); vec3 T = normalize(cross(vec3(0.0, 1.0, 0.0), N)); float ndv = max(dot(V, N), 0.25); vec2 off = vec2(-dot(V, T), -dot(V, vec3(0.0, 1.0, 0.0))) / ndv; vec2 uvB = vec2(0.06 + vUv.x * 0.88, 0.05 + vUv.y * 0.6) + off * vec2(0.05, 0.035); vec2 uvF = vec2(0.03 + vUv.x * 0.94, 0.03 + vUv.y * 0.66) + off * vec2(0.012, 0.008); vec3 c = texture2D(map, clamp(uvB, 0.0, 1.0)).rgb; float edge = min(smoothstep(0.0, 0.05, vUv.x) * smoothstep(1.0, 0.95, vUv.x), smoothstep(0.0, 0.06, vUv.y) * smoothstep(1.0, 0.94, vUv.y)); c *= 0.55 + 0.45 * edge; float fr = pow(1.0 - ndv, 3.0); c = mix(c, vec3(0.75, 0.82, 0.9), fr * 0.45) + vec3(0.06) * smoothstep(0.55, 0.9, vUv.y + vUv.x * 0.25) * (1.0 - nk); c *= 0.62 + 0.38 * (1.0 - nk) + nk * 0.55; gl_FragColor = vec4(c, 1.0); }" }); }
 function addShopSign(x, z, w, d, base, faces, r) {
-  shopSigns(); vitrines(); if (!SIGN_BOX) { SIGN_BOX = new THREE.MeshLambertMaterial({ color: 0x1c1c20 }); SIGN_BOXG = new THREE.BoxGeometry(6.25, 0.95, 0.28); }
+  shopSigns(); if (!SIGN_BOX) { SIGN_BOX = new THREE.MeshLambertMaterial({ color: 0x1c1c20 }); SIGN_BOXG = new THREE.BoxGeometry(6.25, 0.95, 0.28); }
   faces.forEach(([nx, nz]) => { if (r() < .35) return; const k = shopPick(r()), len = Math.min(nx ? d : w, 8) * 0.8, sc = len / 6;
     const px = x + nx * ((nx ? w : 0) / 2 + 0.07), pz = z + nz * ((nz ? d : 0) / 2 + 0.07), ry = nx ? (nx > 0 ? Math.PI / 2 : -Math.PI / 2) : (nz > 0 ? 0 : Math.PI);
-    if (SHOPS[k][0] === "CAFÉ") { if (!CAFE_M) { const L = new THREE.TextureLoader(), t = L.load("assets/cafe_constance.jpg"), e = L.load("assets/cafe_constance_night.jpg"); t.anisotropy = 8; CAFE_M = new THREE.MeshLambertMaterial({ map: t, emissive: 0xffffff, emissiveMap: e, emissiveIntensity: 0.1 }); }
-      addGeo(CAFE_M, new THREE.PlaneGeometry(6, 3.53), px + nx * 0.25, base + 1.62, pz + nz * 0.25, ry, sc, sc, 1); CAFES.push([px, pz, ry]); return; }
+    if (SHOPS[k][0] === "CAFÉ") CAFES.push([px, pz, ry]);
     addGeo(SIGN_BOX, SIGN_BOXG, px + nx * 0.14, base + 4.25, pz + nz * 0.14, ry, sc, sc * 1.1, 1);
     addGeo(SHOP_M, SHOP_G[k], px + nx * 0.29, base + 4.25, pz + nz * 0.29, ry, sc, sc * 1.1, 1);
-    const tt = SHOPS[k][0], im = tt === "PIZZERIA" ? intMat("int_pizzeria.jpg") : tt === "BOULANGERIE" ? intMat("int_boulangerie.jpg") : null;
-    if (im) addGeo(im, new THREE.PlaneGeometry(6, 2.5), px + nx * 0.01, base + 1.75, pz + nz * 0.01, ry, sc, 1, 1); else addGeo(VIT_M, VIT_G[k], px + nx * 0.01, base + 1.75, pz + nz * 0.01, ry, sc, 1, 1); });
+    shopFront3D(px, pz, ry, k, len, base); });
+}
+// devanture en 3D : une vitrine en avancée sur le trottoir, son auvent, son comptoir, ses produits en relief, et des places pour le vendeur et les clients
+const SH3 = { m: null, slots: [], pool: [], t: 0 };
+function sh3Mats() { if (SH3.m) return SH3.m; const L = c => new THREE.MeshLambertMaterial({ color: c }), Ph = (c, s) => new THREE.MeshPhongMaterial({ color: c, shininess: s || 60, specular: 0x666666 });
+  return SH3.m = { glass: new THREE.MeshPhongMaterial({ color: 0xbfe2f7, shininess: 150, specular: 0xffffff, transparent: true, opacity: 0.16, depthWrite: false }), frame: Ph(0x15161a, 80), floor: Ph(0xd9d2c4, 40), light: new THREE.MeshBasicMaterial({ color: 0xfff1d6 }),
+    wood: L(0x8a5a33), dark: L(0x2a2420), white: Ph(0xf4f1ea, 40), chrome: Ph(0xc9ced6, 120), red: L(0xc0182c), green: L(0x2f8a4a), bread: L(0xd08a3c), bread2: L(0xe3a65a), mirror: new THREE.MeshPhongMaterial({ color: 0x9fc4e0, shininess: 160, specular: 0xffffff }),
+    seat: L(0x1a1a1e), brick: L(0x9c4a2e), fire: new THREE.MeshBasicMaterial({ color: 0xff8a2a }), pot: L(0x3c6e3a), menu: new THREE.MeshBasicMaterial({ color: 0x1a1a1a }), yel: new THREE.MeshBasicMaterial({ color: 0xffd23f }),
+    back: SHOPS.map(([t]) => new THREE.MeshBasicMaterial({ color: { "CAFÉ": 0xc9935e, "PHARMACIE": 0xe9f5ee, "BOULANGERIE": 0xe9c48a, "BARBER SHOP": 0x3a2b26, "TACOS 24/7": 0xd9a020, "LAVERIE": 0xdfeaf5, "FLEURISTE": 0xf3dfe3, "PIZZERIA": 0xb8653a }[t] })),
+    awn: SHOPS.map(([, , bg]) => L(new THREE.Color(bg).getHex())), prod: [0xe23b3b, 0xf2c94c, 0x2f80ed, 0x27ae60, 0xff7ad9, 0xf2994a, 0xffffff, 0x9b51e0].map(c => L(c)), flower: [0xff3d8b, 0xffd23f, 0xffffff, 0xc2457a, 0xff7a3d, 0x9b5cff].map(c => L(c)) }; }
+function shopFront3D(px, pz, ry, k, L, base) {
+  const M = sh3Mats(), t = SHOPS[k][0], D = 1.45, Hh = 3.3, cs = Math.cos(ry), sn = Math.sin(ry), y0 = base + 0.27;
+  const P = (lx, lz) => [px + lx * cs + lz * sn, pz - lx * sn + lz * cs], put = (m, g, lx, y, lz, rot = 0) => { const [x, z] = P(lx, lz); addGeo(m, g, x, y, z, ry + rot); };
+  put(M.floor, new THREE.BoxGeometry(L, 0.08, D), 0, y0 + 0.04, D / 2);
+  put(M.back[k], new THREE.BoxGeometry(L, Hh, 0.04), 0, y0 + Hh / 2, 0.03);
+  put(M.glass, new THREE.BoxGeometry(L, Hh - 0.35, 0.05), 0, y0 + (Hh - 0.35) / 2, D); [-1, 1].forEach(sd => put(M.glass, new THREE.BoxGeometry(0.05, Hh - 0.35, D), sd * L / 2, y0 + (Hh - 0.35) / 2, D / 2));
+  [-0.5, -0.17, 0.17, 0.5].forEach(f => put(M.frame, new THREE.BoxGeometry(0.07, Hh - 0.3, 0.08), f * L, y0 + (Hh - 0.3) / 2, D)); put(M.frame, new THREE.BoxGeometry(L, 0.3, 0.1), 0, y0 + 0.15, D);
+  put(M.awn[k], new THREE.BoxGeometry(L + 0.3, 0.1, D + 0.55), 0, y0 + Hh + 0.05, (D + 0.55) / 2, 0); put(M.frame, new THREE.BoxGeometry(L + 0.3, 0.22, 0.06), 0, y0 + Hh - 0.05, D + 0.55);
+  put(M.light, new THREE.BoxGeometry(L - 0.5, 0.04, 0.18), 0, y0 + Hh - 0.08, D * 0.5);
+  for (let q = -1; q <= 1; q += 2) addProp(...P(q * L * 0.3, D - 0.55), 0.75); addProp(...P(0, D - 0.55), 0.75);
+  const counter = (m, w, lx = -0.15 * L) => { put(m, new THREE.BoxGeometry(w, 1.0, 0.5), lx, y0 + 0.5, 0.62); put(M.dark, new THREE.BoxGeometry(w + 0.04, 0.05, 0.54), lx, y0 + 1.02, 0.62); };
+  const slot = (lx, lz, face, clip, o = {}) => { const [x, z] = P(lx, lz); SH3.slots.push({ x, z, y: y0 + 0.05, ry: ry + (face ? 0 : Math.PI), clip, o }); };
+  if (t === "BOULANGERIE") { counter(M.white, L * 0.62); put(M.glass, new THREE.BoxGeometry(L * 0.62, 0.4, 0.45), -0.15 * L, y0 + 1.25, 0.62);
+    for (let i = 0; i < 7; i++) { put(i % 2 ? M.bread : M.bread2, (() => { const g = new THREE.SphereGeometry(0.09, 8, 6); g.scale(1, 1, 2.6); return g; })(), -0.15 * L - L * 0.27 + i * L * 0.09, y0 + 1.12, 0.62, 0.3); }
+    [1.5, 2.1].forEach(y => { put(M.wood, new THREE.BoxGeometry(L * 0.8, 0.05, 0.3), 0, y0 + y, 0.2); for (let i = 0; i < 9; i++) put(i % 3 ? M.bread : M.bread2, new THREE.SphereGeometry(0.12, 8, 6), -L * 0.36 + i * L * 0.09, y0 + y + 0.1, 0.2); });
+    slot(-0.15 * L, 0.28, true, "Idle_Talking_Loop", { shirt: 0xffffff }); slot(-0.2 * L, 1.05, false, "Idle_Loop"); slot(0.3 * L, 1.1, false, "Idle_Loop"); }
+  else if (t === "CAFÉ") { counter(M.wood, L * 0.55); put(M.chrome, new THREE.BoxGeometry(0.6, 0.45, 0.4), -0.3 * L, y0 + 1.27, 0.62); put(M.menu, new THREE.BoxGeometry(1.4, 0.7, 0.04), 0.25 * L, y0 + 2.3, 0.06);
+    slot(-0.15 * L, 0.28, true, "Idle_Talking_Loop", { shirt: 0x2a1d16 }); slot(0.15 * L, 1.05, false, "Idle_Talking_Loop");
+    [-0.28, 0.28].forEach(f => { const [tx, tz] = P(f * L, D + 1.25); addGeo(M.white, new THREE.CylinderGeometry(0.38, 0.38, 0.05, 16), tx, y0 + 0.75, tz); addGeo(M.frame, new THREE.CylinderGeometry(0.04, 0.04, 0.74, 6), tx, y0 + 0.37, tz); addProp(tx, tz, 0.45);
+      [-1, 1].forEach(sd => { const [cx2, cz2] = P(f * L + sd * 0.62, D + 1.25); addGeo(M.seat, new THREE.BoxGeometry(0.42, 0.06, 0.42), cx2, y0 + 0.45, cz2, ry); SH3.slots.push({ x: cx2, z: cz2, y: y0 + 0.02, ry: ry + (sd > 0 ? -Math.PI / 2 : Math.PI / 2), clip: "Sitting_Idle_Loop", o: {} }); }); }); }
+  else if (t === "BARBER SHOP") { put(M.mirror, new THREE.BoxGeometry(L * 0.8, 1.0, 0.03), 0, y0 + 1.7, 0.07);
+    [-0.25, 0.25].forEach(f => { put(M.seat, new THREE.BoxGeometry(0.6, 0.5, 0.6), f * L, y0 + 0.55, 0.65); put(M.red, new THREE.BoxGeometry(0.62, 0.12, 0.62), f * L, y0 + 0.82, 0.65); put(M.seat, new THREE.BoxGeometry(0.6, 0.7, 0.1), f * L, y0 + 1.15, 0.92); });
+    { const [bx, bz] = P(L / 2 + 0.25, D + 0.1); [0, 1, 2, 3, 4, 5].forEach(i => addGeo([M.red, M.white, M.awn[3]][i % 3], new THREE.CylinderGeometry(0.11, 0.11, 0.22, 12), bx, base + 2.2 + i * 0.22, bz)); addGeo(M.white, new THREE.SphereGeometry(0.13, 10, 8), bx, base + 3.55, bz); }
+    slot(-0.25 * L, 0.6, false, "Sitting_Idle_Loop", { sit: 0.4 }); slot(-0.25 * L + 0.5, 1.0, false, "Idle_Talking_Loop", { shirt: 0x111111 }); slot(0.25 * L, 1.05, false, "Idle_Loop", { shirt: 0x111111 }); }
+  else if (t === "PHARMACIE") { counter(M.white, L * 0.5, 0.2 * L); for (let r2 = 0; r2 < 3; r2++) { put(M.white, new THREE.BoxGeometry(L * 0.86, 0.04, 0.28), 0, y0 + 1.3 + r2 * 0.5, 0.18); for (let i = 0; i < 14; i++) put(M.prod[(i + r2 * 3) % 8], new THREE.BoxGeometry(0.12, 0.26, 0.14), -L * 0.4 + i * L * 0.062, y0 + 1.45 + r2 * 0.5, 0.18); }
+    { const [gx, gz] = P(L / 2 + 0.05, D + 0.25); addGeo(new THREE.MeshBasicMaterial({ color: 0x18c45a }), new THREE.BoxGeometry(0.12, 0.7, 0.22), gx, base + 3.0, gz, ry); addGeo(new THREE.MeshBasicMaterial({ color: 0x18c45a }), new THREE.BoxGeometry(0.12, 0.22, 0.7), gx, base + 3.0, gz, ry); }
+    slot(0.2 * L, 0.28, true, "Idle_Talking_Loop", { shirt: 0xffffff }); slot(0.15 * L, 1.05, false, "Idle_Loop"); }
+  else if (t === "TACOS 24/7") { counter(M.red, L * 0.7, 0); put(M.menu, new THREE.BoxGeometry(L * 0.7, 0.7, 0.04), 0, y0 + 2.3, 0.06); [-0.3, -0.1, 0.1, 0.3].forEach(f => put(M.yel, new THREE.BoxGeometry(0.28, 0.08, 0.02), f * L, y0 + 2.4, 0.09));
+    [-0.25, 0, 0.25].forEach(f => put(M.seat, new THREE.CylinderGeometry(0.2, 0.2, 0.7, 10), f * L, y0 + 0.35, 1.15)); slot(0, 0.28, true, "Idle_Talking_Loop", { shirt: 0xb3122e }); slot(-0.25 * L, 1.15, false, "Idle_Loop"); }
+  else if (t === "LAVERIE") { for (let i = 0; i < 4; i++) { const lx = -L * 0.33 + i * L * 0.22; put(M.white, new THREE.BoxGeometry(0.75, 0.9, 0.6), lx, y0 + 0.45, 0.35); put(M.frame, new THREE.CylinderGeometry(0.24, 0.24, 0.04, 18), lx, y0 + 0.5, 0.66, 0); }
+    slot(0.1 * L, 1.05, false, "Idle_Loop"); }
+  else if (t === "FLEURISTE") { for (let i = 0; i < 5; i++) { const lx = -L * 0.4 + i * L * 0.2, [fx, fz] = P(lx, D + 0.45); addGeo(M.pot, new THREE.CylinderGeometry(0.22, 0.18, 0.5, 10), fx, base + 0.5, fz); for (let f = 0; f < 7; f++) addGeo(M.flower[(i + f) % 6], new THREE.SphereGeometry(0.08, 6, 5), fx + Math.cos(f * 0.9) * 0.14, base + 0.85 + (f % 3) * 0.12, fz + Math.sin(f * 0.9) * 0.14); }
+    counter(M.white, L * 0.4, 0.2 * L); slot(0.2 * L, 0.28, true, "Idle_Talking_Loop", { shirt: 0xc2457a }); slot(-0.2 * L, 1.05, false, "Idle_Loop"); }
+  else if (t === "PIZZERIA") { put(M.brick, new THREE.SphereGeometry(0.8, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), 0.25 * L, y0 + 0.9, 0.55); put(M.fire, new THREE.BoxGeometry(0.4, 0.25, 0.05), 0.25 * L, y0 + 1.05, 1.33); put(M.brick, new THREE.BoxGeometry(1.7, 0.9, 1.0), 0.25 * L, y0 + 0.45, 0.55);
+    counter(M.white, L * 0.4, -0.2 * L); slot(-0.2 * L, 0.28, true, "Idle_Talking_Loop", { shirt: 0xffffff }); slot(-0.2 * L, 1.05, false, "Idle_Loop"); }
+}
+// vendeurs et clients : un petit groupe de passants réels, placés dans les commerces les plus proches de la caméra
+function updateShops3D(dt) {
+  if (!SH3.slots.length || !HQ.clips || !HQ.clips.m || G.inside) return; SH3.t -= dt; if (SH3.t > 0) return; SH3.t = 0.6;
+  if (!SH3.pool.length) for (let k = 0; k < 18; k++) { const h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0x111114, 0xf6c945, 0x9b5cff, 0x34e0ff, 0xff6fb5, 0xeadfcf]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k % 2 === 0, sleeve: 0.25 })); h.visible = false; h.userData.manual = true; scene.add(h); SH3.pool.push({ h, s: null }); }
+  const c = camera.position, near = SH3.slots.map(q => [(q.x - c.x) ** 2 + (q.z - c.z) ** 2, q]).filter(a => a[0] < 75 * 75).sort((a, b) => a[0] - b[0]).slice(0, SH3.pool.length).map(a => a[1]), want = new Set(near);
+  SH3.pool.forEach(p => { if (p.s && !want.has(p.s)) { p.s.taken = null; p.s = null; p.h.visible = false; } });
+  near.forEach(q => { if (q.taken) return; const p = SH3.pool.find(p2 => !p2.s); if (!p) return; p.s = q; q.taken = p; const h = p.h; h.position.set(q.x, q.y, q.z); h.rotation.y = q.ry; h.visible = true; setClip(h, q.clip, 0.75 + Math.random() * 0.4); });
 }
 // hôpital : grand bâtiment blanc, croix rouge lumineuse, entrée des urgences, hélistation sur le toit, ambulance
 let HOSP_M = null;
@@ -4458,7 +4508,7 @@ function updateLamps(dt) {
     L.oy = 0.16 * Math.sin(L.th); lampMatrix(i); });
 }
 function updatePosts(dt) {
-  updateLamps(dt); updateER(dt); updateAmbulance(dt); updateMarket(dt); if (!POSTS.moving) return; let any = 0;
+  updateLamps(dt); updateER(dt); updateAmbulance(dt); updateMarket(dt); updateShops3D(dt); if (!POSTS.moving) return; let any = 0;
   POSTS.list.forEach((q, i) => { if (q.hit !== 1) return; any = 1; q.vy -= 22 * dt; q.x += q.vx * dt; q.z += q.vz * dt; q.oy += q.vy * dt; q.rx += q.ax * dt; q.rz += q.ax * 0.7 * dt;
     const gy = GH(q.x, q.z) - q.y; if (q.oy <= gy + 0.2 && q.vy < 0) { q.oy = gy + 0.2; q.vy *= -0.25; q.vx *= 0.55; q.vz *= 0.55; q.ax *= 0.5; if (Math.hypot(q.vx, q.vz) < 0.6) { q.hit = 2; q.rx = Math.PI / 2 * Math.sign(q.rx || 1); POSTS.moving--; } }
     postMatrix(i); });
@@ -7714,7 +7764,7 @@ function envCar(mesh) { mesh.traverse(o => { if (!o.isMesh || !o.material) retur
 function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "number" && nightK > 0.5) ? ENVR.night : ENVR.day; if (ENVR.cur === want) return; ENVR.cur = want;
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
 window.__W = () => ({ spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ planes, CS_BOX, pushCsBoxes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ planes, SH3, CS_BOX, pushCsBoxes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

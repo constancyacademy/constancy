@@ -307,7 +307,7 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
 .main .t{font-family:var(--font-ui);font-weight:600;font-size:13px;letter-spacing:0;margin:2px 0 6px;line-height:1.25}
 .main .gauge{height:3px;background:rgba(255,255,255,.14)}
 .main .gauge i{background:linear-gradient(90deg,#c9b98a,#f2f0ec)}
-#minimap{border:0;box-shadow:0 0 0 1px rgba(255,255,255,.22),0 0 0 5px rgba(12,12,16,.55),0 14px 30px rgba(0,0,0,.55),inset 0 0 0 1px rgba(0,0,0,.6)}
+#minimap{border:0;box-shadow:0 0 0 1px rgba(255,255,255,.28),0 0 0 4px rgba(20,10,28,.7),0 0 0 5px rgba(255,79,163,.35),0 6px 0 rgba(0,0,0,.35),0 16px 34px rgba(0,0,0,.55),0 0 26px rgba(255,45,149,.18)}
 .help{background:var(--glass2);border:1px solid var(--edge);border-left:2px solid #c9b98a;border-radius:14px;box-shadow:var(--hi),var(--drop);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12.5px}
 .act{font-family:var(--font-ui);font-weight:600;font-size:12px;letter-spacing:.14em;height:52px;min-width:52px;border-radius:26px;background:var(--glass2);border:1px solid var(--edge);box-shadow:var(--hi),var(--drop);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .act:active{transform:scale(.95)}
@@ -1303,7 +1303,16 @@ function buildRentals() {
 function makeHuman(o) { return HQ.ready ? makeHumanQ(o) : makeHumanLegacy(o); }
 // gabarit de costaud (street workout, bodybuilders) : bras, épaules et pecs gonflés, taille fine
 function buff(h, k = 1) { const u = h.userData; if (!u || !u.aL) return h; u.aL.scale.setScalar(1 + 0.5 * k); u.aR.scale.setScalar(1 + 0.5 * k); u.torso.scale.set(1 + 0.32 * k, 1, 1 + 0.26 * k); u.lL.scale.setScalar(1 + 0.18 * k); u.lR.scale.setScalar(1 + 0.18 * k); return h; }
-function bodyVar(h) { const r = Math.random(); if (r < 0.3) h.scale.set(1.3, 0.97, 1.24); else if (r < 0.5) h.scale.set(0.85, 1.04, 0.86); else if (r < 0.65) h.scale.set(1.05, 0.9, 1.05); else if (r < 0.75) h.scale.set(1.12, 1.06, 1.1); return h; }
+const BODY_T = [ // [part, bras, jambes, torse x, torse z, ventre x, ventre z, hanches, taille, largeur]
+  [0.16, 0.76, 0.86, 0.84, 0.84, 0.86, 0.86, 0.9, 1.02, 0.96], [0.2, 0.88, 0.94, 0.92, 0.94, 1.0, 1.02, 1.0, 1, 1], [0.2, 0.98, 1.02, 1.02, 1.06, 1.24, 1.38, 1.12, 0.99, 1.03],
+  [0.14, 1.08, 1.1, 1.1, 1.14, 1.44, 1.62, 1.26, 0.98, 1.06], [0.07, 1.18, 1.2, 1.18, 1.2, 1.68, 1.9, 1.42, 0.97, 1.1], [0.1, 0.86, 0.92, 0.92, 0.94, 1.06, 1.1, 1.02, 0.9, 0.95],
+  [0.08, 0.86, 0.9, 0.92, 0.92, 0.96, 0.98, 0.98, 1.08, 1.0], [0.05, 1.15, 1.05, 1.12, 1.08, 0.95, 0.95, 1.0, 1.02, 1.04]];
+function bodyVar(h, kids) { const u = h && h.userData; let r = Math.random();
+  if (!u || !u.aL || !u.q) { if (r < 0.3) h.scale.set(1.3, 0.97, 1.24); else if (r < 0.5) h.scale.set(0.85, 1.04, 0.86); else if (r < 0.65) h.scale.set(1.05, 0.9, 1.05); else if (r < 0.75) h.scale.set(1.12, 1.06, 1.1); return h; }
+  if (kids && Math.random() < 0.2) { const k = 0.52 + Math.random() * 0.14; u.aL.scale.setScalar(0.8); u.aR.scale.setScalar(0.8); u.torso.scale.set(0.86, 1, 0.86); h.scale.set(k * 1.04, k, k * 1.04); return h; }
+  let t = BODY_T[0]; for (const b of BODY_T) { if (r < b[0]) { t = b; break; } r -= b[0]; }
+  u.aL.scale.setScalar(t[1]); u.aR.scale.setScalar(t[1]); u.lL.scale.setScalar(t[2]); u.lR.scale.setScalar(t[2]); u.torso.scale.set(t[3], 1, t[4]); if (u.belly) u.belly.scale.set(t[5], 1, t[6]); u.hips.scale.setScalar(t[7]);
+  h.scale.set(t[9], t[8], t[9]); return h; }
 function makeHumanLegacy(o) {
   const g = new THREE.Group();
   const skin = new THREE.MeshLambertMaterial({ color: o.skin }), shirt = new THREE.MeshLambertMaterial({ color: o.shirt }), pants = new THREE.MeshLambertMaterial({ color: o.pants });
@@ -2619,7 +2628,7 @@ const WRIDE = { on: false, gd: null, turn: 0, sp: 0.16, yaw: 0, pitch: -0.08, pa
 function wheelDoor() { return FAIR.wheel ? { x: FAIR.wheel.position.x + 8, z: PIER.z } : null; }
 function wheelOffer() {
   setMode("card");
-  show(`<div class="panel"><div class="kicker">Constancy Carnival</div><h2>Un tour de grande roue</h2><p class="lead">Installe-toi dans une nacelle. Un tour complet, jusqu'à 70 m au-dessus de la mer : la plage, la ville, la tour au loin.</p>
+  show(`<div class="panel"><div class="kicker">Fête foraine Constancy</div><h2>Un tour de grande roue</h2><p class="lead">Installe-toi dans une nacelle. Un tour complet, jusqu'à 70 m au-dessus de la mer : la plage, la ville, la tour au loin.</p>
     <ol class="steps"><li>Glisse le doigt pour regarder autour de toi.</li><li>La nuit, toute la roue s'allume.</li></ol>
     <div class="row"><button class="btn" id="go" data-focus type="button">Monter · 5 $</button><button class="btn alt" id="later" type="button">Plus tard</button></div></div>`, "clear");
   on("go", () => { hideScreen(); startWheel(); }); on("later", resume);
@@ -2652,7 +2661,9 @@ function wheelCam(dt) {
   if (meMesh) meMesh.visible = false; return true;
 }
 function updateWheelRide() {
-  if (WRIDE.on || G.mode !== "play" || !G.onFoot || G.inside || G.mission) return; const d = wheelDoor(); if (!d) return; const dd = Math.hypot(G.me.x - d.x, G.me.z - d.z);
+  if (WRIDE.on || G.mode !== "play" || !G.onFoot || G.inside) return; const d = wheelDoor(); if (!d) return;
+  if (!FAIR.doorMk) { FAIR.doorMk = true; const ring = new THREE.Mesh(new THREE.RingGeometry(1.6, 2.1, 40), new THREE.MeshBasicMaterial({ color: 0xff4fa3, transparent: true, opacity: 0.85, depthWrite: false })); ring.rotation.x = -Math.PI / 2; ring.position.set(d.x, PIER.y + 0.06, d.z); scene.add(ring); FAIR.ring = ring; const lb = label("Grande roue · monter ici", "#ff4fa3"); lb.position.set(d.x, PIER.y + 4.2, d.z); lb.scale.set(10, 2.5, 1); scene.add(lb); }
+  if (FAIR.ring) FAIR.ring.material.opacity = 0.5 + 0.4 * Math.sin(performance.now() / 260); const dd = Math.hypot(G.me.x - d.x, G.me.z - d.z);
   if (dd > 9) WRIDE.cool = false; else if (dd < 3.5 && !WRIDE.cool) { WRIDE.cool = true; wheelOffer(); }
 }
 const BEACH = { walk: [], swim: [], volley: [], night: [], built: false }, LIFEG = [];
@@ -2743,14 +2754,16 @@ function buildFair() {
     for (let x = xb + 4; x < xa; x += 8) for (let zz = -w / 2 + 1; zz <= w / 2 - 1; zz += Math.max(6, (w - 2) / 3)) addGeo(darkW, new THREE.CylinderGeometry(0.35, 0.4, Y + 6, 7), x, Y / 2 - 3.2, z0 + zz);
     [-1, 1].forEach(sd => { addGeo(white, new THREE.BoxGeometry(L, 0.12, 0.12), cx, Y + 1.05, z0 + sd * (w / 2 - 0.2)); for (let x = xb + 1; x < xa; x += 3) addGeo(white, new THREE.BoxGeometry(0.12, 1.05, 0.12), x, Y + 0.52, z0 + sd * (w / 2 - 0.2)); }); };
   deck(PIER.x0 - 14, PIER.x1, PIER.w); deck(PIER.x1 + 2, PIER.x2, PIER.W);
-  { const g = new THREE.BoxGeometry(14, 0.5, PIER.w); g.translate(-7, 0, 0); const rp = new THREE.Mesh(g, paveM); rp.position.set(PIER.x0, Y / 2 - 0.25, z0); rp.rotation.z = -Math.atan2(Y, 14); scene.add(rp); }
+  { const g = new THREE.BoxGeometry(14, 0.5, PIER.w); g.translate(-7, 0, 0); const rp = new THREE.Mesh(g, paveM); rp.position.set(PIER.x0, -0.22, z0); rp.rotation.z = -Math.atan2(Y, 14); scene.add(rp);
+    [-1, 1].forEach(sd => { const zz = z0 + sd * (PIER.w / 2 - 0.2); for (let k = 0; k <= 7; k++) { const t = k / 7, x = PIER.x0 - t * 14, y = t * Y; addGeo(white, new THREE.BoxGeometry(0.12, 1.05, 0.12), x, y + 0.52, zz); if (k % 2 === 0) addGeo(darkW, new THREE.CylinderGeometry(0.3, 0.34, Math.max(0.6, y + 1.2), 7), x, (y - 1.2) / 2 + 0.3, zz); }
+      const L = Math.hypot(14, Y), hr = new THREE.Mesh(new THREE.BoxGeometry(L, 0.12, 0.12), white); hr.position.set(PIER.x0 - 7, Y / 2 + 1.05, zz); hr.rotation.z = -Math.atan2(Y, 14); scene.add(hr); }); }
   // arche d'entrée style guinguette, au bord de la plage
   const ax = PIER.x0 - 2, arcM = new THREE.MeshLambertMaterial({ color: 0x2b1e3a }), goldM = new THREE.MeshPhongMaterial({ color: 0xd8b25a, shininess: 80, specular: 0xffffff });
   [-1, 1].forEach(sd => { addGeo(arcM, new THREE.BoxGeometry(1.2, 9, 1.2), ax, 4.5 + Y * 0.1, z0 + sd * 9); addGeo(goldM, new THREE.SphereGeometry(0.8, 12, 10), ax, 9.6, z0 + sd * 9); });
   addGeo(arcM, new THREE.BoxGeometry(1.4, 2.6, 19.6), ax, 8.3, z0);
   const signT = fairTex(1024, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, "#3b0f4a"); gr.addColorStop(1, "#1a0a33"); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = "#ffd36e"; g.lineWidth = 10; g.strokeRect(12, 12, w - 24, h - 24);
     for (let i = 0; i < 40; i++) { g.fillStyle = i % 2 ? "#ffd36e" : "#ff4fa3"; g.beginPath(); g.arc(30 + i * (w - 60) / 39, 30, 7, 0, 6.28); g.fill(); g.beginPath(); g.arc(30 + i * (w - 60) / 39, h - 30, 7, 0, 6.28); g.fill(); }
-    g.font = "900 104px Georgia, serif"; g.textAlign = "center"; g.fillStyle = "#ff4fa3"; g.shadowColor = "#ff4fa3"; g.shadowBlur = 30; g.fillText("CONSTANCY", w / 2, 146); g.font = "italic 700 60px Georgia, serif"; g.fillStyle = "#ffd36e"; g.shadowColor = "#ffd36e"; g.fillText("~ Carnival ~", w / 2, 210); });
+    g.font = "900 104px Georgia, serif"; g.textAlign = "center"; g.fillStyle = "#ff4fa3"; g.shadowColor = "#ff4fa3"; g.shadowBlur = 30; g.fillText("CONSTANCY", w / 2, 146); g.font = "italic 700 60px Georgia, serif"; g.fillStyle = "#ffd36e"; g.shadowColor = "#ffd36e"; g.fillText("~ Fête foraine ~", w / 2, 210); });
   const signM = new THREE.MeshLambertMaterial({ map: signT, emissive: 0xffffff, emissiveMap: signT, emissiveIntensity: 0.4 }); FAIR.signM = signM;
   [-1, 1].forEach(sd => { const sg = new THREE.Mesh(new THREE.PlaneGeometry(18, 4.5), signM); sg.position.set(ax + sd * 0.75, 8.3, z0); sg.rotation.y = sd > 0 ? Math.PI / 2 : -Math.PI / 2; scene.add(sg); });
   // guirlandes : de l'arche jusqu'au bout de l'allée, en zigzag au-dessus des visiteurs
@@ -2770,9 +2783,11 @@ function buildFair() {
     const lb = label(name, col); lb.position.set(x, Y + 4.9, zz + face * 1.2); lb.scale.set(5.2, 1.3, 1); scene.add(lb);
     addProp(x - 1.2, zz, 1.9); addProp(x + 1.2, zz, 1.9);
     if (C) { const h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x34e0ff, 0xf6c945]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k % 3 === 0, sleeve: 0.25 }));
-      h.position.set(x, Y, zz - face * 0.2); h.rotation.y = face > 0 ? 0 : Math.PI; scene.add(h); setClip(h, k % 2 ? "Idle_Talking_Loop" : "Idle_Loop", 0.9); h.userData.manual = true; FAIR.people.push(h); } });
+      h.position.set(x, Y, zz - face * 0.2); h.rotation.y = face > 0 ? 0 : Math.PI; scene.add(h); setClip(h, k % 2 ? "Idle_Talking_Loop" : "Idle_Loop", 0.9); h.userData.manual = true; FAIR.people.push(h);
+      for (let q = 0; q < (k % 3 === 1 ? 2 : 1); q++) { const cu = bodyVar(makeHuman({ shirt: pick([0xffffff, 0x111114, 0x34e0ff, 0xf6c945, 0x9b5cff, 0xeadfcf, 0xff9f1a]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: (k + q) % 2 === 0, shorts: q === 1, sleeve: 0.25 }), true);
+        cu.position.set(x + (q ? 1.1 : -0.5), Y, zz + face * (3.5 + q * 1.0)); cu.rotation.y = face > 0 ? Math.PI : 0; scene.add(cu); setClip(cu, (k + q) % 2 ? "Idle_Talking_Loop" : "Idle_Loop", 0.85 + Math.random() * 0.3); cu.userData.manual = true; if (q) giveDrink(cu); FAIR.people.push(cu); } } });
   // promeneurs qui flânent dans l'allée
-  if (C) for (let k = 0; k < 12; k++) { const h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x111114, 0x34e0ff, 0xf6c945, 0x9b5cff, 0xeadfcf]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k % 2 === 0, shorts: k % 3 === 0, sleeve: 0.25 }));
+  if (C) for (let k = 0; k < 26; k++) { const h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x111114, 0x34e0ff, 0xf6c945, 0x9b5cff, 0xeadfcf]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k % 2 === 0, shorts: k % 3 === 0, sleeve: 0.25 }), true);
     scene.add(h); setClip(h, "Walk_Loop", 0.9); h.userData.manual = true; if (k % 3 === 0) giveDrink(h); FAIR.walkers.push({ h, u: Math.random(), sp: rand(0.012, 0.02) * (k % 2 ? 1 : -1), lane: rand(-3.5, 3.5) }); }
   // ======= la grande roue : 64 m de diamètre, néons qui partent du centre vers l'extérieur =======
   const R = 32, hubY = Y + R + 5, wx = PIER.x2 + 40, W = new THREE.Group(); W.position.set(wx, hubY, z0); scene.add(W); FAIR.wheel = W;
@@ -2806,6 +2821,25 @@ function buildFair() {
       h.position.set(sd * 0.62, -3.72, 0); h.rotation.y = sd > 0 ? -Math.PI / 2 : Math.PI / 2; h.scale.multiplyScalar(0.95); g.add(h); setClip(h, n === 2 ? "Sitting_Talking_Loop" : "Sitting_Idle_Loop", 0.8 + Math.random() * 0.3); h.userData.manual = true; gd.ppl.push(h); } } const roof = new THREE.Mesh(new THREE.SphereGeometry(1.35, 12, 6, 0, 6.28, 0, Math.PI / 2), steel); roof.position.y = -1.5; g.add(roof); const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.5, 5), steel); bar.position.y = -0.7; g.add(bar);
     scene.add(g); FAIR.gond.push(gd); }
   addProp(wx, z0 - 9, 2.4); addProp(wx, z0 + 9, 2.4);
+  // ======= carrousel à chevaux : plateau rayé, chevaux qui montent et descendent, auvent illuminé =======
+  { const cx = PIER.x1 - 58, cz = z0 + 24, CR = new THREE.Group(); CR.position.set(cx, Y, cz); scene.add(CR); FAIR.carou = CR; FAIR.horses = [];
+    const gold = new THREE.MeshPhongMaterial({ color: 0xe8c066, shininess: 90, specular: 0xffffff }), pinkM = new THREE.MeshPhongMaterial({ color: 0xff6fb5, shininess: 60 }), whiteM = new THREE.MeshPhongMaterial({ color: 0xfaf4ea, shininess: 60 });
+    addGeo(new THREE.MeshLambertMaterial({ color: 0x3b2a4a }), new THREE.CylinderGeometry(8.2, 8.4, 0.5, 40), cx, Y + 0.25, cz); addProp(cx, cz, 8.4);
+    const plate = new THREE.Mesh(new THREE.CylinderGeometry(7.6, 7.6, 0.3, 40), whiteM); plate.position.y = 0.65; CR.add(plate);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 6.4, 20), pinkM); pole.position.y = 3.6; CR.add(pole);
+    for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, seg = new THREE.Mesh(new THREE.ConeGeometry(8.6, 2.6, 4, 1, true, a, Math.PI * 2 / 16), k % 2 ? pinkM : whiteM); seg.position.y = 8.1; CR.add(seg); }
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(8.6, 8.6, 0.9, 40, 1, true), gold); crown.position.y = 6.6; CR.add(crown);
+    const lt = []; for (let k = 0; k < 40; k++) { const a = k / 40 * Math.PI * 2; lt.push(Math.cos(a) * 8.7, 6.6, Math.sin(a) * 8.7); } const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(lt, 3));
+    FAIR.carLights = new THREE.PointsMaterial({ size: 0.9, map: glowTexture(), color: 0xffd36e, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }); CR.add(new THREE.Points(lg, FAIR.carLights));
+    const hc = [0xfaf4ea, 0x3b2a1e, 0xd9a066, 0x111114];
+    for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, r = 5.6 + (k % 2) * 0.9, hg = new THREE.Group(), hm = new THREE.MeshPhongMaterial({ color: hc[k % 4], shininess: 70 });
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.6, 1.6), hm); hg.add(body); const neck = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.8, 0.4), hm); neck.position.set(0, 0.5, 0.7); neck.rotation.x = -0.4; hg.add(neck);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.36, 0.7), hm); head.position.set(0, 0.92, 1.0); hg.add(head);
+      [[-0.18, 0.55], [0.18, 0.55], [-0.18, -0.55], [0.18, -0.55]].forEach(([lx, lz]) => { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.7, 0.14), hm); leg.position.set(lx, -0.6, lz); leg.rotation.x = lz > 0 ? -0.6 : 0.5; hg.add(leg); });
+      const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.12, 0.6), pinkM); saddle.position.y = 0.34; hg.add(saddle);
+      const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 5.6, 6), gold); rod.position.y = 1.0; hg.add(rod);
+      hg.position.set(Math.cos(a) * r, 2.3, Math.sin(a) * r); hg.rotation.y = -a; CR.add(hg); FAIR.horses.push({ g: hg, ph: k * 0.9 }); }
+    const cl = label("Carrousel", "#ffd36e"); cl.position.set(cx, Y + 11.5, cz); cl.scale.set(9, 2.3, 1); scene.add(cl); }
   // ======= manège à sensations : le grand bras qui tourne =======
   const bx = PIER.x1 - 22, bz = z0 - 28, B = new THREE.Group(); B.position.set(bx, Y + 20, bz); scene.add(B); FAIR.booster = B;
   const pyl = new THREE.Mesh(new THREE.BoxGeometry(2.2, 20, 2.2), new THREE.MeshPhongMaterial({ color: 0x2b2b38, shininess: 60 })); pyl.position.set(bx, Y + 10, bz); scene.add(pyl); addProp(bx, bz, 2);
@@ -2830,6 +2864,7 @@ function updateFair(dt) {
   FAIR.neon.forEach((m, q) => { const w = Math.max(0, Math.sin(T * 3.2 - q * 1.1)), c = NC[(cyc + (w > 0.6 ? 1 : 0)) % 4], b = (0.35 + 0.65 * w) * k0; m.color.setRGB(c[0] * b, c[1] * b, c[2] * b); });
   { const b = (0.55 + 0.45 * Math.sin(T * 2)) * k0; FAIR.rimNeon.color.setRGB(b, 0.25 * b, 0.7 * b); }
   FAIR.hubM.emissiveIntensity = 0.25 + nk * 0.9; FAIR.signM.emissiveIntensity = 0.25 + nk * 0.9;
+  if (FAIR.carou) { FAIR.carou.rotation.y += dt * 0.45; FAIR.horses.forEach(q => { q.g.position.y = 2.3 + Math.sin(T * 1.6 + q.ph) * 0.45; }); FAIR.carLights.opacity = 0.35 + nk * 0.65 * (0.75 + 0.25 * Math.sin(T * 6)); }
   if (FAIR.booster) { FAIR.booster.rotation.z += dt * 1.1; FAIR.booster.children.forEach((c, i) => { if (i > 0 && i < 3) c.rotation.z = -FAIR.booster.rotation.z + Math.sin(T * 1.7) * 0.6; }); }
   if (FAIR.drop) { const D = FAIR.drop, ph = (T % 16) / 16; D.car.position.y = ph < 0.55 ? D.base + (D.top - D.base) * (ph / 0.55) : ph < 0.68 ? D.top : ph < 0.74 ? D.top - (D.top - D.base) * Math.pow((ph - 0.68) / 0.06, 2) : D.base;
     if (ph > 0.68 && ph < 0.7 && !D.yell && d < 160) { D.yell = true; fairScream(d); } if (ph > 0.8) D.yell = false; }
@@ -5280,7 +5315,7 @@ function nextHint() {
 
 /* ============ Minimap ============ */
 const mm = $("minimap"), mctx = mm.getContext("2d");
-const MAPW = Math.ceil((MT.R - MT.z + 60) * 2), MO = MAPW / 2, MS = 0.42; // la carte couvre aussi la montagne ; MS : pixels par mètre
+const MAPW = Math.ceil((Math.max(MT.R - MT.z, JG.rz * 1.2 - JG.cz) + 60) * 2), MO = MAPW / 2, MS = 0.38; // la carte couvre aussi la montagne ; MS : pixels par mètre
 const mapBase = document.createElement("canvas"); mapBase.width = Math.ceil(MAPW * MS); mapBase.height = Math.ceil(MAPW * MS);
 function drawMapBase() {
   const g = mapBase.getContext("2d"); g.setTransform(MS, 0, 0, MS, 0, 0);
@@ -5310,6 +5345,34 @@ function drawMapBase() {
   g.fillStyle = "#9a7650"; g.fillRect(MO + HALF + 17, MO + bC(5) - 3, 46, 6);
   g.fillStyle = "#b8b6b0"; g.fillRect(MO + AP.x0, MO + AP.zg, AP.x1 - AP.x0, AP.z1 - AP.zg); g.fillStyle = "#3a3940"; g.fillRect(MO + AP.x0 + 20, MO + AP.rz - 12, AP.x1 - AP.x0 - 40, 24);
   g.fillStyle = "#3a3940"; g.fillRect(MO + PAD.x0 + 4, MO + PAD.z0, PAD.x1 - PAD.x0 - 8, PAD.z1 - PAD.z0);
+  drawMapExtras(g);
+}
+// carte, couche détaillée : jungle, arbres, immeubles en relief, marquage des routes
+function drawMapExtras(g) {
+  let sd = 9; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const blob = (x, z, r, c1, c2) => { g.fillStyle = "rgba(0,0,0,.28)"; g.beginPath(); g.arc(MO + x + r * 0.35, MO + z + r * 0.35, r, 0, 6.283); g.fill(); g.fillStyle = c1; g.beginPath(); g.arc(MO + x, MO + z, r, 0, 6.283); g.fill(); g.fillStyle = c2; g.beginPath(); g.arc(MO + x - r * 0.3, MO + z - r * 0.3, r * 0.45, 0, 6.283); g.fill(); };
+  // jungle : sol, lagune, canopée, piste, enclos, entrée du parc
+  { const st = 6, x0 = JG.cx - JG.rx * 1.18, x1 = JG.cx + JG.rx * 1.18, z0 = JG.cz - JG.rz * 1.2, z1 = JG.cz + JG.rz * 1.2;
+    for (let x = x0; x < x1; x += st) for (let z = z0; z < z1; z += st) { const h = jgH(x, z); if (h <= -3.5) continue; const n = Math.abs(Math.sin(Math.floor(x / 18) * 12.9898 + Math.floor(z / 18) * 78.233) * 43758.5453) % 1;
+      g.fillStyle = h < -0.3 ? (h < -1.5 ? "#1f9aa6" : "#2bb3b4") : h < 0.9 ? "#e3c58d" : ["#2f6b34", "#3b7a3a", "#28592d", "#43803d"][Math.floor(n * 4)]; g.fillRect(MO + x, MO + z, st + 0.5, st + 0.5); }
+    for (let k = 0; k < 2600; k++) { const x = x0 + rnd() * (x1 - x0), z = z0 + rnd() * (z1 - z0); if (jgMask(x, z) > 0.96 || jgH(x, z) < 1 || nearJT(x, z) < 12) continue; let inF = false; (JUNGLE.fence || []).forEach(([fx, fz, R]) => { if (Math.hypot(x - fx, z - fz) < R + 3) inF = true; }); if (inF && rnd() < 0.85) continue;
+      blob(x, z, 4 + rnd() * 6, rnd() < 0.5 ? "#1f4f27" : "#285f2c", "rgba(140,210,120,.35)"); }
+    (JUNGLE.fence || []).forEach(([fx, fz, R]) => { g.fillStyle = "rgba(170,210,120,.35)"; g.beginPath(); g.arc(MO + fx, MO + fz, R, 0, 6.283); g.fill(); g.setLineDash([6, 4]); g.strokeStyle = "#e8dcb4"; g.lineWidth = 2.4; g.stroke(); g.setLineDash([]); }); }
+  g.lineCap = g.lineJoin = "round"; g.strokeStyle = "#5c4630"; g.lineWidth = 9; g.beginPath(); JTRACK.forEach(([x, z], k) => k ? g.lineTo(MO + x, MO + z) : g.moveTo(MO + x, MO + z)); g.stroke();
+  g.strokeStyle = "#a9875c"; g.lineWidth = 5; g.stroke();
+  if (JUNGLE.gate) { const [gx, gz] = JUNGLE.gate; g.fillStyle = "#7ee08a"; g.beginPath(); g.arc(MO + gx, MO + gz, 9, 0, 6.283); g.fill(); g.strokeStyle = "#0b2a12"; g.lineWidth = 3; g.stroke(); }
+  // arbres de la montagne et de la campagne
+  for (let k = 0; k < 900; k++) { const a = rnd() * 6.283, r = MT.R * (0.35 + rnd() * 0.8), x = MT.x + Math.cos(a) * r, z = MT.z + Math.sin(a) * r, h = mtnH(x, z); if (h < 3 || h > 70) continue; blob(x, z, 3 + rnd() * 4, "#3d6e35", "rgba(170,220,140,.3)"); }
+  for (let k = 0; k < 700; k++) { const x = CS.cx + (rnd() - 0.5) * CS.rx * 2.1, z = CS.cz + (rnd() - 0.5) * CS.rz * 2.1; if (csH(x, z) < 0.6 || nearNat(x, z) < 14 || rnd() < 0.4) continue; blob(x, z, 2.5 + rnd() * 3.5, "#3f7334", "rgba(170,220,140,.3)"); }
+  // immeubles : emprise au sol avec ombre portée (plus haut = ombre plus longue)
+  BLOCK_BOXES.forEach(list => list.forEach(e => { if (e.length < 4) return; const h = e[4] || 12, o = Math.min(9, 1.2 + h * 0.05), w = e[2] - e[0], d = e[3] - e[1]; if (w <= 0 || d <= 0 || w > 70 || d > 70) return;
+    g.fillStyle = "rgba(0,0,0,.32)"; g.fillRect(MO + e[0] + o, MO + e[1] + o, w, d); const l = Math.min(1, h / 120); g.fillStyle = `rgb(${Math.round(150 + l * 70)},${Math.round(146 + l * 66)},${Math.round(160 + l * 66)})`; g.fillRect(MO + e[0], MO + e[1], w, d);
+    g.fillStyle = "rgba(255,255,255,.18)"; g.fillRect(MO + e[0], MO + e[1], w, 1.4); }));
+  // palmiers et arbres de la ville
+  PALM_SPOTS.forEach(([x, z]) => { g.fillStyle = "#2f8a46"; g.beginPath(); g.arc(MO + x, MO + z, 2.1, 0, 6.283); g.fill(); });
+  [VEG.flam.spots, VEG.royal.spots].forEach((A, i) => A.forEach(([x, z]) => { g.fillStyle = i ? "#2f8a46" : "#d2483c"; g.beginPath(); g.arc(MO + x, MO + z, i ? 2.1 : 2.8, 0, 6.283); g.fill(); }));
+  // marquage central des routes de la ville
+  g.strokeStyle = "rgba(242,201,76,.55)"; g.lineWidth = 0.9; g.setLineDash([6, 6]); for (let k = 0; k <= NB; k++) { const c = rc(k); g.beginPath(); g.moveTo(MO + c, MO - HALF); g.lineTo(MO + c, MO + HALF); g.moveTo(MO - HALF, MO + c); g.lineTo(MO + HALF, MO + c); g.stroke(); } g.setLineDash([]);
 }
 function drawMinimap() {
   const W = mm.width, R = 130, s = W / (R * 2), me = target(), cx = me.x, cz = me.z;
@@ -5344,6 +5407,9 @@ function drawMinimap() {
   mctx.beginPath(); mctx.moveTo(0, -14); mctx.lineTo(10, 11); mctx.lineTo(0, 6); mctx.lineTo(-10, 11); mctx.closePath();
   mctx.fillStyle = "#fff"; mctx.strokeStyle = "#000"; mctx.lineWidth = 3; mctx.stroke(); mctx.fill();
   mctx.restore();
+  { const c = W / 2, vg = mctx.createRadialGradient(c, c, c * 0.62, c, c, c); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(8,4,16,.55)"); mctx.fillStyle = vg; mctx.beginPath(); mctx.arc(c, c, c, 0, 6.283); mctx.fill();
+    const rg = mctx.createLinearGradient(0, 0, 0, W); rg.addColorStop(0, "rgba(255,255,255,.55)"); rg.addColorStop(0.5, "rgba(255,124,192,.35)"); rg.addColorStop(1, "rgba(0,0,0,.6)"); mctx.strokeStyle = rg; mctx.lineWidth = 6; mctx.beginPath(); mctx.arc(c, c, c - 3, 0, 6.283); mctx.stroke();
+    mctx.fillStyle = "#ff2d95"; mctx.beginPath(); mctx.arc(c, 15, 11, 0, 6.283); mctx.fill(); mctx.fillStyle = "#fff"; mctx.font = "800 13px Inter, sans-serif"; mctx.textAlign = "center"; mctx.textBaseline = "middle"; mctx.fillText("N", c, 16); }
 }
 
 /* GPS : destination choisie sur la carte (comme dans les grands jeux de ville), sinon l'objectif conseillé */
@@ -5351,7 +5417,7 @@ const GPS_DEST = {
   gym: { name: "Salle", key: "gym" }, home: { name: "Appart", key: "home" }, depot: { name: "Dépôt", key: "depot" }, shop: { name: "Concession", key: "shop" },
   mamie: { name: "Mamie", key: "mamie" }, market: { name: "Supérette", key: "market" }, mentor: { name: "Mentor", key: "mentor" }, park: { name: "Street Workout", key: "park" },
   garage: { name: "Garage", x: () => bC(3) + 9, z: () => rc(11) - 3, color: "#ff3fa4" }, car: { name: "Ta voiture" }, pin: { name: "Repère", x: () => (G.pin || { x: 0 }).x, z: () => (G.pin || { z: 0 }).z, color: "#f2f0ec" }, mountain: { name: "Montagne", x: () => MROAD[MROAD.length - 1][0], z: () => MROAD[MROAD.length - 1][1], color: "#9a948a" }, village: { name: "Saint-Constant (campagne)", x: () => -150, z: () => -1100, color: "#ffd36e" }, beach: { name: "Plage", x: () => HALF + 25, z: () => 0, color: "#e3c58d" },
-  jungle: { name: "Jungle · dinosaures", x: () => (JUNGLE.gate || [0, -2700])[0], z: () => (JUNGLE.gate || [0, -2700])[1], color: "#7ee08a" }, tower: { name: "Tour Constancy", x: () => TOWER.x, z: () => TOWER.z + 22, color: "#f2f0ec" }, fair: { name: "Constancy Carnival", x: () => PIER.x0 + 8, z: () => PIER.z, color: "#ff4fa3" }, stunt: { name: "Stunt Park · tremplins", x: () => STUNT.x, z: () => STUNT.z - 72, color: "#ff4fa3" }, hospital: { name: "Hôpital", x: () => bC(2) - 9, z: () => bC(5) + 22, color: "#ff1a35" }, marina: { name: "Marina · bateaux", x: () => HALF + 45, z: () => bC(5), color: "#34e0ff" }, airport: { name: "Aéroport · hangar", x: () => 185, z: () => AP.z0 + 30, color: "#cfd8e6" }, aerodrome: { name: "Aérodrome du Mont", x: () => (PAD.x0 + PAD.x1) / 2, z: () => PAD.z1 - 6, color: "#cfd8e6" }
+  jungle: { name: "Jungle · dinosaures", x: () => (JUNGLE.gate || [0, -2700])[0], z: () => (JUNGLE.gate || [0, -2700])[1], color: "#7ee08a" }, tower: { name: "Tour Constancy", x: () => TOWER.x, z: () => TOWER.z + 22, color: "#f2f0ec" }, fair: { name: "Fête foraine", x: () => PIER.x0 + 8, z: () => PIER.z, color: "#ff4fa3" }, stunt: { name: "Stunt Park · tremplins", x: () => STUNT.x, z: () => STUNT.z - 72, color: "#ff4fa3" }, hospital: { name: "Hôpital", x: () => bC(2) - 9, z: () => bC(5) + 22, color: "#ff1a35" }, marina: { name: "Marina · bateaux", x: () => HALF + 45, z: () => bC(5), color: "#34e0ff" }, airport: { name: "Aéroport · hangar", x: () => 185, z: () => AP.z0 + 30, color: "#cfd8e6" }, aerodrome: { name: "Aérodrome du Mont", x: () => (PAD.x0 + PAD.x1) / 2, z: () => PAD.z1 - 6, color: "#cfd8e6" }
 };
 function gpsDestPoint(k) {
   const d = GPS_DEST[k]; if (!d) return null;
@@ -5984,48 +6050,53 @@ function drawPlaneScreen() {
 }
 function buildCockpit() {
   cockpit = new THREE.Group();
-  const black = new THREE.MeshPhongMaterial({ color: 0x101013, shininess: 18 }), soft = new THREE.MeshLambertMaterial({ color: 0x1c1b20 }), leather = new THREE.MeshPhongMaterial({ color: 0x17161a, shininess: 30, specular: 0x2a2a2a }), alu = new THREE.MeshPhongMaterial({ color: 0x9aa0a8, shininess: 100, specular: 0xffffff }), accent = new THREE.MeshBasicMaterial({ color: 0xff2d55 });
-  // capot, vu à travers le pare-brise, à la couleur de la voiture
-  const hoodM = new THREE.MeshPhongMaterial({ color: 0x888888, shininess: 90, specular: 0x999999 });
-  const hood = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), hoodM); hood.scale.set(1.25, 0.2, 1.9); hood.position.set(0, -1.16, -2.45); cockpit.add(hood); cockpit.userData.hoodM = hoodM;
-  // planche de bord galbée, ourlet cuir, éclairage d'ambiance
-  const dashG = new THREE.CylinderGeometry(1.6, 1.6, 2.9, 28, 1, false, Math.PI * 0.65, Math.PI * 0.7); dashG.rotateZ(Math.PI / 2);
-  const dash = new THREE.Mesh(dashG, soft); dash.position.set(0, -2.25, -1.25); cockpit.add(dash);
-  const lip = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.035, 0.05), leather); lip.position.set(0, -0.69, -0.98); cockpit.add(lip);
-  const amb = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.008, 0.01), accent); amb.position.set(0, -0.712, -0.955); cockpit.add(amb); cockpit.userData.amb = accent;
-  // combiné d'instruments numérique (compte-tours, vitesse, rapport, turbo, heure)
+  const black = new THREE.MeshPhongMaterial({ color: 0x0d0d10, shininess: 40, specular: 0x222228 }), soft = new THREE.MeshPhongMaterial({ color: 0x18161c, shininess: 8, specular: 0x111111 }), leather = new THREE.MeshPhongMaterial({ color: 0x1b1a20, shininess: 34, specular: 0x333338 }),
+    alu = new THREE.MeshPhongMaterial({ color: 0xb8bcc4, shininess: 120, specular: 0xffffff }), accent = new THREE.MeshBasicMaterial({ color: 0xff2d95 }), glass = new THREE.MeshBasicMaterial({ color: 0x050507 });
+  // capot : un panneau plat et bas à la couleur de la voiture, avec une nervure centrale (fini le dôme rond)
+  const hoodM = new THREE.MeshPhongMaterial({ color: 0x888888, shininess: 110, specular: 0xbbbbbb });
+  { const sh = new THREE.Shape(); sh.moveTo(-1.0, 0); sh.lineTo(1.0, 0); sh.lineTo(0.92, 1.25); sh.quadraticCurveTo(0, 1.5, -0.92, 1.25); sh.lineTo(-1.0, 0);
+    const hg = new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.03, bevelSegments: 2 }); hg.rotateX(-Math.PI / 2); hg.computeVertexNormals();
+    const hood = new THREE.Mesh(hg, hoodM); hood.position.set(0, -1.08, -1.35); hood.rotation.x = 0.13; cockpit.add(hood); cockpit.userData.hoodM = hoodM;
+    const crease = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 1.3), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25 })); crease.position.set(0, -1.0, -2.0); crease.rotation.x = 0.13; cockpit.add(crease); }
+  // planche de bord : dalle basse et fine, ourlet cuir surpiqué, filet néon d'ambiance
+  const dash = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.16, 0.62), soft); dash.position.set(0, -0.78, -1.2); dash.rotation.x = -0.06; cockpit.add(dash);
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.05, 0.08), leather); lip.position.set(0, -0.71, -0.9); cockpit.add(lip);
+  const stitch = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.004, 0.004), accent); stitch.position.set(0, -0.684, -0.862); cockpit.add(stitch);
+  const amb = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.01, 0.012), accent); amb.position.set(0, -0.742, -0.858); cockpit.add(amb); cockpit.userData.amb = accent;
+  const wsLine = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.02, 0.3), black); wsLine.position.set(0, -0.70, -1.45); cockpit.add(wsLine);
+  // combiné numérique flottant au-dessus du volant
   const sc = document.createElement("canvas"); sc.width = 512; sc.height = 200; const st = new THREE.CanvasTexture(sc);
-  const bezel = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.3, 0.05), black); bezel.position.set(0, -0.6, -1.1); bezel.rotation.x = -0.22; cockpit.add(bezel);
-  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.03, 0.18), black); visor.position.set(0, -0.44, -1.06); visor.rotation.x = 0.1; cockpit.add(visor);
-  const gauge = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.27), new THREE.MeshBasicMaterial({ map: st })); gauge.position.set(0, -0.6, -1.074); gauge.rotation.x = -0.22; cockpit.add(gauge);
+  const clu = new THREE.Group(); clu.position.set(0, -0.485, -1.08); clu.rotation.x = -0.12; clu.scale.setScalar(0.82); cockpit.add(clu);
+  const bezel = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.22, 0.025), black); clu.add(bezel);
+  const gauge = new THREE.Mesh(new THREE.PlaneGeometry(0.52, 0.2), new THREE.MeshBasicMaterial({ map: st })); gauge.position.z = 0.0135; clu.add(gauge);
+  const gEdge = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.004, 0.026), accent); gEdge.position.y = -0.112; clu.add(gEdge);
   cockpit.userData.gauge = { c: sc, t: st, last: "" };
-  // écran central tactile : le GPS de la mini-carte
-  const nc = document.createElement("canvas"); nc.width = 320; nc.height = 200; const nt = new THREE.CanvasTexture(nc);
-  const nb = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.3, 0.03), black); nb.position.set(0.56, -0.6, -1.06); nb.rotation.set(-0.18, -0.3, 0); cockpit.add(nb);
-  const nav = new THREE.Mesh(new THREE.PlaneGeometry(0.43, 0.27), new THREE.MeshBasicMaterial({ map: nt })); nav.position.set(0.555, -0.6, -1.043); nav.rotation.set(-0.18, -0.3, 0); cockpit.add(nav);
-  cockpit.userData.nav = { c: nc, t: nt, k: 0 };
-  // aérateurs
-  [-0.95, 0.95, 0.28].forEach(x => { const v = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.02), black); v.position.set(x, -0.74, -1.0); cockpit.add(v); const r = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.006, 0.022), alu); r.position.set(x, -0.715, -1.0); cockpit.add(r); });
-  // montants, pavillon, rétroviseur intérieur et rétros extérieurs
-  [-1, 1].forEach(sd => { const pil = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.45, 0.07), black); pil.position.set(sd * 1.22, 0.05, -1.05); pil.rotation.set(-0.5, 0, sd * -0.35); cockpit.add(pil);
-    const mh = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.15, 0.09), black); mh.position.set(sd * 1.2, -0.45, -1.2); mh.rotation.y = sd * 0.35; cockpit.add(mh);
-    const mg = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.11), new THREE.MeshBasicMaterial({ color: 0x5f7f99 })); mg.position.set(sd * 1.2, -0.45, -1.154); mg.rotation.y = sd * 0.35; cockpit.add(mg); });
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.06, 0.55), soft); roof.position.set(0, 0.64, -0.75); cockpit.add(roof);
-  const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.08, 0.03), black); mirror.position.set(0, 0.5, -0.92); cockpit.add(mirror);
-  const mirG = new THREE.Mesh(new THREE.PlaneGeometry(0.235, 0.06), new THREE.MeshBasicMaterial({ color: 0x8fb3d1 })); mirG.position.set(0, 0.5, -0.904); cockpit.add(mirG); cockpit.userData.mirG = mirG.material;
-  // volant moderne à méplat : jante cuir, branches alu, moyeu, palettes
-  const wheelG = new THREE.Group(); wheelG.position.set(0, -0.53, -0.86); wheelG.rotation.x = -0.32; wheelG.scale.setScalar(0.85); cockpit.add(wheelG);
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.024, 10, 44, Math.PI * 1.62), leather); rim.rotation.z = -Math.PI * 0.31; wheelG.add(rim); // ouverture en bas (méplat)
-  const flat = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.22, 10), leather); flat.rotation.z = Math.PI / 2; flat.position.set(0, -0.157, 0); wheelG.add(flat);
-  [0, Math.PI * 0.55, -Math.PI * 0.55].forEach(a => { const sp = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.034, 0.02), alu); sp.position.set(Math.cos(a + Math.PI) * 0.085, Math.sin(a + Math.PI) * 0.085, 0); sp.rotation.z = a + Math.PI; wheelG.add(sp); });
-  [-1, 1].forEach(sd => { const sp = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.03, 0.02), alu); sp.position.set(sd * 0.1, 0.0, 0); wheelG.add(sp); });
-  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.065, 0.045, 24), leather); hub.rotation.x = Math.PI / 2; wheelG.add(hub);
-  const logo = new THREE.Mesh(new THREE.CircleGeometry(0.028, 24), accent); logo.position.z = 0.024; wheelG.add(logo);
-  const mark = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.026, 0.028), accent); mark.position.set(0, 0.19, 0); wheelG.add(mark);
-  [-1, 1].forEach(sd => { const pd = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.1, 0.012), alu); pd.position.set(sd * 0.2, 0.05, -0.04); wheelG.add(pd); });
-  const handM = new THREE.MeshLambertMaterial({ color: 0xc68a5e }), sleeve = new THREE.MeshLambertMaterial({ color: 0x1d1d24 });
-  [-1, 1].forEach(sd => { const h = new THREE.Mesh(new THREE.SphereGeometry(0.042, 10, 8), handM); h.scale.set(1, 1.2, 0.9); h.position.set(sd * 0.185, 0.02, 0.03); wheelG.add(h);
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.45, 8), sleeve); arm.position.set(sd * 0.28, -0.12, 0.22); arm.rotation.set(1.2, 0, sd * 0.5); cockpit.add(arm); });
+  // écran GPS central, tourné vers le conducteur
+  const nc = document.createElement("canvas"); nc.width = 320; nc.height = 200; const nt = new THREE.CanvasTexture(nc), navG = new THREE.Group(); navG.position.set(0.62, -0.62, -1.05); navG.rotation.set(-0.1, -0.42, 0); navG.scale.setScalar(0.72); cockpit.add(navG);
+  const nb = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.28, 0.025), black); navG.add(nb);
+  const nav = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.262), new THREE.MeshBasicMaterial({ map: nt })); nav.position.z = 0.0135; navG.add(nav);
+  cockpit.userData.nav = { c: nc, t: nt, k: 0 }; cockpit.userData.navG = navG;
+  // aérateurs fins
+  [-1.05, 1.05].forEach(x => { const v = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.04, 0.02), glass); v.position.set(x, -0.735, -0.87); cockpit.add(v); const r = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.006, 0.022), alu); r.position.set(x, -0.712, -0.87); cockpit.add(r); });
+  // montants fins, pavillon, rétroviseur intérieur et rétros extérieurs
+  [-1, 1].forEach(sd => { const pil = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.5, 0.06), black); pil.position.set(sd * 1.3, 0.02, -1.1); pil.rotation.set(-0.55, 0, sd * -0.32); cockpit.add(pil);
+    const mh = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.13, 0.08), black); mh.position.set(sd * 1.28, -0.5, -1.25); mh.rotation.y = sd * 0.35; cockpit.add(mh);
+    const mg = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.1), new THREE.MeshBasicMaterial({ color: 0x5f7f99 })); mg.position.set(sd * 1.28, -0.5, -1.208); mg.rotation.y = sd * 0.35; cockpit.add(mg); });
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.04, 0.4), soft); roof.position.set(0, 0.74, -0.7); cockpit.add(roof);
+  const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.07, 0.03), black); mirror.position.set(0, 0.52, -0.95); cockpit.add(mirror);
+  const mirG = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.055), new THREE.MeshBasicMaterial({ color: 0x8fb3d1 })); mirG.position.set(0, 0.52, -0.934); cockpit.add(mirG); cockpit.userData.mirG = mirG.material;
+  // volant à méplat : jante cuir, surpiqûres roses, branches alu, moyeu avec logo néon, palettes
+  const wheelG = new THREE.Group(); wheelG.position.set(0, -0.645, -0.8); wheelG.rotation.x = -0.36; wheelG.scale.setScalar(0.82); cockpit.add(wheelG);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.026, 12, 48, Math.PI * 1.62), leather); rim.rotation.z = -Math.PI * 0.31; wheelG.add(rim);
+  const rimS = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.0035, 4, 48, Math.PI * 1.62), accent); rimS.rotation.z = -Math.PI * 0.31; rimS.position.z = 0.025; wheelG.add(rimS);
+  const flat = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.22, 10), leather); flat.rotation.z = Math.PI / 2; flat.position.set(0, -0.157, 0); wheelG.add(flat);
+  [-1, 1].forEach(sd => { const sp = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.03, 0.02), alu); sp.position.set(sd * 0.1, 0, 0); wheelG.add(sp); });
+  { const sp = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.02), alu); sp.position.set(0, -0.1, 0); wheelG.add(sp); }
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.068, 0.045, 28), leather); hub.rotation.x = Math.PI / 2; wheelG.add(hub);
+  const logo = new THREE.Mesh(new THREE.RingGeometry(0.018, 0.026, 28), accent); logo.position.z = 0.024; wheelG.add(logo);
+  const mark = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.03, 0.03), accent); mark.position.set(0, 0.19, 0); wheelG.add(mark);
+  [-1, 1].forEach(sd => { const pd = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.1, 0.01), alu); pd.position.set(sd * 0.2, 0.05, -0.04); wheelG.add(pd); });
+  const colm = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.3, 12), black); colm.rotation.x = Math.PI / 2 - 0.36; colm.position.set(0, -0.72, -0.95); cockpit.add(colm);
   cockpit.userData.wheel = wheelG; cockpit.visible = false; camera.add(cockpit); scene.add(camera);
 }
 function drawGauge(kmh) {
@@ -6145,7 +6216,7 @@ function updateCamera(dt, follow) {
     camera.position.set(c.x + fx * (two ? 0.2 : 0.1) + Math.cos(c.h) * (two ? 0 : 0.45), (two ? 1.9 : 1.6) + GH(c.x, c.z), c.z + fz * (two ? 0.2 : 0.1) - Math.sin(c.h) * (two ? 0 : 0.45));
     { const sp = Math.abs(c.v), vib = (Math.sin(performance.now() / 37) + Math.sin(performance.now() / 23)) * 0.0025 * clamp(sp / 25, 0, 1) * (Math.abs(c.x) > HALF + 2 || Math.abs(c.z) > HALF + 2 ? 2.5 : 1), la = c.h + (G.lookYaw || 0) - c.s * 0.14 * clamp(sp / 12, 0, 1), pitchK = clamp(-(c.acc || 0) * 0.0015, -0.03, 0.03);
       camera.position.y += vib; camera.lookAt(camera.position.x + Math.sin(la) * 10, camera.position.y - 0.4 + pitchK * 10 - (G.lookPitch || 0) * 9, camera.position.z + Math.cos(la) * 10); }
-    if (cockpit) { const land = window.innerWidth > window.innerHeight; cockpit.position.set(0, land ? 0.2 : 0, land ? 0.12 : 0); cockpit.userData.wheel.rotation.z = -c.s * 1.6; if (cockpit.visible) { drawGauge(Math.abs(c.v) * 4.2); drawNav(dt); if (cockpit.userData.hoodFor !== carMesh) { cockpit.userData.hoodFor = carMesh; cockpit.userData.hoodM.color.setHex(paintOf(carMesh)); } cockpit.userData.amb.color.setHex(nightK > 0.4 ? 0xff2d55 : 0x5a1220); cockpit.userData.mirG.color.setHex(nightK > 0.5 ? 0x1a2230 : 0x8fb3d1); } }
+    if (cockpit) { const land = window.innerWidth > window.innerHeight; cockpit.position.set(0, land ? 0.1 : 0, land ? 0.06 : 0); if (cockpit.userData.navG) cockpit.userData.navG.position.x = land ? 0.62 : 0.32; G.wRot = (G.wRot || 0) + (-c.s * 2.2 - (G.wRot || 0)) * Math.min(1, dt * 10); cockpit.userData.wheel.rotation.z = G.wRot; if (cockpit.visible) { drawGauge(Math.abs(c.v) * 4.2); drawNav(dt); if (cockpit.userData.hoodFor !== carMesh) { cockpit.userData.hoodFor = carMesh; cockpit.userData.hoodM.color.setHex(paintOf(carMesh)); } cockpit.userData.amb.color.setHex(nightK > 0.4 ? 0xff2d55 : 0x5a1220); cockpit.userData.mirG.color.setHex(nightK > 0.5 ? 0x1a2230 : 0x52687c); } }
     sky.position.copy(camera.position); sun.position.set(c.x - 160, 220, c.z + 100); sun.target.position.set(c.x, 0, c.z);
     return;
   }

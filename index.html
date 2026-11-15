@@ -1716,7 +1716,7 @@ const MODEL_DEFS = {
   plane_liner: { len: 64, face: "x" }, plane_small: { len: 12, face: "-z" }, heli: { len: 15, face: "-x" },
   yacht: { len: 24, face: "x" }, sailboat: { len: 10 }, gull: { len: 1.8, face: "x" }, shark: { len: 4.5, anim: "Swim" }, dolphin: { len: 3.2, anim: "Swim" },
   dog: { len: 1.3, anim: "Walk" }, cat: { h: 0.7 }, flamingo: { h: 1.7 }, trex: { len: 13, anim: "Walk" }, stego: { len: 10, anim: "Walk" }, trice: { len: 9, anim: "Walk" },
-  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, jetski: { len: 3.3, vc: true }, icecream: { h: 2.7, vc: true }, popcorn: { h: 2.35, vc: true }, speedboat: { len: 9.6, vc: true }, sofa: { len: 5.2, vc: true }, moto_cross: { len: 2.2, vc: true, face: "x" },
+  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, jetski: { len: 3.3, vc: true }, icecream: { h: 2.7, vc: true }, popcorn: { h: 2.35, vc: true }, speedboat: { len: 9.6, vc: true }, sofa: { len: 5.2, vc: true }, bed: { len: 3.6, vc: true }, moto_cross: { len: 2.2, vc: true, face: "x" },
   // montagne : faune et nature (Quaternius / Kenney, CC0)
   w_deer: { len: 1.9, anim: "Eating" }, w_stag: { len: 2.2, anim: "Idle" }, w_wolf: { len: 1.7, anim: "Idle" }, w_fox: { len: 1.05, anim: "Idle" },
   w_yeti: { h: 2.7, anim: "Idle" }, w_raptor: { len: 3.2, anim: "Velociraptor_Idle" }, w_bat: { len: 0.7, anim: "Bat_Flying" },
@@ -1985,7 +1985,7 @@ function buildHomeInterior() {
   [[HX + 6.8, 2.9, HZ - HD + 0.06, 0, "#ff2d95", "#ffc94a", "Constancy City"], [HX - HRW + 0.06, 2.8, HZ - 1.5, Math.PI / 2, "#3ff0ff", "#ff2d95", "Mont Constancy"]].forEach(([x, y, z, ry, c1, c2, t]) => { const c = document.createElement("canvas"); c.width = 300; c.height = 400; const g = c.getContext("2d"); const gr = g.createLinearGradient(0, 0, 0, 400); gr.addColorStop(0, "#1a0b26"); gr.addColorStop(0.55, c1); gr.addColorStop(1, c2); g.fillStyle = gr; g.fillRect(0, 0, 300, 400);
     g.fillStyle = "rgba(10,6,20,.85)"; for (let k = 0; k < 14; k++) { const w = 12 + Math.random() * 22, h = 50 + Math.random() * 170; g.fillRect(Math.random() * 300, 400 - h, w, h); } g.fillStyle = "#fff"; g.font = "500 34px 'EB Garamond', Georgia, serif"; g.textAlign = "center"; g.fillText(t, 150, 70);
     const fr = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2, 0.06), new THREE.MeshPhongMaterial({ color: 0xd8b25a, shininess: 90 })); fr.position.set(x, y, z); fr.rotation.y = ry; scene.add(fr); const pic = new THREE.Mesh(new THREE.PlaneGeometry(1.36, 1.86), new THREE.MeshLambertMaterial({ map: new THREE.CanvasTexture(c) })); pic.position.copy(fr.position); pic.rotation.y = ry; pic.translateZ(0.035); scene.add(pic); });
-  const noFace = new THREE.MeshBasicMaterial({ visible: false }), room = new THREE.Mesh(new THREE.BoxGeometry(HRW * 2, 5.5, HD * 2), [wallM, wallM, wallM, wallM, wallM, noFace]); room.position.set(HX, 2.75, HZ); scene.add(room);
+  const noFace = new THREE.MeshBasicMaterial({ visible: false }), ceilM = new THREE.MeshLambertMaterial({ color: 0xf4efe8, emissive: 0x3a302a, side: THREE.BackSide }), room = new THREE.Mesh(new THREE.BoxGeometry(HRW * 2, 5.5, HD * 2), [wallM, wallM, ceilM, wallM, wallM, noFace]); room.position.set(HX, 2.75, HZ); scene.add(room);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(HRW * 2, HD * 2), floorM); floor.rotation.x = -Math.PI / 2; floor.position.set(HX, 0.01, HZ); scene.add(floor);
   // baie vitrée avec vue sur la ville au coucher du soleil
   const vc = document.createElement("canvas"); vc.width = 512; vc.height = 256; const g = vc.getContext("2d");
@@ -2019,8 +2019,9 @@ function buildHomeInterior() {
   { const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.2, 4), new THREE.MeshBasicMaterial({ color: 0x111111 })); cord.position.set(HX, 4.9, HZ); scene.add(cord); const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff1c4 })); bulb.position.set(HX, 4.25, HZ); scene.add(bulb); }
   // lit, canapé, télé, cuisine, tapis, plantes
   const mk = (w, h, d, col, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: col })); m.position.set(x, y, z); scene.add(m); return m; };
-  mk(5.6, 0.25, 5, 0x5a4a3a, HX - 7.2, 0.13, HZ - 4.6); mk(5.2, 0.35, 4.6, 0xd8d6cf, HX - 7.2, 0.42, HZ - 4.6); mk(1.8, 0.25, 1, 0xe6e2d8, HX - 7.2, 0.7, HZ - 6.4);
-  { const duv = mk(4.6, 0.18, 3, 0x6f7a86, HX - 6.8, 0.66, HZ - 3.9); duv.rotation.y = 0.18; } // couette en vrac
+  if (MODELS.bed) { const bd = modelInstance("bed"); bd.position.set(HX - 7.2, 0, HZ - 8 + 1.95); scene.add(bd); }
+  else { mk(5.6, 0.25, 5, 0x5a4a3a, HX - 7.2, 0.13, HZ - 4.6); mk(5.2, 0.35, 4.6, 0xd8d6cf, HX - 7.2, 0.42, HZ - 4.6); mk(1.8, 0.25, 1, 0xe6e2d8, HX - 7.2, 0.7, HZ - 6.4);
+  { const duv = mk(4.6, 0.18, 3, 0x6f7a86, HX - 6.8, 0.66, HZ - 3.9); duv.rotation.y = 0.18; } } // couette en vrac
   if (MODELS.sofa) { const sf = modelInstance("sofa"); sf.position.set(HX + 2, 0, HZ - 0.2); sf.rotation.y = Math.PI / 2; scene.add(sf); }
   else { mk(6.2, 0.75, 1.6, 0x6b5a48, HX + 2, 0.38, HZ - 0.3); mk(6.2, 1.1, 0.45, 0x6b5a48, HX + 2, 0.85, HZ + 0.5); mk(0.5, 0.95, 1.6, 0x5e4f3f, HX - 1.1, 0.5, HZ - 0.3); mk(0.5, 0.95, 1.6, 0x5e4f3f, HX + 5.1, 0.5, HZ - 0.3);
   mk(1.6, 0.06, 1.4, 0x8a7a64, HX + 3.4, 0.79, HZ - 0.4); } // plaid usé

@@ -3338,7 +3338,7 @@ function trailPuff(x, y, z) {
   const i = CTRAIL.i = (CTRAIL.i + 1) % CTRAIL.n; CTRAIL.pos[i * 3] = x; CTRAIL.pos[i * 3 + 1] = y; CTRAIL.pos[i * 3 + 2] = z; CTRAIL.age[i] = 0;
 }
 function updateTrails(dt) {
-  if (TRAIL_MAT) { const nk = nightK; TRAIL_MAT.color.setRGB(1, 1 - nk * 0.2, 1 - nk * 0.3); TRAIL_MAT.opacity = 0.8 + nk * 0.15; }
+  if (TRAIL_MAT) { const nk = nightK, T = performance.now() / 1000; TRAIL_MAT.color.setRGB(0.78 + nk * 0.22, 0.8 - nk * 0.12 + 0.05 * Math.sin(T * 0.7), 0.86 - nk * 0.22); TRAIL_MAT.opacity = 0.55 + nk * 0.4; }
   if (!CTRAIL.pts) return; const k = 0.75 + nightK * 0.2, nk2 = nightK;
   for (let i = 0; i < CTRAIL.n; i++) { const a = CTRAIL.age[i] += dt; const v = a > 4.5 ? 0 : (1 - a / 4.5) * k; CTRAIL.col[i * 3] = v; CTRAIL.col[i * 3 + 1] = v * (1 - nk2 * 0.2); CTRAIL.col[i * 3 + 2] = v * (1.02 - nk2 * 0.32); }
   CTRAIL.pts.geometry.attributes.color.needsUpdate = true; CTRAIL.pts.geometry.attributes.position.needsUpdate = true;
@@ -4310,9 +4310,9 @@ function makePlane(kind) {
   if (MODELS[key]) {
     const g = new THREE.Group(), m = modelInstance(key); g.add(m); m.position.z = -MODELS[key].size.z / 2; addRotors(m, key);
     m.traverse(o => { if (o.isMesh && o.material && !o.material.transparent && o.material.emissive) { o.material = o.material.clone(); o.material.emissive = new THREE.Color(0x5a5f69); } });
-    TRAIL_MAT = TRAIL_MAT || new THREE.MeshBasicMaterial({ map: fadeTex(true), transparent: true, depthWrite: false, opacity: 0.8 });
-    if (key === "plane_liner") [-9, 9].forEach(x => { const t = trail(260, 2.2, TRAIL_MAT); t.position.set(x, MODELS[key].size.y * 0.3, -MODELS[key].size.z * 0.55); g.add(t); });
-    else { const t = trail(60, 1.2, TRAIL_MAT); t.position.set(0, 1, -MODELS[key].size.z * 0.6); t.material = TRAIL_MAT; g.add(t); }
+    TRAIL_MAT = TRAIL_MAT || new THREE.MeshBasicMaterial({ map: fadeTex(true), transparent: true, depthWrite: false, opacity: 0.8, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+    if (key === "plane_liner") [-9, 9].forEach(x => { const t = trail(320, 5.5, TRAIL_MAT); t.position.set(x, MODELS[key].size.y * 0.3, -MODELS[key].size.z * 0.55); g.add(t); });
+    else { const t = trail(110, 2.6, TRAIL_MAT); t.position.set(0, 1, -MODELS[key].size.z * 0.6); t.material = TRAIL_MAT; g.add(t); }
     navLights(m); return g;
   }
   const g = new THREE.Group(), w = new THREE.MeshPhongMaterial({ color: 0xf4f4f4, shininess: 60 }), r = new THREE.MeshLambertMaterial({ color: 0xff2d55 });

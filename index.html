@@ -6010,7 +6010,9 @@ function planeRescue() { // flash blanc puis réveil sur la plage, l'avion retou
     notify("gold", "<b>On n'échappe pas à la Constancy.</b> Sans constance, pas d'évolution. Un bateau de secours t'a ramené sur la plage, sain et sauf. Retour à tes missions.", 9); feedPost("pig", "Un avion vient de finir dans la mer au bout du monde. Le pilote voulait fuir ses objectifs, paraît-il. Les secours l'ont ramené sur la plage. 🐦");
   }, 250);
 }
+function planeGuard() { const c = G.car; if (!c || !G.ride || !isPlane(G.ride.kind) || !c._air || c._px == null || G.crash) return; c.x = c._px; c.z = c._pz; c.v = c._pv; }
 function updatePlane(dt) {
+  planeGuard();
   const c = G.car, inp = input(); if (c.alt == null) c.alt = 0; if (c.pitch == null) c.pitch = 0; if (c.roll == null) c.roll = 0;
   if (G.nitro == null) G.nitro = 100; const tb = G.turbo && G.nitro > 1; G.nitro = clamp(G.nitro + (tb ? -12 : 7) * dt, 0, 100); G.tbOn = tb;
   const gh = planeGround(c.x, c.z), air = c.alt > gh + 0.5;
@@ -6049,7 +6051,7 @@ function updatePlane(dt) {
     }
   }
   const f = Math.cos(c.pitch), opx = c.x, opz = c.z; c.x += Math.sin(c.h) * c.v * dt * f; c.z += Math.cos(c.h) * c.v * dt * f;
-  if (air && buildingTop(c.x, c.z) > c.alt + 0.5) { const nx = c.x, nz = c.z; if (buildingTop(nx, opz) <= c.alt + 0.5) c.z = opz; else if (buildingTop(opx, nz) <= c.alt + 0.5) c.x = opx; else { c.alt = Math.max(c.alt + 45 * dt, buildingTop(nx, nz) + 1); c.pitch = Math.max(c.pitch, 0.3); } } // jamais à l'intérieur d'une tour : on glisse le long, sinon on grimpe en virant
+  if (air && buildingTop(c.x, c.z) > c.alt + 0.5) { c.alt = buildingTop(c.x, c.z) + 1.5; c.pitch = Math.max(c.pitch, 0.35); } // jamais à l'intérieur d'une tour, jamais arrêté : l'avion passe par-dessus
   const R = 3000; if (Math.hypot(c.x, c.z + 950) > R - 220 && !G.edgeWarn && air) { G.edgeWarn = true; notify("gold", "<b>Tu essaies de t'échapper ?</b> On n'échappe pas à la Constancy. L'avion fait demi-tour : Tes missions t'attendent.", 6); }
   if (Math.hypot(c.x, c.z + 950) < R - 260) G.edgeWarn = false;
   // au bord du monde : l'avion fait demi-tour tout seul, en douceur (on garde toujours le contrôle)
@@ -6060,7 +6062,7 @@ function updatePlane(dt) {
       setTimeout(() => planeRescue(), 1400); }
     if (G.crash.splash) { carMesh.position.set(c.x, c.alt, c.z); return; } }
   if (!air && collide(c, 4.5)) c.v *= Math.pow(0.05, dt);
-  carMesh.rotation.order = "YXZ"; carMesh.position.set(c.x, c.alt, c.z); carMesh.rotation.set(-c.pitch, c.h, -c.roll);
+  carMesh.rotation.order = "YXZ"; carMesh.position.set(c.x, c.alt, c.z); carMesh.rotation.set(-c.pitch, c.h, -c.roll); c._air = c.alt > planeGround(c.x, c.z) + 1.2; c._px = c.x; c._pz = c.z; c._pv = c.v;
   if (air && c.alt > 90 && c.v > 35) { const big = G.ride.kind === "airbus", wing = big ? 17 : 5.5, back = big ? 14 : 2.5, rx = Math.cos(c.h), rz = -Math.sin(c.h); [-1, 1].forEach(sd => trailPuff(c.x + rx * wing * sd - Math.sin(c.h) * back, c.alt + 0.4, c.z + rz * wing * sd - Math.cos(c.h) * back)); }
 }
 // hauteur du toit sous l'avion (blocs de la ville)
@@ -8018,6 +8020,7 @@ function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "n
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
 window.__W = () => ({ spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
 window.__X = () => ({ planes, callUfo, SND, sfx, updateMusic, screech, traffic, SH3, CS_BOX, pushCsBoxes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__simFrame = dt => { if (G.onFoot) updateMe(dt); else updateCar(dt); updateWorldLife(dt); if (!G.onFoot) planeGuard(); };
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
@@ -8047,6 +8050,7 @@ function loop(now) {
     if (P.day === 1 && P.dayT > 40) $("tip").classList.add("hidden");
   }
   if (G.mode !== "gym" && G.mode !== "quiz") updateWorldLife(playing || G.mode === "lift" || G.mode === "wheel" ? dt : dt * 0.5);
+  if (playing && !G.onFoot) planeGuard();
   if (G.started && P) { applySky(hourNow()); updateHud(dt); drawMinimap(); updateCamera(dt, true); }
   else { applySky(22.6); updateCamera(dt, false); }
   Object.values(beacons).forEach(b => { b.userData.col.material.opacity = .22 + (Math.sin(now / 400) + 1) * .08; b.userData.ring.rotation.z += dt * .8; beaconFx(b, dt); });

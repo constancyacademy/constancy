@@ -3983,6 +3983,10 @@ function updateSafari(dt) {
     j.m.position.set(x, Math.max(0.6, jgH(x, z)) + 0.05, z); j.m.rotation.y = Math.atan2(B[0] - A[0], B[1] - A[1]); spinWheels && spinWheels(j.m, 9, 0, dt);
     if (G.mode === "play") { const o = G.onFoot ? G.me : G.car, dd = Math.hypot(o.x - x, o.z - z); if (dd < 3 && dd > 0.01) { o.x = x + (o.x - x) / dd * 3; o.z = z + (o.z - z) / dd * 3; } } });
 }
+function giantStep(d, big) { const near = clamp(1 - d / (big ? 170 : 110), 0, 1); if (near <= 0) return; const k = near * near;
+  const c = SND.ctx; if (c && SND.on) { const t = c.currentTime, o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter(); o.type = "sine"; o.frequency.setValueAtTime(big ? 52 : 68, t); o.frequency.exponentialRampToValueAtTime(big ? 26 : 34, t + 0.5); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime((big ? 0.9 : 0.6) * k, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + (big ? 0.9 : 0.6)); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 1);
+    const src = c.createBufferSource(), ng = c.createGain(); src.buffer = noiseBuf(0.35, x => Math.exp(-x * 7)); f.type = "lowpass"; f.frequency.value = 260; ng.gain.value = 0.45 * k; src.connect(f); f.connect(ng); ng.connect(c.destination); src.start(t); }
+  shakeAdd((big ? 0.9 : 0.6) * k); if (d < (big ? 70 : 45)) { try { if (navigator.vibrate) navigator.vibrate(big ? 70 : 45); } catch (e) {} } }
 function jungleSound(kind, vol) { const c = SND.ctx; if (!c || !SND.on || vol < 0.003) return; const t = c.currentTime;
   if (kind === "bird") { const o = c.createOscillator(), g = c.createGain(), f = 900 + Math.random() * 1800, n = 2 + Math.floor(Math.random() * 3); o.type = "sine"; for (let i = 0; i < n; i++) { o.frequency.setValueAtTime(f, t + i * 0.16); o.frequency.exponentialRampToValueAtTime(f * (Math.random() < 0.5 ? 1.6 : 0.6), t + i * 0.16 + 0.12); } g.gain.setValueAtTime(0, t); for (let i = 0; i < n; i++) { g.gain.linearRampToValueAtTime(vol, t + i * 0.16 + 0.02); g.gain.linearRampToValueAtTime(0, t + i * 0.16 + 0.13); } o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + n * 0.16 + 0.1); return; }
   // rugissement lointain : bruit grave filtré + grondement descendant
@@ -3992,11 +3996,12 @@ function jungleSound(kind, vol) { const c = SND.ctx; if (!c || !SND.on || vol < 
   src.connect(lp); lp.connect(g); g.connect(c.destination); src.start(t); o.start(t); src.stop(t + len); o.stop(t + len); }
 function updateJungle(dt) {
   updateSafari(dt);
-  const cam = camera.position, T = performance.now() / 1000, near = cam.z < -2250 && Math.abs(cam.x - JG.cx) < JG.rx * 1.3;
+  const cam = camera.position, T = performance.now() / 1000, near = (cam.z < -2250 && Math.abs(cam.x - JG.cx) < JG.rx * 1.3) || (cam.z < -1650 && cam.y > 40 && Math.abs(cam.x - JG.cx) < JG.rx * 1.6);
   JUNGLE.sauro.forEach(d => { d.g.visible = near; if (!near) return; d.a += d.s * dt; const x = d.cx + Math.cos(d.a) * d.r, z = d.cz + Math.sin(d.a) * d.r, U = d.g.userData, w = T * 1.6 + d.ph;
     d.g.position.set(x, GH(x, z) - 0.2 + Math.abs(Math.sin(w)) * 0.12, z);
     if (G.mode === "play" && G.onFoot) { const me = G.me, dd = Math.hypot(me.x - x, me.z - z); if (dd < 7 && dd > 0.01) { me.x = x + (me.x - x) / dd * 7; me.z = z + (me.z - z) / dd * 7; } } d.g.rotation.y = -d.a + (d.s > 0 ? 0 : Math.PI);
     U.legs.forEach((l, i) => { l.rotation.x = Math.sin(w + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.32; });
+    { const st = Math.floor((w + Math.PI / 2) / Math.PI); if (d.st !== st) { d.st = st; if (G.mode === "play") giantStep(Math.hypot(cam.x - x, cam.z - z), true); } }
     U.neck.forEach((n, i) => { n.rotation.z = Math.sin(T * 0.5 + d.ph + i * 0.35) * 0.05; }); U.neck[0].rotation.x = 1.05 + Math.sin(T * 0.23 + d.ph) * 0.1;
     U.tail.forEach((n, i) => { n.rotation.y = Math.sin(T * 1.1 + d.ph - i * 0.4) * 0.07; }); });
   (JUNGLE.visit || []).forEach((v, k) => { v.h.visible = near && v.h.position.distanceToSquared(cam) < 62500; if (v.h.visible && v.snap) v.ph.visible = Math.sin(T * 0.7 + k) > -0.2; });
@@ -4006,6 +4011,7 @@ function updateJungle(dt) {
     if (carMesh && carMesh.userData.gyroRing) carMesh.userData.gyroRing.material.color.setHSL(0.38, 1, 0.55 + 0.15 * Math.sin(T * 4)); }
   if (near && G.mode === "play" && JUNGLE.fence && !gyroOn) { const o = G.onFoot ? G.me : G.car; JUNGLE.fence.forEach(([fx, fz, R]) => { const dd = Math.hypot(o.x - fx, o.z - fz); if (dd < R + 1.4 && dd > R - 3 && dd > 0.01) { o.x = fx + (o.x - fx) / dd * (R + 1.4); o.z = fz + (o.z - fz) / dd * (R + 1.4); if (!G.onFoot && G.car.v) G.car.v *= 0.3; if (!JUNGLE.fenceT || T - JUNGLE.fenceT > 20) { JUNGLE.fenceT = T; help("<b>Clôture électrifiée.</b> Les dinosaures restent dans leur enclos. Regarde-les depuis les points de vue.", 4); } } }); }
   JUNGLE.dinos.forEach(d => { d.g.visible = near; if (!near) return; d.a += d.s * dt; const x = d.cx + Math.cos(d.a) * d.r, z = d.cz + Math.sin(d.a) * d.r; d.g.position.set(x, GH(x, z) - 0.15, z);
+    { d.sp = (d.sp || 0) + dt * (d.g.scale.x > 1.5 ? 1.25 : 1.6); if (d.sp > 1) { d.sp = 0; if (G.mode === "play") giantStep(Math.hypot(cam.x - x, cam.z - z), d.g.scale.x > 1.5); } }
     if (G.mode === "play" && G.onFoot) { const me = G.me, dd = Math.hypot(me.x - x, me.z - z), R = d.g.scale.x * 4.2; if (dd < R && dd > 0.01) { me.x = x + (me.x - x) / dd * R; me.z = z + (me.z - z) / dd * R; } if (dd < 40 && (!JUNGLE.warnT || T - JUNGLE.warnT > 25)) { JUNGLE.warnT = T; notify("gold", "<b>Attention, danger.</b> Garde tes distances avec les géants. On regarde, on ne touche pas.", 5); } } d.g.rotation.y = -d.a + (d.s > 0 ? 0 : Math.PI); });
   if (JUNGLE.fall) { const F = JUNGLE.fall; F.tex.offset.y += dt * 1.6; F.foam.forEach((sp, k) => { const q = 0.5 + 0.5 * Math.sin(T * 3 + k * 1.7); sp.material.opacity = 0.35 + q * 0.3; sp.scale.set(6 + q * 2, 3.5 + q * 1.5, 1); });
     const c = SND.ctx, d = Math.hypot(cam.x - F.x, cam.z - F.z); if (c && SND.on) { if (!F.snd && d < 200) { const n = c.sampleRate * 2, b = c.createBuffer(1, n, c.sampleRate), dd = b.getChannelData(0); let l = 0; for (let i = 0; i < n; i++) { l = l * 0.6 + (Math.random() * 2 - 1) * 0.4; dd[i] = l; } const s = c.createBufferSource(); s.buffer = b; s.loop = true; const bp = c.createBiquadFilter(); bp.type = "lowpass"; bp.frequency.value = 1400; const g = c.createGain(); g.gain.value = 0; s.connect(bp); bp.connect(g); g.connect(c.destination); s.start(); F.snd = g; }
@@ -7978,7 +7984,12 @@ function fxInit() {
     FXR.bloom = new THREE.UnrealBloomPass(new THREE.Vector2(Math.max(2, w / 2), Math.max(2, h / 2)), 0.8, 0.55, 0.78); FXR.comp.addPass(FXR.bloom); fxSize(); FXR.on = !/[?&]nofx=1/.test(location.search);
   } catch (e) { FXR.fail = true; FXR.comp = null; } }
 function fxSize() { if (!FXR.comp) return; const w = window.innerWidth, h = window.innerHeight; FXR.comp.setPixelRatio(renderer.getPixelRatio()); FXR.comp.setSize(w, h); FXR.bloom.setSize(Math.max(2, Math.round(w * renderer.getPixelRatio() / 2)), Math.max(2, Math.round(h * renderer.getPixelRatio() / 2))); }
+const SHAKE = { k: 0, o: new THREE.Vector3() };
+function shakeAdd(k) { SHAKE.k = Math.min(1.2, Math.max(SHAKE.k, k)); }
 function renderFrame() {
+  const sk = SHAKE.k; if (sk > 0.002 && camera) { const T = performance.now() / 1000; SHAKE.o.set(Math.sin(T * 61) * 0.09, Math.sin(T * 47 + 1) * 0.13, Math.sin(T * 53 + 2) * 0.07).multiplyScalar(sk); camera.position.add(SHAKE.o); SHAKE.k *= 0.86; } else SHAKE.o.set(0, 0, 0);
+  try { renderFrame0(); } finally { if (camera) camera.position.sub(SHAKE.o); } }
+function renderFrame0() {
   if (FXR.on && FXR.comp) { const nk = typeof nightK === "number" ? nightK : 0; FXR.bloom.strength = 0.22 + nk * 0.52; FXR.bloom.threshold = 0.86 - nk * 0.22; FXR.bloom.radius = 0.35 + nk * 0.2;
     try { FXR.comp.render(); return; } catch (e) { FXR.on = false; FXR.fail = true; } }
   renderer.render(scene, camera); }

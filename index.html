@@ -3934,12 +3934,15 @@ function buildJungle(r) {
   // portail en bambou à l'entrée de la jungle + panneaux
   { const [gx, gz] = JTRACK[JTRACK.length - 3], gy = Math.max(0.5, jgH(gx, gz), jtH(gx, gz)), bam = new THREE.MeshLambertMaterial({ color: 0x9c8a4a }), rope = new THREE.MeshLambertMaterial({ color: 0x6b5232 });
     const grp = new THREE.Group(); grp.position.set(gx, gy, gz); scene.add(grp);
-    const conc = new THREE.MeshPhongMaterial({ color: 0xd9d6cf, shininess: 30 }), steelM = new THREE.MeshPhongMaterial({ color: 0x2b2e33, shininess: 90, specular: 0x999999 }), led = new THREE.MeshBasicMaterial({ color: 0x7ee08a });
-    [-8.5, 8.5].forEach(sx => { const pyl = new THREE.Mesh(new THREE.BoxGeometry(2.4, 14, 2.4), conc); pyl.position.set(sx, 7, 0); grp.add(pyl); const cap = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.25, 2.6), led); cap.position.set(sx, 14.1, 0); grp.add(cap); const st = new THREE.Mesh(new THREE.BoxGeometry(0.15, 12, 2.45), led); st.position.set(sx + Math.sign(sx) * -1.21, 7, 0); grp.add(st); });
+    const conc = new THREE.MeshPhongMaterial({ color: 0xd9d6cf, shininess: 30 }), steelM = new THREE.MeshPhongMaterial({ color: 0x2b2e33, shininess: 90, specular: 0x999999 }), led = new THREE.MeshBasicMaterial({ color: 0xff3fa4 }), ledG = new THREE.MeshBasicMaterial({ color: 0xffc94a }); JUNGLE.gateLed = [led, ledG];
+    [-8.5, 8.5].forEach(sx => { const pyl = new THREE.Mesh(new THREE.BoxGeometry(2.4, 14, 2.4), conc); pyl.position.set(sx, 7, 0); grp.add(pyl); const cap = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.25, 2.6), led); cap.position.set(sx, 14.1, 0); grp.add(cap); const st = new THREE.Mesh(new THREE.BoxGeometry(0.15, 12, 2.45), sx > 0 ? ledG : led); st.position.set(sx + Math.sign(sx) * -1.21, 7, 0); grp.add(st); });
     const beam = new THREE.Mesh(new THREE.BoxGeometry(19.5, 1.6, 1.4), steelM); beam.position.y = 11.6; grp.add(beam);
-    const c = document.createElement("canvas"); c.width = 1024; c.height = 300; const g = c.getContext("2d"); g.fillStyle = "#101418"; g.fillRect(0, 0, 1024, 300); g.strokeStyle = "#7ee08a"; g.lineWidth = 6; g.strokeRect(10, 10, 1004, 280);
-    g.textAlign = "center"; g.fillStyle = "#ffffff"; g.font = "900 112px Inter, Arial, sans-serif"; g.fillText("CONSTANCY PARK", 512, 150); g.font = "600 42px Inter, Arial, sans-serif"; g.fillStyle = "#7ee08a"; g.fillText("TERRE DES GÉANTS", 512, 230);
-    const tx = new THREE.CanvasTexture(c); [0, Math.PI].forEach(ry => { const sign = new THREE.Mesh(new THREE.PlaneGeometry(14, 4.1), new THREE.MeshBasicMaterial({ map: tx })); sign.position.set(0, 11.6, ry ? -0.72 : 0.72); sign.rotation.y = ry; grp.add(sign); });
+    const c = document.createElement("canvas"); c.width = 1400; c.height = 400; const g = c.getContext("2d"); const bg = g.createLinearGradient(0, 0, 0, 400); bg.addColorStop(0, "#1a0b26"); bg.addColorStop(1, "#0c0714"); g.fillStyle = bg; g.fillRect(0, 0, 1400, 400);
+    const bd = g.createLinearGradient(0, 0, 1400, 0); bd.addColorStop(0, "#ff2d95"); bd.addColorStop(0.5, "#ff9ad6"); bd.addColorStop(1, "#ffc94a"); g.strokeStyle = bd; g.lineWidth = 10; g.strokeRect(24, 24, 1352, 352);
+    g.textAlign = "center"; g.textBaseline = "middle"; let fs = 150; g.font = `900 ${fs}px Inter, Arial, sans-serif`; while (g.measureText("CONSTANCY PARK").width > 1352 - 2 * 70 && fs > 60) { fs -= 4; g.font = `900 ${fs}px Inter, Arial, sans-serif`; }
+    g.shadowColor = "#ff2d95"; g.shadowBlur = 26; g.fillStyle = "#ffffff"; g.fillText("CONSTANCY PARK", 700, 168); g.shadowColor = "#ffc94a"; g.shadowBlur = 18; g.font = "600 52px Inter, Arial, sans-serif"; g.fillStyle = "#ffc94a"; if (g.letterSpacing !== undefined) g.letterSpacing = "10px"; g.fillText("TERRE DES GÉANTS", 700, 290);
+    const tx = new THREE.CanvasTexture(c); tx.anisotropy = 8; [0, Math.PI].forEach(ry => { const sign = new THREE.Mesh(new THREE.PlaneGeometry(16.6, 4.74), new THREE.MeshBasicMaterial({ map: tx })); sign.position.set(0, 11.6, ry ? -0.72 : 0.72); sign.rotation.y = ry; grp.add(sign); });
+    const beam2 = new THREE.Mesh(new THREE.BoxGeometry(19.5, 5.2, 1.3), steelM); beam2.position.y = 11.6; grp.add(beam2); beam.visible = false;
     const [ax, az] = JTRACK[JTRACK.length - 2]; grp.rotation.y = Math.atan2(ax - gx, az - gz); JUNGLE.gate = [gx, gz]; }
   { const [sx, sz] = JTRACK[2], l = label("Piste de la Jungle · 2 km", "#7ee08a"); l.position.set(sx, Math.max(2, mtnH(sx, sz)) + 5, sz); l.scale.set(18, 4.5, 1); scene.add(l); }
   // cascade : une falaise au nord de la lagune, l'eau tombe en voile blanc, écume et bruine en bas
@@ -3967,17 +3970,31 @@ function buildJungle(r) {
 const SAFARI = { jeeps: [] };
 function buildSafari() {
   const [gx, gz] = JUNGLE.gate || [0, -2700];
-  { const vx = gx + 30, vz = gz - 34, vy = Math.max(1, jgH(vx, vz)), glass = new THREE.MeshPhongMaterial({ color: 0x9fd8e8, shininess: 160, specular: 0xffffff, transparent: true, opacity: 0.55 }), white = new THREE.MeshPhongMaterial({ color: 0xf2f0ea, shininess: 40 });
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(14, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), glass); dome.position.set(vx, vy + 4, vz); dome.scale.y = 0.75; scene.add(dome);
-    addGeo(white, new THREE.CylinderGeometry(14.5, 15, 4, 40), vx, vy + 2, vz); for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; addGeo(white, new THREE.BoxGeometry(0.4, 10, 0.4), vx + Math.cos(a) * 9.8, vy + 8, vz + Math.sin(a) * 9.8, -a, 1, 1, 1, 0, 0.62); }
-    addGeo(white, new THREE.CylinderGeometry(0.25, 1.2, 22, 12), vx, vy + 22, vz); addGeo(new THREE.MeshBasicMaterial({ color: 0x7ee08a }), new THREE.SphereGeometry(0.6, 10, 8), vx, vy + 33.3, vz);
-    addProp(vx, vz, 15.5); const l = label("Centre des visiteurs", "#7ee08a"); l.position.set(vx, vy + 16, vz + 15); l.scale.set(14, 3.5, 1); scene.add(l); }
+  { let best = null; for (let rr = 70; rr < 160 && !best; rr += 10) for (let a = 0; a < 6.28; a += 0.4) { const x = gx + Math.cos(a) * rr, z = gz + Math.sin(a) * rr; if (z > -2560) continue; const dt = nearJT(x, z), h = jgH(x, z); if (dt > 42 && h > 1 && jgMask(x, z) < 0.85) { best = [x, z]; break; } }
+    const [vx, vz] = best || [gx + 90, gz - 60], vy = Math.max(1, jgH(vx, vz)); JUNGLE.vc = [vx, vz];
+    const glass = new THREE.MeshPhongMaterial({ color: 0xffd6ee, shininess: 200, specular: 0xffffff, transparent: true, opacity: 0.42, emissive: 0x2a0a1e, side: THREE.DoubleSide, depthWrite: false }), white = new THREE.MeshPhongMaterial({ color: 0xf6f2ec, shininess: 60 }), steel = new THREE.MeshPhongMaterial({ color: 0xe8e2d6, shininess: 120 });
+    const ringP = new THREE.MeshBasicMaterial({ color: 0xff3fa4 }), ringG = new THREE.MeshBasicMaterial({ color: 0xffc94a }); JUNGLE.vcLed = [ringP, ringG];
+    [[0, 0, 15], [24, 6, 9.5], [-20, 9, 8]].forEach(([dx, dz, R], k) => { const x = vx + dx, z = vz + dz, y = Math.max(1, jgH(x, z));
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(R, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2), glass); dome.position.set(x, y + 2.5, z); scene.add(dome);
+      addGeo(white, new THREE.CylinderGeometry(R + 0.4, R + 0.9, 2.6, 48), x, y + 1.3, z);
+      for (let q = 0; q < 10; q++) { const a = q / 10 * Math.PI * 2; const rib = new THREE.Mesh(new THREE.TorusGeometry(R, 0.12, 6, 40, Math.PI / 2), steel); rib.position.set(x, y + 2.5, z); rib.rotation.set(0, a, Math.PI / 2); rib.rotateX(Math.PI / 2); scene.add(rib); }
+      const lr = new THREE.Mesh(new THREE.TorusGeometry(R + 0.55, 0.22, 8, 64), k % 2 ? ringG : ringP); lr.rotation.x = Math.PI / 2; lr.position.set(x, y + 2.65, z); scene.add(lr);
+      const fl = new THREE.Mesh(new THREE.CircleGeometry(R * 0.96, 40), new THREE.MeshLambertMaterial({ color: 0xf2e6da, emissive: 0x3a0f2a })); fl.rotation.x = -Math.PI / 2; fl.position.set(x, y + 2.62, z); scene.add(fl);
+      addProp(x, z, R + 1); });
+    // flèche et entrée vitrée
+    addGeo(steel, new THREE.CylinderGeometry(0.25, 1.1, 26, 12), vx, vy + 24, vz); { const tip = new THREE.Mesh(new THREE.SphereGeometry(0.75, 12, 10), ringP); tip.position.set(vx, vy + 37.4, vz); scene.add(tip); JUNGLE.vcTip = tip; }
+    { const ent = new THREE.Mesh(new THREE.BoxGeometry(7, 4.5, 5), glass); ent.position.set(vx, vy + 4.8, vz + 16); scene.add(ent); const can = new THREE.Mesh(new THREE.BoxGeometry(9, 0.3, 7), steel); can.position.set(vx, vy + 7.2, vz + 16.5); scene.add(can);
+      const ed = new THREE.Mesh(new THREE.BoxGeometry(9.2, 0.18, 0.18), ringP); ed.position.set(vx, vy + 7.05, vz + 20); scene.add(ed); }
+    const l = label("Centre des visiteurs", "#ff8fd0"); l.position.set(vx, vy + 20, vz + 17); l.scale.set(14, 3.5, 1); scene.add(l);
+    // visiteurs à l'intérieur des bulles
+    if (HQ.clips && HQ.clips.m) for (let q = 0; q < 10; q++) { const a = q / 10 * 6.28 + 0.3, rr = 4 + (q % 3) * 3, h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x34e0ff, 0xf6c945, 0x111114]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: q % 2 === 0 }), q % 4 === 0);
+      h.position.set(vx + Math.cos(a) * rr, vy + 2.62, vz + Math.sin(a) * rr); h.rotation.y = a + Math.PI; scene.add(h); setClip(h, q % 3 ? "Idle_Loop" : "Idle_Talking_Loop", 0.8 + Math.random() * 0.4); h.userData.manual = true; (JUNGLE.vcPpl = JUNGLE.vcPpl || []).push(h); } }
   // boucle de safari dans le parc, autour des enclos
   const WP = [[40, -2800], [150, -2810], [260, -2700], [420, -2700], [430, -2880], [300, -2990], [160, -3060], [-60, -3060], [-200, -2970], [-330, -2950], [-500, -2860], [-480, -2680], [-330, -2700], [-160, -2760], [-40, -2780]], crv = new THREE.CatmullRomCurve3(WP.map(([x, z]) => new THREE.Vector3(x, 0, z)), true), loop = crv.getSpacedPoints(180).slice(0, 180).map(v => [v.x, v.z]);
-  SAFARI.loop = loop; const cols = [0x6b7a4a, 0xc9b27a, 0x6b7a4a];
+  SAFARI.loop = loop; const cols = [0xf4f1ea, 0xf4f1ea, 0xf4f1ea];
   for (let k = 0; k < 3; k++) { const m = MODELS.car_suv ? makeCar({ id: "trafic", color: cols[k] }, { model: "car_suv" }) : null; if (!m) break;
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.12, 2.6), new THREE.MeshLambertMaterial({ color: 0x1c1c1c })); bar.position.y = (MODELS.car_suv.size.y || 1.8) + 0.25; m.add(bar);
-    const strip = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.2, 0.6), new THREE.MeshLambertMaterial({ color: 0xc0182c })); strip.position.set(0, (MODELS.car_suv.size.y || 1.8) * 0.55, 0); m.add(strip);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.12, 2.6), new THREE.MeshPhongMaterial({ color: 0xd8b25a, shininess: 90 })); bar.position.y = (MODELS.car_suv.size.y || 1.8) + 0.25; m.add(bar);
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.22, 3.6), new THREE.MeshLambertMaterial({ color: 0xff2d95, emissive: 0x3a0020 })); strip.position.set(0, (MODELS.car_suv.size.y || 1.8) * 0.55, 0); m.add(strip);
     const dr = makeDriver(); dr.position.set(0.44, Math.max(0.05, (MODELS.car_suv.size.y || 1.8) - 1.32), -0.1); m.add(dr); const p2 = makeDriver(); p2.position.set(-0.44, Math.max(0.05, (MODELS.car_suv.size.y || 1.8) - 1.32), -1.1); m.add(p2);
     scene.add(m); SAFARI.jeeps.push({ m, u: k / 3, sp: 0.0045 + k * 0.0006 }); }
 }
@@ -4008,7 +4025,9 @@ function updateJungle(dt) {
     { const st = Math.floor((w + Math.PI / 2) / Math.PI); if (d.st !== st) { d.st = st; if (G.mode === "play") giantStep(Math.hypot(cam.x - x, cam.z - z), true); } }
     U.neck.forEach((n, i) => { n.rotation.z = Math.sin(T * 0.5 + d.ph + i * 0.35) * 0.05; }); U.neck[0].rotation.x = 1.05 + Math.sin(T * 0.23 + d.ph) * 0.1;
     U.tail.forEach((n, i) => { n.rotation.y = Math.sin(T * 1.1 + d.ph - i * 0.4) * 0.07; }); });
-  (JUNGLE.visit || []).forEach((v, k) => { v.h.visible = near && v.h.position.distanceToSquared(cam) < 62500; if (v.h.visible && v.snap) v.ph.visible = Math.sin(T * 0.7 + k) > -0.2; });
+  (JUNGLE.vcPpl || []).forEach(h => { h.visible = near && h.position.distanceToSquared(cam) < 160000; });
+  if (JUNGLE.vcTip) { const nk = nightK; JUNGLE.vcTip.scale.setScalar(1 + 0.25 * Math.sin(T * 2.4)); (JUNGLE.vcLed || []).concat(JUNGLE.gateLed || []).forEach((m, i) => { m.color.setHex(i % 2 ? 0xffc94a : 0xff3fa4).multiplyScalar(0.55 + nk * 0.45 + 0.08 * Math.sin(T * 2 + i)); }); }
+  (JUNGLE.visit || []).forEach((v, k) => { v.h.visible = near && v.h.position.distanceToSquared(cam) < 360000; if (v.h.visible && v.snap) v.ph.visible = Math.sin(T * 0.7 + k) > -0.2; });
   const gyroOn = !G.onFoot && G.ride && G.ride.kind === "gyro";
   if (gyroOn && G.mode === "play") { const c = G.car; if (c.z > -2470) { c.z = -2470; c.v *= 0.3; if (!JUNGLE.gyroT || T - JUNGLE.gyroT > 12) { JUNGLE.gyroT = T; help("La gyrosphère reste dans le parc. Descends pour continuer à pied.", 4); } }
     JUNGLE.dinos.concat(JUNGLE.sauro).forEach(d => { const p = d.g.position, dd = Math.hypot(c.x - p.x, c.z - p.z), R = d.sx ? 0 : (d.g.userData.legs ? 7.5 : d.g.scale.x * 4.6); if (dd < R && dd > 0.01) { c.x = p.x + (c.x - p.x) / dd * R; c.z = p.z + (c.z - p.z) / dd * R; c.v *= 0.4; if (!JUNGLE.bumpT || T - JUNGLE.bumpT > 6) { JUNGLE.bumpT = T; thump && thump(0.4); jungleSound("roar", 0.35); } } });

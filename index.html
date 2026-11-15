@@ -478,7 +478,7 @@ const nearPath = (x, z) => Math.min(...PATHS.map(P => nearPoly(P, x, z)[0]));
 function csH0(x, z) {
   const m = csMask(x, z); if (m > 1.14) return -4;
   let h = csBase(x, z);
-  const [dn, bi] = nearPoly(NAT, x, z); if (dn < 16) { const i = Math.min(NAT.length - 1, Math.floor(bi)), rh = csBase(NAT[i][0], NAT[i][1]); h += (rh - h) * (1 - sstep(7, 16, dn)); }
+  const [dn, bi] = nearPoly(NAT, x, z); if (dn < 16) { const i = Math.min(NAT.length - 2, Math.floor(bi)), t = Math.min(1, bi - i), rh = csBase(NAT[i][0], NAT[i][1]) * (1 - t) + csBase(NAT[i + 1][0], NAT[i + 1][1]) * t; h += (rh - h) * (1 - sstep(7, 16, dn)); }
   const ek = sstep(0.93, 1.07, m); return h * (1 - ek) - 4 * ek;
 }
 function csH(x, z) { const m = padMask(x, z), h = csH0(x, z); return m > 0 ? h * (1 - m) + PAD.h * m : h; }
@@ -865,10 +865,13 @@ function addGeo(mat, geo, x, y, z, ry = 0, sx = 1, sy = 1, sz = 1, rx = 0, rz = 
   B.list.push(g);
 }
 const CHUNKS = [];
+function farFogShader(sh) { sh.fragmentShader = sh.fragmentShader.replace("#include <fog_fragment>", "#ifdef USE_FOG\n float fogFactor = smoothstep( fogNear, fogFar, fogDepth * FARK );\n gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );\n#endif"); }
+function farFog(m, k) { if (!m || m.userData.farK) return; m.userData.farK = k; m.defines = Object.assign(m.defines || {}, { FARK: k.toFixed(3) }); const prev = m.onBeforeCompile; m.onBeforeCompile = prev && prev !== THREE.Material.prototype.onBeforeCompile ? function (sh, r) { prev.call(this, sh, r); farFogShader(sh); } : farFogShader; m.needsUpdate = true; }
+function farFogAll() { winMats.forEach(m => farFog(m, 0.5)); }
 function cullChunks() { // au-delà du brouillard, on ne dessine plus rien : plus fluide sur téléphone
   const cp = camera.position, far = (scene.fog ? scene.fog.far : 700) * 1.06 + 20, hiAlt = cp.y > 60;
   if (!cullChunks.big) { cullChunks.big = []; const cs = new Set(CHUNKS); scene.children.forEach(o => { if (o.isMesh && !o.isSkinnedMesh && !cs.has(o) && o !== sea && o !== sky && o.geometry && o.geometry.attributes.position && o.geometry.attributes.position.count > 60000) { o.geometry.computeBoundingSphere(); cullChunks.big.push(o); } }); }
-  const test = m => { const bs = m.geometry.boundingSphere; if (!bs) return; const c = bs.center, wx = c.x + m.position.x, wz = m.rotation.x ? c.x * 0 + m.position.z - c.y : c.z + m.position.z; const d = Math.hypot(wx - cp.x, wz - cp.z) - bs.radius; m.visible = hiAlt || d < far; };
+  const test = m => { const bs = m.geometry.boundingSphere; if (!bs) return; const c = bs.center, wx = c.x + m.position.x, wz = m.rotation.x ? c.x * 0 + m.position.z - c.y : c.z + m.position.z; const d = Math.hypot(wx - cp.x, wz - cp.z) - bs.radius; m.visible = hiAlt || d < far / ((m.material && m.material.userData && m.material.userData.farK) || 1); };
   for (let i = 0; i < CHUNKS.length; i++) test(CHUNKS[i]); cullChunks.big.forEach(test);
 }
 function flushBatches() {
@@ -1099,10 +1102,10 @@ function buildShoreWaves() {
 // halo néon autour du perso la nuit : une lumière rose qui suit, un anneau lumineux au sol (on voit le perso sans éclairer toute la ville)
 const AURA = { light: null, ring: null, light2: null };
 function updateAura(dt) {
-  if (!AURA.light) { AURA.light = new THREE.PointLight(0xff6fc8, 0, 14, 1.5); scene.add(AURA.light);
+  if (!AURA.light) { AURA.light = new THREE.PointLight(0xff7fd0, 0, 11, 1.6); scene.add(AURA.light);
     AURA.ring = new THREE.Mesh(new THREE.RingGeometry(0.8, 0.94, 48), new THREE.MeshBasicMaterial({ color: 0xff5fc0, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })); AURA.ring.rotation.x = -Math.PI / 2; scene.add(AURA.ring); }
   const o = target(), foot = G.onFoot, T = performance.now() / 1000, k = G.mode === "play" && !G.inside && o ? nightK : 0, y = foot ? GH(o.x, o.z) : 0;
-  AURA.light.intensity = k * (foot ? 1.9 : 1.2); if (o) AURA.light.position.set(o.x, y + 2.4, o.z);
+  AURA.light.intensity = k * (foot ? 1.05 : 0.75); if (o) AURA.light.position.set(o.x, y + 3.2, o.z);
   AURA.ring.visible = foot && k > 0.05 && !G.ufoRide; if (AURA.ring.visible) { AURA.ring.position.set(o.x, y + 0.06 + (G.me.jy || 0), o.z); AURA.ring.material.opacity = k * (0.28 + 0.1 * Math.sin(T * 2.2)); const sc = 1 + 0.06 * Math.sin(T * 2.2); AURA.ring.scale.set(sc, sc, sc); AURA.ring.material.color.setHSL(0.9 + 0.05 * Math.sin(T * 0.4), 1, 0.62); }
 }
 function makeBeacon(color) {
@@ -1683,7 +1686,7 @@ const MODEL_DEFS = {
   plane_liner: { len: 64, face: "x" }, plane_small: { len: 12, face: "-z" }, heli: { len: 15, face: "-x" },
   yacht: { len: 24, face: "x" }, sailboat: { len: 10 }, gull: { len: 1.8, face: "x" }, shark: { len: 4.5, anim: "Swim" }, dolphin: { len: 3.2, anim: "Swim" },
   dog: { len: 1.3, anim: "Walk" }, cat: { h: 0.7 }, flamingo: { h: 1.7 }, trex: { len: 13, anim: "Walk" }, stego: { len: 10, anim: "Walk" }, trice: { len: 9, anim: "Walk" },
-  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, moto_cross: { len: 2.25, vc: true, face: "z" },
+  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, moto_cross: { len: 2.2, vc: true, face: "x" },
   // montagne : faune et nature (Quaternius / Kenney, CC0)
   w_deer: { len: 1.9, anim: "Eating" }, w_stag: { len: 2.2, anim: "Idle" }, w_wolf: { len: 1.7, anim: "Idle" }, w_fox: { len: 1.05, anim: "Idle" },
   w_yeti: { h: 2.7, anim: "Idle" }, w_raptor: { len: 3.2, anim: "Velociraptor_Idle" }, w_bat: { len: 0.7, anim: "Bat_Flying" },
@@ -2605,10 +2608,11 @@ function initWeather() {
 // une tranche de 3 heures de jeu = une météo ; environ une tranche sur quatre est pluvieuse (jamais pendant la 1re matinée)
 function wxTarget() {
   if (window.__wx != null) return window.__wx;
-  if (!P || !G.started) return 0;
+  if (G.wxForce != null) return G.wxForce;
+  if (!P || !G.started || !G.playT0 || performance.now() - G.playT0 < 15 * 60000) return 0;
   const gh = (P.nightStart ? (P.day === 1 ? 21 : 32 + (P.day - 2) * 24) : 8 + (P.day - 1) * 24) + P.dayT / (DAY_SECONDS / 24), seg = Math.floor(gh / 3); if (P.day === 1 && hourNow() < 13) return 0;
   const r = mulberry(seg * 7919 + 13)(), r2 = mulberry(seg * 104729 + 7)();
-  return r < 0.27 ? 0.55 + r2 * 0.45 : 0;
+  return r < 0.13 ? 0.5 + r2 * 0.4 : 0;
 }
 // ---------- arc-en-ciel après la pluie, à l'opposé du soleil (seuls ceux qui sont sortis sous la pluie le voient)
 const RB = { mesh: null, t: 0, peak: 0, D: 900 };
@@ -2663,7 +2667,7 @@ function applyWeatherSky(day) {
   U.top.value.lerp(gT, w * 0.8); U.bottom.value.lerp(gB, w * 0.8); U.sunCol.value.multiplyScalar(1 - w * 0.95);
   if (IMG.sky) U.cloudK.value += w * 0.5;
   sun.intensity *= 1 - 0.68 * w; hemi.intensity *= 1 - 0.28 * w; hemi.intensity += f * 1.6;
-  scene.fog.color.copy(U.bottom.value); scene.fog.near *= 1 - 0.55 * w; scene.fog.far *= 1 - 0.5 * w;
+  scene.fog.color.copy(U.bottom.value); scene.fog.near *= 1 - 0.3 * w; scene.fog.far *= 1 - 0.22 * w;
   const su = sea.material.uniforms; su.sunCol.value.multiplyScalar(1 - w * 0.85); su.fogColor.value.copy(scene.fog.color); su.fogNear.value = scene.fog.near; su.fogFar.value = scene.fog.far; su.lightK.value *= 1 - 0.3 * w;
   if (FX.cloudMat) { FX.cloudMat.opacity = Math.min(0.97, FX.cloudMat.opacity + w * 0.4); FX.cloudMat.color.multiplyScalar(1 - w * 0.45); }
 }
@@ -4022,7 +4026,7 @@ function buildMountain(r) {
   }
   geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
   for (let k = 0; k < col.length; k++) col[k] = Math.min(1, col[k] * 1.15); geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
-  const land = new THREE.Mesh(geo, detailMat(S / 7, S / 7)); land.rotation.x = -Math.PI / 2; land.position.set(MT.x, 0, MT.z); scene.add(land); trailMarkers();
+  const land = new THREE.Mesh(geo, detailMat(S / 7, S / 7)); land.rotation.x = -Math.PI / 2; land.position.set(MT.x, 0, MT.z); farFog(land.material, 0.25); scene.add(land); trailMarkers();
   // voie rapide sur pont : tablier, piles, glissières, lampadaires
   const deckM = new THREE.MeshLambertMaterial({ color: 0xffffff, map: imgTex("asphalt", 1) }), pillarM = new THREE.MeshLambertMaterial({ color: 0xcfcac2 }), railM = new THREE.MeshLambertMaterial({ color: 0xe8e4dc });
   if (deckM.map) deckM.map.repeat.set(1, 3);
@@ -5501,8 +5505,8 @@ function applySky(h) {
   if (FX.cloudMat) { FX.cloudMat.color.setRGB(0.35 + day * 0.65, 0.33 + day * 0.62, 0.38 + day * 0.6).lerp(new THREE.Color(1, 0.62, 0.45), Math.max(0, 0.45 - day) * (1 - nightK) * 1.4); FX.cloudMat.opacity = 0.62 + day * 0.3; }
   { const cy = camera ? camera.position.y : 0, away = camera && camera.position.z < -HALF - 120 ? 1.7 : 1, fk = Math.max(away, 1 + Math.min(3.2, Math.max(0, cy - 8) / 40)), vk = clamp((cy - 70) / 150, 0, 1);
     // points de vue (belvédère, sommet, avion) : on voit loin, la montagne depuis la tour et la ville depuis la montagne, avec une légère brume
-    scene.fog.near = Math.min(160 * fk, 520) + vk * 650; scene.fog.far = Math.min(620 * fk, 1180) + vk * 3700;
-    if (camera) { const want = vk > 0.01 ? 5600 : 2000, wn = (!G.fpv && !G.ufoRide && !(G.ride && isPlane(G.ride.kind) && G.fpv) && cy > 30) ? Math.min(4, 0.4 + (cy - 30) / 35) : 0.2; if (camera.far !== want || Math.abs(camera.near - wn) > 0.05) { camera.far = want; camera.near = wn; camera.updateProjectionMatrix(); } } }
+    const nf = 1 + nightK * 0.5; scene.fog.near = (Math.min(200 * fk, 560) + vk * 650) * nf; scene.fog.far = (Math.min(800 * fk, 1400) + vk * 3700) * nf;
+    if (camera) { const want = vk > 0.01 ? 5600 : 3000, wn = (!G.fpv && !G.ufoRide && !(G.ride && isPlane(G.ride.kind) && G.fpv) && cy > 30) ? Math.min(4, 0.4 + (cy - 30) / 35) : 0.2; if (camera.far !== want || Math.abs(camera.near - wn) > 0.05) { camera.far = want; camera.near = wn; camera.updateProjectionMatrix(); } } }
   su.fogColor.value.copy(scene.fog.color); su.fogNear.value = scene.fog.near; su.fogFar.value = scene.fog.far; su.lightK.value = 0.3 + day * 0.7;
   applyWeatherSky(day);
   if (FW.flash) hemi.intensity += FW.flash * 0.4;
@@ -5983,7 +5987,9 @@ function updatePlane(dt) {
     c.ps = (c.ps || 0) + (inp.side - (c.ps || 0)) * Math.min(1, dt * 4); // roulage : la direction s'oriente progressivement, comme un volant
     c.h -= c.ps * (G.ride.kind === "airbus" ? 0.78 : 1.15) * dt * clamp(c.v / 2.5, -1, 1) * (Math.abs(c.v) < 0.3 && thr > 0 ? 0 : 1); if (Math.abs(c.v) < 4 && Math.abs(inp.side) > 0.2 && thr > 0.05) c.v = Math.max(c.v, 3);
     c.alt = gh; c.pitch += (0 - c.pitch) * Math.min(1, dt * 5); c.roll += (0 - c.roll) * Math.min(1, dt * 5);
-    if (c.v > 29 && thr > 0.55 && !isWater(c.x, c.z)) { c.alt = gh + 0.8; c.pitch = 0.16; if (!G.flyHint) { G.flyHint = true; help("<b>Décollage !</b> Haut = monter · bas = descendre · côtés = virer. Pour atterrir : descends doucement au-dessus d'une piste, ou touche SORTIR pour sauter en parachute.", 7); } sfx.door && 0; }
+    if (thr > 0.3 && Math.abs(c.v) < 4) c.gst = (c.gst || 0) + dt; else c.gst = 0;
+    const vTo = JET ? 47 : G.ride.kind === "airbus" ? 40 : 36, solid = !isWater(c.x, c.z) || onHighway(c.x, c.z) || onPier(c.x, c.z);
+    if ((c.v > vTo && thr > 0.55 && solid) || c.gst > 1.4) { if (c.gst > 1.4) { c.v = Math.max(c.v, 30); c.gst = 0; } c.alt = gh + 0.8; c.pitch = 0.16; if (!G.flyHint) { G.flyHint = true; help("<b>Décollage !</b> Haut = monter · bas = descendre · côtés = virer. Pour atterrir : descends doucement au-dessus d'une piste, ou touche SORTIR pour sauter en parachute.", 7); } sfx.door && 0; }
   } else {
     const JET = G.ride.kind === "chasse", cruise = (JET ? 82 : 46) * (tb ? 1.6 : 1);
     c.v += (cruise - c.v) * Math.min(1, dt * 0.7);
@@ -5992,7 +5998,7 @@ function updatePlane(dt) {
     c.h -= c.roll * (JET ? 1.15 : 0.85) * dt;
     c.alt = Math.min(c.alt + Math.sin(c.pitch) * c.v * dt, 520);
     // gratte-ciel : on ne traverse pas les tours, on les survole
-    { const fx = Math.sin(c.h), fz = Math.cos(c.h); let bA = buildingTop(c.x, c.z); for (const d of [20, 45, 70]) bA = Math.max(bA, buildingTop(c.x + fx * d, c.z + fz * d));
+    { const fx = Math.sin(c.h), fz = Math.cos(c.h); let bA = buildingTop(c.x, c.z); for (const d of [20, 45, 70, c.v * 1.3, c.v * 2.2]) bA = Math.max(bA, buildingTop(c.x + fx * d, c.z + fz * d));
       if (bA > 0 && c.alt < bA + 5) { const gap = bA + 7 - c.alt;
         if (gap < 45) { c.alt += gap * Math.min(1, dt * 3.2); c.pitch = Math.max(c.pitch, 0.22); c.tsd = 0; }
         else { if (!c.tsd) c.tsd = inp.side ? Math.sign(inp.side) : (Math.random() < 0.5 ? -1 : 1); c.roll += (c.tsd * 0.85 - c.roll) * Math.min(1, dt * 5); c.h -= c.roll * 0.9 * dt; }
@@ -6001,13 +6007,13 @@ function updatePlane(dt) {
       let gA = gh; for (const d of [15, 35, 60, 90]) gA = Math.max(gA, planeGround(c.x + fx * d, c.z + fz * d));
       if (gA > gh + 1.5 && c.alt < gA + 12) { c.alt += (gA + 12 - c.alt) * Math.min(1, dt * 3); c.pitch = Math.max(c.pitch, 0.2); } }
     if (c.alt < gh + 0.5) {
-      const ahead = planeGround(c.x + Math.sin(c.h) * 12, c.z + Math.cos(c.h) * 12), flat = Math.abs(ahead - gh) < 1.5 && !isWater(c.x, c.z);
+      const ahead = planeGround(c.x + Math.sin(c.h) * 12, c.z + Math.cos(c.h) * 12), flat = Math.abs(ahead - gh) < 1.5 && !isWater(c.x, c.z) && !onHighway(c.x, c.z) && !isWater(c.x + Math.sin(c.h) * 40, c.z + Math.cos(c.h) * 40);
       if (flat && c.pitch > -0.32) { c.alt = gh; c.pitch = 0; c.roll = 0; c.v = Math.min(c.v, 32); help("Bel atterrissage. Ramène le rond au centre pour freiner, puis descends.", 4); }
       else { c.alt = gh + 0.6; c.pitch = 0.3; help(isWater(c.x, c.z) ? "Pas d'amerrissage : vise une piste (aéroport au sud, aérodrome au pied de la montagne)." : "Terrain trop accidenté : remonte et vise une piste.", 4); }
     }
   }
   const f = Math.cos(c.pitch), opx = c.x, opz = c.z; c.x += Math.sin(c.h) * c.v * dt * f; c.z += Math.cos(c.h) * c.v * dt * f;
-  if (air && buildingTop(c.x, c.z) > c.alt + 0.5) { const nx = c.x, nz = c.z; if (buildingTop(nx, opz) <= c.alt + 0.5) c.z = opz; else if (buildingTop(opx, nz) <= c.alt + 0.5) c.x = opx; else { c.x = opx; c.z = opz; c.alt += 45 * dt; c.h += 1.2 * dt; } } // jamais à l'intérieur d'une tour : on glisse le long, sinon on grimpe en virant
+  if (air && buildingTop(c.x, c.z) > c.alt + 0.5) { const nx = c.x, nz = c.z; if (buildingTop(nx, opz) <= c.alt + 0.5) c.z = opz; else if (buildingTop(opx, nz) <= c.alt + 0.5) c.x = opx; else { c.alt = Math.max(c.alt + 45 * dt, buildingTop(nx, nz) + 1); c.pitch = Math.max(c.pitch, 0.3); } } // jamais à l'intérieur d'une tour : on glisse le long, sinon on grimpe en virant
   const R = 3000; if (Math.hypot(c.x, c.z + 950) > R - 220 && !G.edgeWarn && air) { G.edgeWarn = true; notify("gold", "<b>Tu essaies de t'échapper ?</b> On n'échappe pas à la Constancy. L'avion fait demi-tour : Tes missions t'attendent.", 6); }
   if (Math.hypot(c.x, c.z + 950) < R - 260) G.edgeWarn = false;
   // au bord du monde : l'avion fait demi-tour tout seul, en douceur (on garde toujours le contrôle)
@@ -7536,7 +7542,7 @@ function welcomeBack() {
 setTimeout(kitFlush, 4000); window.addEventListener("online", kitFlush);
 function startPlayHome() { G.homeStart = true; startPlay(); setTimeout(refreshReferrals, 8000); }
 function startPlay() {
-  window.__showcase = false; FW.party = 0;
+  window.__showcase = false; FW.party = 0; G.playT0 = performance.now(); if (!CREATOR) G.wxForce = null;
   if (TCAM.fade) { TCAM.fade.remove(); TCAM.fade = null; } if (TCAM.car) { scene.remove(TCAM.car); TCAM.car = null; }
   if (!G.statDay || G.statDay !== P.day) { G.statDay = P.day; stat(P.day === 1 ? "partie-lancee" : "retour-jour-" + Math.min(P.day, 30)); }
   if (CREATOR) creatorBoost(); setTimeout(updateLevelBadge, 0);
@@ -7846,11 +7852,11 @@ function openMenu() {
       <button class="pm-t" id="transf" type="button">${pmIcon("transf")}<span>Transférer</span></button>
     </div>
     ${SIGNUP_URL ? `<a class="btn alt" href="${SIGNUP_URL}" target="_blank" rel="noopener">Recevoir les prochaines versions</a>` : ""}
-    ${CREATOR ? `<div class="pm-grid two"><button class="pm-t" id="crDay" type="button"><span>☀︎ Plein jour</span></button><button class="pm-t" id="crNight" type="button"><span>☾ Nuit</span></button></div><p class="note">Mode créateur : touche la carte pour t'y téléporter.</p>` : ""}
+    ${CREATOR ? `<div class="pm-grid two"><button class="pm-t" id="crDay" type="button"><span>☀︎ Plein jour</span></button><button class="pm-t" id="crNight" type="button"><span>☾ Nuit</span></button><button class="pm-t" id="crSun" type="button"><span>☀︎ Beau temps</span></button><button class="pm-t" id="crRain" type="button"><span>☂ Pluie</span></button></div><p class="note">Mode créateur : touche la carte pour t'y téléporter.</p>` : ""}
     ${desk ? `<div class="card keys pm-keys"><div class="kgrid"><kbd>Z Q S D</kbd><span>Se déplacer</span><kbd>Maj</kbd><span>Sprint, turbo</span><kbd>Espace</kbd><span>Sauter (×2 : double saut), freiner</span><kbd>F</kbd><span>Monter, descendre, entrer</span><kbd>V</kbd><span>Vue première personne</span><kbd>M</kbd><span>Carte et GPS</span><kbd>J</kbd><span>Joker</span><kbd>Échap</kbd><span>Menu</span></div></div>` : ""}
     <div class="pm-links"><button type="button" id="credits">Crédits</button><i></i><button type="button" id="stopG">Arrêter la partie</button></div><button id="quitHidden" type="button" hidden></button></div>`);
   on("persoM", openPersoDetails);
-  on("crDay", () => { creatorSetHour(13); resume(); }); on("crNight", () => { creatorSetHour(22.5); resume(); });
+  on("crDay", () => { creatorSetHour(13); resume(); }); on("crNight", () => { creatorSetHour(22.5); resume(); }); on("crSun", () => { G.wxForce = 0; WX.rain = 0; resume(); }); on("crRain", () => { G.wxForce = 0.85; resume(); });
   on("res", resume); on("stopG", stopMenu); on("shareS", shareStreak); on("shareM", () => openShare(true)); on("boardM", openBoard);
   on("sndT", () => { $("soundBtn").click(); const b = $("sndT"); if (b) b.querySelector("span").textContent = SND.on ? "Son activé" : "Son coupé"; });
   on("guideT", () => { resume(); startGuide(true); });
@@ -8103,7 +8109,7 @@ if (!renderer || typeof THREE === "undefined" || !THREE.BufferGeometryUtils) {
   show(`<div class="panel boot"><div class="logo bootlogo">${[..."Constancy"].map((ch, i) => `<span style="animation-delay:${0.15 + i * 0.09}s">${ch}</span>`).join("")}</div><div class="bootline"></div><p class="bootsub">Le jeu</p></div>`);
   const fontsReady = document.fonts && document.fonts.load ? Promise.race([Promise.all([document.fonts.load("86px 'EB Garamond'"), document.fonts.load("italic 24px 'EB Garamond'"), document.fonts.load("500 190px 'EB Garamond'")]), new Promise(ok => setTimeout(ok, 4000))]).catch(() => {}) : Promise.resolve();
   const introPlayed = new Promise(ok => setTimeout(ok, 2300));
-  Promise.all([loadHumans(), loadMedia(), fontsReady, introPlayed]).then(() => new Promise(ok => requestAnimationFrame(() => setTimeout(ok, 30)))).then(() => { buildWorld(); drawMapBase(); buildCockpit(); buildPlaneCockpit(); envInit(); fxInit(); resize(); titleScreen(); requestAnimationFrame(loop); });
+  Promise.all([loadHumans(), loadMedia(), fontsReady, introPlayed]).then(() => new Promise(ok => requestAnimationFrame(() => setTimeout(ok, 30)))).then(() => { buildWorld(); farFogAll(); drawMapBase(); buildCockpit(); buildPlaneCockpit(); envInit(); fxInit(); resize(); titleScreen(); requestAnimationFrame(loop); });
 }
 })();
 </script>

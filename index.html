@@ -5797,19 +5797,19 @@ function fpHands(on, dt) {
     FPH.userData.hands = [-1, 1].map(sd => {
       const g = new THREE.Group(), arm = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.05, 0.36, 12), skinM); arm.rotation.x = Math.PI / 2; arm.position.z = -0.18; g.add(arm);
       const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.066, 0.068, 0.12, 12), slM); cuff.rotation.x = Math.PI / 2; cuff.position.z = 0.0; g.add(cuff);
-      const fist = new THREE.Mesh(new THREE.SphereGeometry(0.056, 14, 12), skinM); fist.scale.set(1.05, 0.92, 0.95); fist.position.set(0, 0.0, -0.395); g.add(fist);
-      for (let q = 0; q < 4; q++) { const kn = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 6), skinM); kn.position.set((q - 1.5) * 0.024, 0.024, -0.428); g.add(kn); }
+      const fist = new THREE.Mesh(new THREE.SphereGeometry(0.056, 14, 12), skinM); fist.scale.set(1.0, 0.78, 1.12); fist.position.set(0, 0.0, -0.395); g.add(fist);
+      
       const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.018, 0.06, 8), skinM); thumb.rotation.set(0.2, 0, sd * 1.2); thumb.position.set(-sd * 0.03, -0.022, -0.43); g.add(thumb);
       g.userData.sd = sd; FPH.add(g); return g; });
     FPH.traverse(o => { if (o.isMesh) { o.renderOrder = 9; o.frustumCulled = false; } });
-    FPH.scale.setScalar(1.2); camera.add(FPH); if (!camera.parent) scene.add(camera);
+    FPH.scale.setScalar(1.2); FPH.userData.por = null; camera.add(FPH); if (!camera.parent) scene.add(camera);
   }
   // course : les mains montent et descendent en bas de l'écran, en alternance, avec un léger balancier vers le centre
   // (jamais vers l'avant comme un coup de poing) ; à l'arrêt elles sortent du champ
   const v = Math.abs(G.me.v || 0), U = FPH.userData, air = clamp((G.me.jy || 0) / 0.6, 0, 1), tk = Math.max(clamp((v - 0.6) / 6.5, 0, 1), air * 0.9);
   U.k += (tk - U.k) * Math.min(1, dt * (tk > U.k ? 5 : 3)); U.ph += dt * (4.2 + v * 0.75); const k = U.k;
   FPH.visible = k > 0.03;
-  const por = (camera.aspect || 1) < 1, xw = por ? 0.15 : 0.3;
+  const por = (camera.aspect || 1) < 1, xw = por ? 0.17 : 0.3; if (FPH.userData.por !== por) { FPH.userData.por = por; FPH.scale.setScalar(por ? 0.9 : 1.2); FPH.position.y = por ? -0.03 : 0; }
   U.hands.forEach(g => { const sd = g.userData.sd, s = Math.sin(U.ph + (sd > 0 ? 0 : Math.PI)), lift = s * 0.5 + 0.5, bob = Math.abs(Math.sin(U.ph)) * 0.012;
     g.position.set(sd * (xw - 0.04 * lift * k + air * 0.05), -0.7 + k * (0.1 + 0.17 * lift * (1 - air)) + bob * k * (1 - air) + air * 0.16 - (G.landT > 0 ? Math.sin(Math.PI * (1 - G.landT / 0.28)) * 0.05 : 0), -0.27);
     g.rotation.set(0.6 + 0.22 * lift, sd * (0.22 + 0.08 * lift), -sd * (0.25 + 0.08 * lift)); });

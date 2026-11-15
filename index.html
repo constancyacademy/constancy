@@ -4698,13 +4698,24 @@ const DISP_SCRIPTS = [
   ["Tu rends jamais ce que t'empruntes !", "Je te la rends, ta perceuse !", "Ça fait trois mois !", "Demain matin. Promis.", "Je note. Demain matin."],
   ["T'avais dit 18 h, il est 19 h !", "Y avait des bouchons !", "Y a toujours des bouchons !", "La prochaine fois, je pars plus tôt.", "C'est tout ce que je demande."]
 ];
-function bubbleSprite() { const c = document.createElement("canvas"); c.width = 512; c.height = 128; const t = new THREE.CanvasTexture(c); const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false })); sp.scale.set(3.2, 0.8, 1); sp.userData.c = c; sp.userData.t = t; sp.visible = false; scene.add(sp); return sp; }
-function bubbleText(sp, txt, hot) { const c = sp.userData.c, g = c.getContext("2d"); g.clearRect(0, 0, 512, 128); g.font = "600 34px Inter, system-ui, sans-serif"; const w = Math.min(500, g.measureText(txt).width + 44);
-  g.fillStyle = hot ? "rgba(255,255,255,.96)" : "rgba(235,245,255,.96)"; g.beginPath(); g.roundRect ? g.roundRect(256 - w / 2, 14, w, 78, 26) : g.rect(256 - w / 2, 14, w, 78); g.fill(); g.beginPath(); g.moveTo(240, 90); g.lineTo(256, 118); g.lineTo(272, 90); g.fill();
-  g.fillStyle = hot ? "#c0172f" : "#14202a"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(txt, 256, 54, 480); sp.userData.t.needsUpdate = true; }
+function bubbleSprite() { const c = document.createElement("canvas"); c.width = 640; c.height = 240; const t = new THREE.CanvasTexture(c); const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false })); sp.scale.set(3.4, 1.275, 1); sp.userData.c = c; sp.userData.t = t; sp.visible = false; scene.add(sp); return sp; }
+function bubbleText(sp, txt, hot, who) {
+  const c = sp.userData.c, g = c.getContext("2d"), W = 640; g.clearRect(0, 0, W, 240); g.font = "500 38px Inter, system-ui, sans-serif";
+  const words = String(txt).split(" "), lines = []; let cur = ""; words.forEach(w => { const t = cur ? cur + " " + w : w; if (g.measureText(t).width > 540 && cur) { lines.push(cur); cur = w; } else cur = t; }); if (cur) lines.push(cur);
+  if (lines.length === 2) { let best = null; for (let k = 1; k < words.length; k++) { const a = words.slice(0, k).join(" "), b = words.slice(k).join(" "), m = Math.max(g.measureText(a).width, g.measureText(b).width); if (m <= 540 && (!best || m < best[0])) best = [m, a, b]; } if (best) { lines[0] = best[1]; lines[1] = best[2]; } }
+  const L = lines.slice(0, 2), tw = Math.max(...L.map(l => g.measureText(l).width), who ? 200 : 0), bw = Math.min(620, tw + 64), bh = (who ? 56 : 26) + L.length * 46 + 22, x0 = (W - bw) / 2, y0 = 196 - bh;
+  const path = () => { g.beginPath(); g.roundRect ? g.roundRect(x0, y0, bw, bh, 30) : g.rect(x0, y0, bw, bh); };
+  g.save(); g.shadowColor = "rgba(0,0,0,.35)"; g.shadowBlur = 18; path(); g.fillStyle = hot ? "rgba(52,22,30,.84)" : "rgba(26,26,34,.80)"; g.fill(); g.restore();
+  const gr = g.createLinearGradient(0, y0, 0, y0 + bh); gr.addColorStop(0, "rgba(255,255,255,.16)"); gr.addColorStop(0.5, "rgba(255,255,255,.04)"); gr.addColorStop(1, "rgba(255,255,255,.08)"); path(); g.fillStyle = gr; g.fill();
+  path(); g.lineWidth = 2.5; g.strokeStyle = hot ? "rgba(255,120,150,.55)" : "rgba(255,255,255,.38)"; g.stroke();
+  g.beginPath(); g.moveTo(W / 2 - 16, y0 + bh - 1); g.lineTo(W / 2, y0 + bh + 26); g.lineTo(W / 2 + 16, y0 + bh - 1); g.closePath(); g.fillStyle = hot ? "rgba(52,22,30,.84)" : "rgba(26,26,34,.80)"; g.fill();
+  g.textAlign = "left"; g.textBaseline = "alphabetic"; let y = y0 + 22;
+  if (who) { g.font = "800 28px Inter, system-ui, sans-serif"; g.fillStyle = "#ff4f9a"; g.fillText(who.toUpperCase() + " :", x0 + 32, y + 30); y += 40; }
+  g.font = "500 38px Inter, system-ui, sans-serif"; g.fillStyle = "#ffffff"; L.forEach((l, k) => g.fillText(l, x0 + 32, y + 38 + k * 46));
+  sp.userData.t.needsUpdate = true; }
 function updateDispute(dt) {
   if (!HQ.ready) return; const o = target(), inCity = Math.abs(o.x) < HALF && Math.abs(o.z) < HALF && !G.inside;
-  if (!DISP.pair) { DISP.pair = [0, 1].map(() => { const h = makeHuman({ skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }); h.visible = false; scene.add(h); return h; }); DISP.bub = [bubbleSprite(), bubbleSprite()]; DISP.wait = 20; }
+  if (!DISP.pair) { DISP.pair = [0, 1].map(() => { const fem = Math.random() < .5, h = makeHuman({ skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: fem }); h.userData.who = fem ? "Passante" : "Passant"; h.visible = false; scene.add(h); return h; }); DISP.bub = [bubbleSprite(), bubbleSprite()]; DISP.wait = 20; }
   const d = DISP.ok ? Math.hypot(DISP.x - o.x, DISP.z - o.z) : 1e9;
   if (!DISP.ok || d > 110) { DISP.wait -= dt; if (DISP.wait <= 0 && inCity) { const sp = streetSpot(o); if (sp) { DISP.x = sp[0]; DISP.z = sp[1]; const a = sp[2]; DISP.script = pick(DISP_SCRIPTS); DISP.i = -1; DISP.t = 0; DISP.ok = true;
         DISP.pair.forEach((h, q) => { const sx = Math.cos(a) * 0.7 * (q ? 1 : -1), sz = -Math.sin(a) * 0.7 * (q ? 1 : -1); h.position.set(DISP.x + sx, 0.25, DISP.z + sz); h.rotation.y = Math.atan2(-sx, -sz); setClip(h, "Idle_Talking_Loop", 1.7); }); } } }
@@ -4712,7 +4723,7 @@ function updateDispute(dt) {
   if (d < 35) { DISP.t -= dt; if (DISP.t <= 0) { DISP.i++; DISP.t = 2.4; if (DISP.i >= DISP.script.length + 2) { DISP.ok = false; DISP.wait = 90 + Math.random() * 60; return; }
       const calm = DISP.i >= DISP.script.length - 2; DISP.pair.forEach(h => setClip(h, calm ? "Idle_Loop" : "Idle_Talking_Loop", calm ? 1 : 1.7));
       if (DISP.i === DISP.script.length - 1 && !G.dispSeen) { G.dispSeen = true; stat("dispute-reconciliation"); } }
-    const k = DISP.i; if (k >= 0 && k < DISP.script.length) { const sp = DISP.bub[k % 2], h = DISP.pair[k % 2]; bubbleText(sp, DISP.script[k], k < DISP.script.length - 2); sp.position.set(h.position.x, 2.3, h.position.z); sp.visible = true; } }
+    const k = DISP.i; if (k >= 0 && k < DISP.script.length) { const sp = DISP.bub[k % 2], h = DISP.pair[k % 2]; bubbleText(sp, DISP.script[k], k < DISP.script.length - 2, h.userData.who); sp.position.set(h.position.x, 2.55, h.position.z); sp.visible = true; } }
   if (!G.onFoot && carMesh) DISP.pair.forEach(h => { const dx = G.car.x - h.position.x, dz = G.car.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 2.4) { const n = dc || 1; G.car.x += dx / n * (2.4 - dc); G.car.z += dz / n * (2.4 - dc); G.car.v = 0; } });
   else if (G.onFoot) DISP.pair.forEach(h => { const dx = G.me.x - h.position.x, dz = G.me.z - h.position.z, dc = Math.hypot(dx, dz); if (dc < 0.75) { const n = dc || 1; G.me.x += dx / n * (0.75 - dc); G.me.z += dz / n * (0.75 - dc); } });
 }

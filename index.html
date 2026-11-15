@@ -4694,7 +4694,7 @@ function updateLamps(dt) {
     L.oy = 0.16 * Math.sin(L.th); lampMatrix(i); });
 }
 function updatePosts(dt) {
-  if (SHOREW.u) { SHOREW.u.uT.value += dt; SHOREW.u.nk.value = nightK; } updateAura(dt); updateGrassField(dt); updateLamps(dt); updateER(dt); updateAmbulance(dt); updateMarket(dt); updateShops3D(dt); updateCranes(dt); updateWorkers(dt); if (!POSTS.moving) return; let any = 0;
+  if (SHOREW.u) { SHOREW.u.uT.value += dt; SHOREW.u.nk.value = nightK; } updateAura(dt); updateBreath(dt); updateGrassField(dt); updateLamps(dt); updateER(dt); updateAmbulance(dt); updateMarket(dt); updateShops3D(dt); updateCranes(dt); updateWorkers(dt); if (!POSTS.moving) return; let any = 0;
   POSTS.list.forEach((q, i) => { if (q.hit !== 1) return; any = 1; q.vy -= 22 * dt; q.x += q.vx * dt; q.z += q.vz * dt; q.oy += q.vy * dt; q.rx += q.ax * dt; q.rz += q.ax * 0.7 * dt;
     const gy = GH(q.x, q.z) - q.y; if (q.oy <= gy + 0.2 && q.vy < 0) { q.oy = gy + 0.2; q.vy *= -0.25; q.vx *= 0.55; q.vz *= 0.55; q.ax *= 0.5; if (Math.hypot(q.vx, q.vz) < 0.6) { q.hit = 2; q.rx = Math.PI / 2 * Math.sign(q.rx || 1); POSTS.moving--; } }
     postMatrix(i); });
@@ -5184,6 +5184,25 @@ const DISP_SCRIPTS = [
   ["Tu rends jamais ce que t'empruntes !", "Je te la rends, ta perceuse !", "Ça fait trois mois !", "Demain matin. Promis.", "Je note. Demain matin."],
   ["T'avais dit 18 h, il est 19 h !", "Y avait des bouchons !", "Y a toujours des bouchons !", "La prochaine fois, je pars plus tôt.", "C'est tout ce que je demande."]
 ];
+const BUMP = { sp: null, t: 0, cool: 0, h: null };
+const BUMP_LINES = ["Hé, ça va pas la tête ?", "Oh ! Regarde devant toi !", "Doucement, champion…", "Hé ! Tu te crois où, là ?", "Tranquille, hein…", "Faut pas se gêner !", "Il y a de la place, non ?"];
+function bodyBump(k) { const c = SND.ctx; if (!c || !SND.on) return; const t = c.currentTime, src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); src.buffer = noiseBuf(0.16, x => Math.exp(-x * 9)); f.type = "lowpass"; f.frequency.value = 520; g.gain.value = 0.5 * k; src.connect(f); f.connect(g); g.connect(c.destination); src.start(t);
+  const o = c.createOscillator(), og = c.createGain(), of = c.createBiquadFilter(); o.type = "sawtooth"; o.frequency.setValueAtTime(150 + Math.random() * 60, t + 0.05); o.frequency.exponentialRampToValueAtTime(95, t + 0.26); of.type = "bandpass"; of.frequency.value = 700; of.Q.value = 2.5; og.gain.setValueAtTime(0, t + 0.05); og.gain.linearRampToValueAtTime(0.09 * k, t + 0.08); og.gain.exponentialRampToValueAtTime(0.001, t + 0.3); o.connect(of); of.connect(og); og.connect(c.destination); o.start(t + 0.05); o.stop(t + 0.32); }
+function bumpPeds(me, speed, dt) {
+  BUMP.cool -= dt; if (BUMP.t > 0) { BUMP.t -= dt; if (BUMP.h) BUMP.sp.position.set(BUMP.h.position.x, BUMP.h.position.y + 2.6, BUMP.h.position.z); if (BUMP.t <= 0) BUMP.sp.visible = false; }
+  const test = h => { if (!h || !h.visible) return; const dx = me.x - h.position.x, dz = me.z - h.position.z, d = Math.hypot(dx, dz), R = 0.72; if (d >= R || d < 0.001) return; me.x = h.position.x + dx / d * R; me.z = h.position.z + dz / d * R;
+    if (Math.abs(speed) > 3.2 && BUMP.cool <= 0) { BUMP.cool = 2.2; bodyBump(Math.min(1, Math.abs(speed) / 12)); if (!BUMP.sp) BUMP.sp = bubbleSprite(); bubbleText(BUMP.sp, pick(BUMP_LINES), false, h.userData.who || "Passant"); BUMP.sp.visible = true; BUMP.h = h; BUMP.t = 2.8; me.v = (me.v || 0) * 0.3; try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {} } };
+  for (const p of peds) test(p.mesh); if (typeof CROSS !== "undefined") for (const c of CROSS.list) test(c.h);
+}
+// respiration quand on court : plus rapide et plus forte en sprint et quand l'énergie baisse
+const BREATH = { t: 0, ph: 0 };
+function updateBreath(dt) {
+  const c = SND.ctx, me = G.me; if (!c || !SND.on || !G.onFoot || G.mode !== "play" || G.inside || G.swimming || !me) { BREATH.t = 0; return; }
+  const sp = me.speed || 0; if (sp < 7) { BREATH.t = Math.min(BREATH.t, 0.3); return; }
+  const tired = 1 - clamp((G.energy == null ? 100 : G.energy) / 100, 0, 1), period = (G.sprint ? 0.42 : 0.62) - tired * 0.12; BREATH.t -= dt; if (BREATH.t > 0) return; BREATH.t = period; BREATH.ph ^= 1;
+  const t = c.currentTime, inh = BREATH.ph === 1, d = period * (inh ? 0.75 : 0.9), src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(), vol = (G.sprint ? 0.05 : 0.032) * (1 + tired * 0.9);
+  src.buffer = noiseBuf(d, x => inh ? Math.sin(Math.PI * Math.pow(x, 0.7)) : Math.sin(Math.PI * Math.pow(x, 1.4))); f.type = "bandpass"; f.frequency.setValueAtTime(inh ? 1500 : 1100, t); f.frequency.linearRampToValueAtTime(inh ? 2300 : 750, t + d); f.Q.value = 0.9; g.gain.value = vol; src.connect(f); f.connect(g); g.connect(c.destination); src.start(t);
+}
 function bubbleSprite() { const c = document.createElement("canvas"); c.width = 640; c.height = 240; const t = new THREE.CanvasTexture(c); const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false })); sp.scale.set(3.4, 1.275, 1); sp.userData.c = c; sp.userData.t = t; sp.visible = false; scene.add(sp); return sp; }
 function bubbleText(sp, txt, hot, who) {
   const c = sp.userData.c, g = c.getContext("2d"), W = 640; g.clearRect(0, 0, W, 240); g.font = "500 38px Inter, system-ui, sans-serif";
@@ -6296,7 +6315,7 @@ function updateMe(dt) {
   if (P && !P.jumpTip && !G.inside && !G.swimming && (Math.abs(me.z - RZ0) < 3 || Math.abs(me.z - RZ1) < 3)) { P.jumpTip = true; help("Envie d'un plongeon ? <b>Double-tape l'écran</b> pour sauter par-dessus la rambarde (Espace sur ordinateur). Tu nages très bien.", 6); }
   me.x += Math.sin(me.h) * speed * dt; me.z += Math.cos(me.h) * speed * dt;
   if (G.inside === "home") { me.x = clamp(me.x, HX - HRW + 0.8, HX + HRW - 0.8); me.z = clamp(me.z, HZ - HD + 0.8, HZ + HD - 0.8); pushOutBoxes(me, 0.45, HOME_OBST); }
-  else if (G.inside) { me.x = clamp(me.x, IX - IW + 0.8, IX + IW - 0.8); me.z = clamp(me.z, IZ - ID + 0.8, IZ + ID - 0.8); pushOutBoxes(me, 0.45, GYM_OBST); } else { collideProps.metal = false; collide(me, 0.6, true); if (collideProps.metal && Math.abs(speed) > 2.5) clang(Math.abs(speed) / 30); }
+  else if (G.inside) { me.x = clamp(me.x, IX - IW + 0.8, IX + IW - 0.8); me.z = clamp(me.z, IZ - ID + 0.8, IZ + ID - 0.8); pushOutBoxes(me, 0.45, GYM_OBST); } else { collideProps.metal = false; collide(me, 0.6, true); if (collideProps.metal && Math.abs(speed) > 2.5) clang(Math.abs(speed) / 30); bumpPeds(me, speed, dt); }
   // nage : dans l'eau on avance lentement et l'énergie fond ; à zéro, retour sur la plage
   const water = !G.inside && isWater(me.x, me.z);
   if (water) {
@@ -6844,7 +6863,7 @@ function feedAuto() { // un post de temps en temps, selon ce qui se passe dans t
   ];
   const [w, tx] = pick(pool)(); feedPost(w, tx, { toast: r < 0.5 });
 }
-const PHONE_CSS = `<style>.phone{width:100%;max-width:340px;margin:auto;border-radius:38px;padding:14px 14px 18px;background:linear-gradient(160deg,#2a0f3a 0%,#4a1460 38%,#ff4fa3 120%);border:2px solid rgba(255,255,255,.14);box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 0 0 6px #0b0b10;position:relative}
+const PHONE_CSS = `<style>.phone{width:100%;max-width:340px;margin:auto;border-radius:38px;padding:14px 14px 18px;background:linear-gradient(160deg,#2a0f3a 0%,#4a1460 38%,#ff4fa3 120%);border:2px solid rgba(255,214,240,.28);box-shadow:inset 0 0 0 6px #0b0b10,inset 0 1px 0 7px rgba(255,255,255,.08),1px 1px 0 #6b3a7a,2px 2px 0 #5c2f6b,3px 3px 0 #4e275c,4px 4px 0 #42204f,5px 5px 0 #371a43,6px 7px 0 #2b1435,-1px -1px 0 rgba(255,220,245,.35),18px 34px 50px rgba(0,0,0,.55),0 0 60px rgba(255,79,163,.18);position:relative;transform:perspective(1300px) rotateX(5deg) rotateY(-7deg);transform-style:preserve-3d;animation:phoneIn .55s cubic-bezier(.2,.9,.25,1.05) both}.phone::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,.04) 28%,transparent 46%,transparent 70%,rgba(255,255,255,.06) 100%);z-index:2}@keyframes phoneIn{from{opacity:0;transform:perspective(1300px) translateY(60px) rotateX(24deg) rotateY(-16deg) scale(.92)}to{opacity:1;transform:perspective(1300px) rotateX(5deg) rotateY(-7deg)}}@media (prefers-reduced-motion:reduce){.phone{animation:none}}
 .phone .sb{display:flex;justify-content:space-between;font:600 12px Inter,sans-serif;color:#fff;padding:4px 14px 10px;opacity:.9}.phone .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:92px;height:22px;border-radius:12px;background:#0b0b10}
 .phone .wall{text-align:center;color:#fff;margin:8px 0 18px}.phone .wall .clk{font:300 54px Inter,sans-serif;letter-spacing:-1px}.phone .wall .dt{font:500 13px Inter,sans-serif;opacity:.85}
 .phone .apps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 10px;padding:0 6px}.phone .app{background:none;border:0;color:#fff;font:600 11.5px Inter,sans-serif;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;position:relative}

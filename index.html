@@ -643,8 +643,19 @@ const sfx = {
   tap: () => beep([[200, .05]], "square", .03),
   bump: () => { G.bumps = (G.bumps || 0) + 1; crash(Math.min(1, Math.abs(G.car.v) / 28)); },
   door: () => playBuf("door", 0.5) || beep([[440, .06], [660, .08]], "triangle", .04),
-  ui: () => playBuf("ui", 0.35) || beep([[660, .05]], "triangle", .03)
+  ui: () => playBuf("ui", 0.35) || beep([[660, .05]], "triangle", .03),
+  step: () => footstep()
 };
+// pas synthétisés : un grain de bruit filtré différemment selon le sol, jamais deux fois tout à fait le même
+function footstep() {
+  const c = SND.ctx; if (!c || !SND.on || G.mode !== "play" || G.inside) return; const me = G.me, out = Math.abs(me.x) > HALF || Math.abs(me.z) > HALF, t = c.currentTime;
+  if (!SND.stepB) SND.stepB = { grav: [0, 1, 2].map(() => noiseBuf(0.17, k => Math.pow(1 - k, 1.4) * (Math.random() < 0.3 ? 1 : 0.22))), pave: [0, 1].map(() => noiseBuf(0.06, k => Math.pow(1 - k, 5))) };
+  const gravel = out && !isWater(me.x, me.z), s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  s.buffer = gravel ? SND.stepB.grav[Math.floor(Math.random() * 3)] : SND.stepB.pave[Math.floor(Math.random() * 2)]; s.playbackRate.value = 0.88 + Math.random() * 0.24;
+  f.type = gravel ? "bandpass" : "lowpass"; f.frequency.value = gravel ? 2300 + Math.random() * 900 : 1100 + Math.random() * 300; f.Q.value = gravel ? 0.8 : 0.7;
+  g.gain.value = (gravel ? 0.2 : 0.13) * (G.sprint ? 1.25 : 1); s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
+  if (!gravel) { const o = c.createOscillator(), og = c.createGain(); o.type = "sine"; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(55, t + 0.07); og.gain.setValueAtTime(0.07, t); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.08); o.connect(og); og.connect(c.destination); o.start(t); o.stop(t + 0.09); }
+}
 // profil sonore par véhicule : fréquence de base, montée avec la vitesse, filtre, volume
 const ENGINE = {
   citadine: { b: 38, k: 2.4, f: 450, v: 0.05, t: "sawtooth" }, coupe: { b: 55, k: 3.2, f: 900, v: 0.055, t: "sawtooth" },
@@ -3369,6 +3380,7 @@ function updateFx(dt) {
   if (changed) FX.steps.instanceMatrix.needsUpdate = true;
   const stepper = (o, key) => { if (!onSand(o.x, o.z)) return; const d = FX[key] || (FX[key] = { x: o.x, z: o.z, s: 1 }); if (Math.hypot(o.x - d.x, o.z - d.z) > 0.85) { d.s = -d.s; footprint(o.x, o.z, o.h, d.s); d.x = o.x; d.z = o.z; } };
   if (G.started && G.onFoot && !G.inside && !G.swimming) stepper(G.me, "me");
+  if (G.started && G.onFoot && !G.inside && !G.swimming && !G.para && (G.me.jy || 0) < 0.01) { const me = G.me, w = FX.walk || (FX.walk = { x: me.x, z: me.z }), d = Math.hypot(me.x - w.x, me.z - w.z); if (d > 4) { w.x = me.x; w.z = me.z; } else if (d > (G.sprint ? 1.35 : 0.95)) { w.x = me.x; w.z = me.z; footstep(); } }
   joggers.forEach((j, k) => { if (j.mesh.visible) stepper({ x: j.mesh.position.x, z: j.mesh.position.z, h: j.mesh.rotation.y }, "j" + k); });
   // nuages qui dérivent lentement
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);

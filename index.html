@@ -392,6 +392,18 @@ const NAT = (() => { const K = [[0, -640], [30, -720], [95, -830], [70, -950], [
   out.push(K[K.length - 1]); return out; })();
 // petits chemins de terre vers les fermes
 const PATHS = [[[95, -830], [220, -790], [330, -700], [420, -720]], [[-110, -1150], [-260, -1120], [-400, -1180], [-520, -1100]], [[70, -950], [200, -1010], [300, -1150], [316, -1250]], [[-30, -1040], [-180, -930], [-320, -880]]];
+let DIRT_M = null;
+function dirtRibbon(P, w) {
+  if (!IMG.dirt) return; if (!DIRT_M) { const t = imgTex("dirt", 1); t.wrapS = t.wrapT = THREE.RepeatWrapping; DIRT_M = new THREE.MeshLambertMaterial({ map: t, color: 0xd6c8b4, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }); }
+  const pts = []; for (let i = 0; i < P.length - 1; i++) { const [ax, az] = P[i], [bx, bz] = P[i + 1], L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / 3)); for (let k = 0; k < n; k++) pts.push([ax + (bx - ax) * k / n, az + (bz - az) * k / n]); }
+  pts.push(P[P.length - 1]); const pos = [], uv = [], idx = []; let dist = 0;
+  for (let i = 0; i < pts.length; i++) { const [x, z] = pts[i], a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], tx = b[0] - a[0], tz = b[1] - a[1], tl = Math.hypot(tx, tz) || 1, nx = -tz / tl, nz = tx / tl;
+    if (i) dist += Math.hypot(x - pts[i - 1][0], z - pts[i - 1][1]);
+    [-1, 1].forEach(sd => { const px = x + nx * w / 2 * sd, pz = z + nz * w / 2 * sd; pos.push(px, landH(px, pz) + 0.09, pz); uv.push(sd < 0 ? 0 : 1, dist / w); }); }
+  for (let i = 0; i < pts.length - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, DIRT_M); m.receiveShadow = true; scene.add(m);
+}
 function nearPoly(P, x, z) { let best = 1e9, bi = 0; for (let i = 0; i < P.length - 1; i++) { const ax = P[i][0], az = P[i][1], bx = P[i + 1][0], bz = P[i + 1][1], vx = bx - ax, vz = bz - az, L = vx * vx + vz * vz || 1, t = Math.max(0, Math.min(1, ((x - ax) * vx + (z - az) * vz) / L)), dx = ax + vx * t - x, dz = az + vz * t - z, d = dx * dx + dz * dz; if (d < best) { best = d; bi = i + t; } } return [Math.sqrt(best), bi]; }
 const nearNat = (x, z) => nearPoly(NAT, x, z)[0];
 const nearPath = (x, z) => Math.min(...PATHS.map(P => nearPoly(P, x, z)[0]));
@@ -1491,7 +1503,7 @@ function syncAllRigs(dt = 1 / 60) {
 
 /* --- textures photo et sons réels (fichiers publiés à côté de la page) --- */
 const IMG = {}, SNDRAW = {};
-const IMG_FILES = { asphalt: "assets/tex_asphalt.jpg", pave: "assets/tex_pave.jpg", sand: "assets/tex_sand.jpg", plaster: "assets/tex_plaster.jpg", plaster2: "assets/tex_plaster2.jpg", rubber: "assets/tex_rubber.jpg", tiles: "assets/tex_tiles.jpg", sky: "assets/sky.jpg", poolw: "assets/tex_poolwater.jpg" };
+const IMG_FILES = { asphalt: "assets/tex_asphalt.jpg", pave: "assets/tex_pave.jpg", sand: "assets/tex_sand.jpg", plaster: "assets/tex_plaster.jpg", plaster2: "assets/tex_plaster2.jpg", rubber: "assets/tex_rubber.jpg", tiles: "assets/tex_tiles.jpg", sky: "assets/sky.jpg", poolw: "assets/tex_poolwater.jpg", dirt: "assets/tex_dirt.jpg" };
 const SND_FILES = { race: "assets/eng_race.mp3", moto: "assets/eng_moto.mp3", scoot: "assets/eng_scoot.mp3", v8: "assets/snd_v8.mp3", siren: "assets/snd_siren.mp3", waves: "assets/amb_waves.mp3", city: "assets/amb_city.mp3", gull: "assets/amb_gull.mp3", gymamb: "assets/amb_gym.mp3", engine: "assets/snd_engine.mp3", door: "assets/snd_door.mp3", weight: "assets/snd_weight.mp3", cheer: "assets/snd_cheer.mp3", ping: "assets/snd_ping.mp3", ui: "assets/snd_ui.mp3", splash: "assets/snd_splash.mp3" };
 /* --- modèles 3D (voitures, bus, avions, bateaux, animaux, mobilier) --- */
 // face : direction du nez du modèle d'origine ; len : longueur voulue dans le monde (h : hauteur à la place)
@@ -3526,6 +3538,8 @@ function buildJungle(r) {
     col.push(c[0] * n, c[1] * n, c[2] * n); }
   geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
   const land = new THREE.Mesh(geo, detailMat(W / 7, H / 7)); land.rotation.x = -Math.PI / 2; land.position.set(JG.cx, 0, JG.cz); land.receiveShadow = true; scene.add(land);
+  // ruban de terre battue posé sur le relief, échantillonné tous les 3 m
+  dirtRibbon(JTRACK, 8.5);
   // remblai de la piste le long du versant ouest (au-dessus de la mer)
   const tg = new THREE.PlaneGeometry(520, 940, 104, 188), tp = tg.attributes.position, tc = [];
   for (let k = 0; k < tp.count; k++) { const x = tp.getX(k) - 285, z = -tp.getY(k) - 1990, h = jtH(x, z), hm = Math.max(mtnH(x, z), jgH(x, z)); tp.setZ(k, h > hm + 0.05 ? h : Math.min(h, hm - 0.8)); const d = nearJT(x, z), n = 0.9 + Math.random() * 0.15, c = d < 4.5 ? [0.55, 0.42, 0.28] : d < 9 ? [0.3, 0.42, 0.2] : [0.74, 0.66, 0.48]; tc.push(c[0] * n, c[1] * n, c[2] * n); }
@@ -3807,6 +3821,7 @@ function buildCountryside(r) {
   geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
   for (let k = 0; k < col.length; k++) col[k] = Math.min(1, col[k] * 1.15); geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
   const land = new THREE.Mesh(geo, detailMat(W / 7, D / 7)); land.rotation.x = -Math.PI / 2; land.position.set(CS.cx, 0, CS.cz); scene.add(land);
+  PATHS.forEach(P => dirtRibbon(P, 5));
   // palmiers le long de la nationale, vergers d'orangers
   for (let i = 2; i < NAT.length - 1; i += 5) { const [x0, z0] = NAT[i], [x1, z1] = NAT[i + 1], a = Math.atan2(x1 - x0, z1 - z0); [-1, 1].forEach(sd => { const px = x0 + Math.cos(a) * 11 * sd, pz = z0 - Math.sin(a) * 11 * sd; palm(px, pz, r, csH(px, pz) - 0.1); }); }
   [[230, -820, 120, 70, 0.3], [-260, -980, 100, 80, 1.1], [200, -1150, 110, 60, -0.4], [-420, -1210, 90, 70, 0.6]].forEach(([x, z, w, d, a]) => orangeGrove(x, z, w, d, a, r));

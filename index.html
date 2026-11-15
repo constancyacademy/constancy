@@ -125,6 +125,11 @@ body{font-family:var(--font-ui);-webkit-user-select:none;user-select:none;touch-
 /* ---------- Écrans ---------- */
 #screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:linear-gradient(180deg,rgba(5,5,5,.5),rgba(5,5,5,.88));overflow-y:auto;pointer-events:auto;touch-action:pan-y}
 #screen.clear{background:rgba(5,5,5,.6)}body.lifting #energy,body.lifting #help,body.lifting #tip,body.lifting #actions,body.lifting #joy{display:none!important}#wheelUI{position:fixed;inset:0;z-index:5;display:none;touch-action:none;color:#f2f0ec}#wheelUI.on{display:block}#wheelUI .wtop{position:absolute;top:calc(64px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(10,6,16,.5);border:1px solid rgba(255,79,163,.45);border-radius:14px;padding:10px 18px;backdrop-filter:blur(6px)}#wheelUI .lk{font:600 11px Inter,sans-serif;letter-spacing:4px;text-transform:uppercase;color:#ff5fc2}#wheelUI .wbar{width:150px;height:4px;border-radius:2px;background:rgba(255,255,255,.18);overflow:hidden}#wheelUI .wbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff4fa3,#ffd36e)}#wheelUI .wbot{position:absolute;left:0;right:0;bottom:calc(30px + env(safe-area-inset-bottom,0px));text-align:center;font:13px Inter,sans-serif;opacity:.75;text-shadow:0 2px 10px rgba(0,0,0,.7)}#liftUI{position:fixed;inset:0;z-index:5;display:none;touch-action:none;color:#f2f0ec}#liftUI.on{display:block}#liftUI .lfl,#liftUI .ltop{display:none}#liftUI.ride .lfl{display:flex;flex-direction:column;align-items:center;position:absolute;top:calc(70px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:rgba(10,6,16,.55);border:1px solid rgba(255,213,138,.4);border-radius:14px;padding:8px 18px;backdrop-filter:blur(6px)}#liftUI .lfl span{font:600 34px Georgia,serif;color:#ffd58a;line-height:1}#liftUI .lfl small{font:600 10px Inter,sans-serif;letter-spacing:3px;opacity:.8;margin-top:4px}#liftUI.top .ltop{display:flex;flex-direction:column;align-items:center;gap:6px;position:absolute;left:16px;right:16px;bottom:calc(24px + env(safe-area-inset-bottom,0px));text-align:center;text-shadow:0 2px 12px rgba(0,0,0,.7)}#liftUI .lk{font:600 11px Inter,sans-serif;letter-spacing:4px;text-transform:uppercase;color:#ff5fc2}#liftUI .lt{font:italic 26px Georgia,serif}#liftUI .lh{font:13px Inter,sans-serif;opacity:.75;margin-bottom:6px}#liftUI .btn{max-width:260px;width:100%;pointer-events:auto}#screen.titled{background:linear-gradient(180deg,rgba(5,3,10,0) 0%,rgba(5,3,10,.1) 40%,rgba(5,3,10,.82) 72%,rgba(5,3,10,.94) 100%);align-items:flex-end}#screen.titled .panel{margin:auto 0 0;gap:10px}#screen.titled .lead,#screen.titled .note{display:none}#screen.titled .logo{text-shadow:0 4px 30px rgba(0,0,0,.6)}#screen.titled .btn.alt{padding-top:11px;padding-bottom:11px;font-size:15px}
+#tankOv{position:fixed;inset:0;z-index:3;pointer-events:none;display:none;background:radial-gradient(ellipse 46% 40% at 50% 46%,rgba(0,0,0,0) 62%,rgba(8,10,6,.92) 74%,#07080a 100%)}
+#tankOv .tv-ring{position:absolute;left:50%;top:46%;width:min(70vw,70vh);height:min(70vw,70vh);transform:translate(-50%,-50%);border-radius:50%;box-shadow:0 0 0 2px rgba(150,255,170,.35),inset 0 0 60px rgba(0,0,0,.6)}
+#tankOv .tv-x,#tankOv .tv-y{position:absolute;left:50%;top:46%;background:rgba(150,255,170,.6)}#tankOv .tv-x{width:min(30vw,30vh);height:1px;transform:translate(-50%,0)}#tankOv .tv-y{height:min(30vw,30vh);width:1px;transform:translate(0,-50%)}
+#tankOv .tv-hud{position:absolute;left:50%;top:calc(46% + min(36vw,36vh));transform:translateX(-50%);display:flex;gap:14px;font:600 11px Inter,sans-serif;letter-spacing:.2em;color:rgba(170,255,190,.85)}
+#tankOv .tv-bot{position:absolute;left:0;right:0;bottom:0;height:16vh;background:linear-gradient(180deg,#2d3226,#171a13);border-top:3px solid #3e4534;display:flex;justify-content:center;gap:6vw;align-items:center}#tankOv .tv-bot i{width:22px;height:22px;border-radius:50%;background:radial-gradient(#7c8466,#2a2e22);box-shadow:inset 0 2px 0 rgba(255,255,255,.15)}
 /* V179 · écran titre */
 #screen.titled .ttl{max-width:480px;display:grid;grid-template-columns:1fr 1fr;gap:10px;--ci:6px}
 #screen.titled .ttl>*{grid-column:1/-1;margin:0}
@@ -654,7 +659,7 @@ function startLoop(k) {
 }
 function loopVol(k, v, t, tc = 0.4) { const L = SND.loops[k]; if (L) L.g.gain.setTargetAtTime(v, t, tc); }
 // moteur échantillonné : un son par famille de véhicule, rejoué en boucle et accéléré selon la vitesse
-const ENG_SAMPLE = { tracteur: ["engine", 0.42, 12], citadine: ["engine", 0.66, 22], coupe: ["v8", 0.95, 30], suv: ["v8", 0.62, 28], voiture: ["engine", 0.9, 28], gt: ["race", 0.62, 40], nacre: ["race", 0.92, 56], hyper: ["race", 0.82, 46], avion: ["moto", 0.42, 70], airbus: ["wind", 2.2, 90], bateau: ["moto", 0.5, 30], moto: ["moto", 0.8, 34], scooter: ["scoot", 0.9, 20], trottinette: ["scoot", 1.15, 14], jetski: ["moto", 0.95, 30], police: ["v8", 0.8, 32] };
+const ENG_SAMPLE = { tracteur: ["engine", 0.42, 12], citadine: ["engine", 0.66, 22], coupe: ["v8", 0.95, 30], suv: ["v8", 0.62, 28], voiture: ["engine", 0.9, 28], gt: ["race", 0.62, 40], nacre: ["race", 0.92, 56], hyper: ["race", 0.82, 46], avion: ["moto", 0.42, 70], airbus: ["wind", 2.2, 90], bateau: ["moto", 0.5, 30], moto: ["moto", 0.8, 34], scooter: ["scoot", 0.9, 20], trottinette: ["scoot", 1.15, 14], jetski: ["moto", 0.95, 30], police: ["v8", 0.8, 32], q4x4: ["v8", 0.5, 22], tank: ["v8", 0.34, 10], chasse: ["wind", 3.4, 120], gyro: ["scoot", 1.5, 10] };
 function engineSample(kind) {
   const c = SND.ctx, d = ENG_SAMPLE[kind] || (kind ? ENG_SAMPLE.voiture : null), key = d && SND.buf && SND.buf[d[0]] ? d[0] : null;
   if (SND.engKey === key) return SND.engS ? d : null;
@@ -689,7 +694,12 @@ const sfx = {
 function footstep() {
   const c = SND.ctx; if (!c || !SND.on || G.mode !== "play" || G.inside) return; const me = G.me, out = Math.abs(me.x) > HALF || Math.abs(me.z) > HALF, t = c.currentTime;
   if (!SND.stepB) SND.stepB = { grav: [0, 1, 2].map(() => noiseBuf(0.17, k => Math.pow(1 - k, 1.4) * (Math.random() < 0.3 ? 1 : 0.22))), pave: [0, 1].map(() => noiseBuf(0.06, k => Math.pow(1 - k, 5))) };
-  const gravel = out && !isWater(me.x, me.z), s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  if (!SND.stepB.grass) SND.stepB.grass = [0, 1, 2].map(() => noiseBuf(0.2, k => Math.sin(Math.min(1, k * 6) * Math.PI / 2) * Math.pow(1 - k, 2.2)));
+  const rural = out && me.z < -470 && !isWater(me.x, me.z), beach = out && !rural;
+  if (rural || beach) { const s2 = c.createBufferSource(), f2 = c.createBiquadFilter(), g2 = c.createGain(); s2.buffer = SND.stepB.grass[Math.floor(Math.random() * 3)]; s2.playbackRate.value = 0.8 + Math.random() * 0.3;
+    f2.type = "lowpass"; f2.frequency.value = rural ? 1500 + Math.random() * 400 : 900 + Math.random() * 250; f2.Q.value = 0.5; g2.gain.value = (rural ? 0.11 : 0.12) * (G.sprint ? 1.2 : 1); s2.connect(f2); f2.connect(g2); g2.connect(c.destination); s2.start(t);
+    const o = c.createOscillator(), og = c.createGain(); o.type = "sine"; o.frequency.setValueAtTime(80, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.08); og.gain.setValueAtTime(0.045, t); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.09); o.connect(og); og.connect(c.destination); o.start(t); o.stop(t + 0.1); return; }
+  const gravel = false, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
   s.buffer = gravel ? SND.stepB.grav[Math.floor(Math.random() * 3)] : SND.stepB.pave[Math.floor(Math.random() * 2)]; s.playbackRate.value = 0.88 + Math.random() * 0.24;
   f.type = gravel ? "bandpass" : "lowpass"; f.frequency.value = gravel ? 2300 + Math.random() * 900 : 1100 + Math.random() * 300; f.Q.value = gravel ? 0.8 : 0.7;
   g.gain.value = (gravel ? 0.2 : 0.13) * (G.sprint ? 1.25 : 1); s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
@@ -703,7 +713,8 @@ const ENGINE = {
   scooter: { b: 120, k: 6, f: 1400, v: 0.035, t: "square" }, moto: { b: 70, k: 7, f: 2200, v: 0.05, t: "sawtooth" },
   trottinette: { b: 300, k: 12, f: 900, v: 0.012, t: "sine" }, velo: null,
   avion: { b: 60, k: 1.6, f: 700, v: 0.05, t: "sawtooth" }, airbus: { b: 42, k: 0.8, f: 380, v: 0.07, t: "sawtooth" }, bateau: { b: 48, k: 2.4, f: 520, v: 0.05, t: "sawtooth" },
-  tracteur: { b: 30, k: 2.6, f: 320, v: 0.06, t: "sawtooth" }, jetski: { b: 85, k: 4.5, f: 1500, v: 0.045, t: "sawtooth" }, police: { b: 50, k: 3.2, f: 800, v: 0.055, t: "sawtooth" }
+  tracteur: { b: 30, k: 2.6, f: 320, v: 0.06, t: "sawtooth" }, jetski: { b: 85, k: 4.5, f: 1500, v: 0.045, t: "sawtooth" }, police: { b: 50, k: 3.2, f: 800, v: 0.055, t: "sawtooth" },
+  q4x4: { b: 36, k: 2.4, f: 520, v: 0.07, t: "sawtooth" }, tank: { b: 26, k: 1.4, f: 340, v: 0.09, t: "sawtooth" }, chasse: { b: 140, k: 4, f: 3000, v: 0.05, t: "sawtooth" }, gyro: { b: 190, k: 5, f: 1400, v: 0.025, t: "sine" }
 };
 // musique sobre des menus et de la pause : nappe d'accords lente, filtrée, avec écho
 const CHORDS = [[220, 261.6, 329.6, 392], [174.6, 220, 261.6, 329.6], [130.8, 196, 246.9, 329.6], [196, 246.9, 293.7, 392]];
@@ -759,9 +770,9 @@ function updateSound() {
   if (!SND.ctx) return;
   const t = SND.ctx.currentTime, playing = G.mode === "play" && SND.on;
   updateMusic(G.mode !== "play" && G.mode !== "gym");
-  const speed = Math.abs(G.car.v), prof = !P || G.onFoot || G.ride.kind === "none" ? null : (ENGINE[G.ride.kind === "own" ? P.car : G.ride.kind] || (G.ride.kind === "velo" ? null : ENGINE.voiture)), engOn = playing && prof;
+  const speed = Math.abs(G.car.v), rk = G.ride.offroad && G.ride.kind === "voiture" ? "q4x4" : G.ride.kind, prof = !P || G.onFoot || G.ride.kind === "none" ? null : (ENGINE[G.ride.kind === "own" ? P.car : rk] || (G.ride.kind === "velo" ? null : ENGINE.voiture)), engOn = playing && prof;
   if (prof) { if (SND.eng.type !== prof.t) SND.eng.type = prof.t; SND.eng.frequency.setTargetAtTime(prof.b + speed * prof.k, t, 0.06); SND.filt.frequency.setTargetAtTime(prof.f + speed * 20, t, 0.1); }
-  const kind = G.ride.kind === "own" ? (P && P.car) : G.ride.kind;
+  const kind = G.ride.kind === "own" ? (P && P.car) : rk;
   if (engOn && SND.ctx.state === "suspended") SND.ctx.resume();
   if (engOn && SND.engKey && !SND.engS) SND.engKey = "__";
   const smp = engOn ? engineSample(kind) : engineSample(null), sport = kind === "gt" || kind === "hyper" || kind === "nacre";
@@ -3433,12 +3444,12 @@ function trailPuff(x, y, z) {
   if (!CTRAIL.pts) { const g = new THREE.BufferGeometry(); CTRAIL.pos = new Float32Array(CTRAIL.n * 3).fill(-9999); CTRAIL.col = new Float32Array(CTRAIL.n * 3); CTRAIL.age = new Float32Array(CTRAIL.n).fill(99);
     g.setAttribute("position", new THREE.BufferAttribute(CTRAIL.pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(CTRAIL.col, 3));
     CTRAIL.pts = new THREE.Points(g, new THREE.PointsMaterial({ size: 1.3, map: glowTexture(), vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false, sizeAttenuation: true })); CTRAIL.pts.frustumCulled = false; scene.add(CTRAIL.pts); }
-  const i = CTRAIL.i = (CTRAIL.i + 1) % CTRAIL.n; CTRAIL.pos[i * 3] = x; CTRAIL.pos[i * 3 + 1] = y; CTRAIL.pos[i * 3 + 2] = z; CTRAIL.age[i] = 0;
+  const i = CTRAIL.i = (CTRAIL.i + 1) % CTRAIL.n; if (!CTRAIL.hue) CTRAIL.hue = new Float32Array(CTRAIL.n); { const T = performance.now() / 1000; CTRAIL.hue[i] = 0.5 + 0.5 * Math.sin(T * 0.35 + (i % 2) * 1.6); } CTRAIL.pos[i * 3] = x; CTRAIL.pos[i * 3 + 1] = y; CTRAIL.pos[i * 3 + 2] = z; CTRAIL.age[i] = 0;
 }
 function updateTrails(dt) {
   if (TRAIL_MAT) { const nk = nightK, T = performance.now() / 1000; TRAIL_MAT.color.setRGB(0.78 + nk * 0.22, 0.8 - nk * 0.12 + 0.05 * Math.sin(T * 0.7), 0.86 - nk * 0.22); TRAIL_MAT.opacity = 0.55 + nk * 0.4; }
   if (!CTRAIL.pts) return; const k = 0.75 + nightK * 0.2, nk2 = nightK;
-  for (let i = 0; i < CTRAIL.n; i++) { const a = CTRAIL.age[i] += dt; const v = a > 4.5 ? 0 : (1 - a / 4.5) * k; CTRAIL.col[i * 3] = v; CTRAIL.col[i * 3 + 1] = v * (1 - nk2 * 0.2); CTRAIL.col[i * 3 + 2] = v * (1.02 - nk2 * 0.32); }
+  for (let i = 0; i < CTRAIL.n; i++) { const a = CTRAIL.age[i] += dt; const v = a > 4.5 ? 0 : (1 - a / 4.5) * k; const hu = CTRAIL.hue ? CTRAIL.hue[i] : 0; CTRAIL.col[i * 3] = v; CTRAIL.col[i * 3 + 1] = v * (1 - nk2 * (0.2 + hu * 0.4)); CTRAIL.col[i * 3 + 2] = v * (1.02 - nk2 * (0.62 - hu * 0.22)); }
   CTRAIL.pts.geometry.attributes.color.needsUpdate = true; CTRAIL.pts.geometry.attributes.position.needsUpdate = true;
 }
 function emitDust(x, y, z, vx, vz, size) {
@@ -3721,7 +3732,7 @@ function buildMountain(r) {
 }
 function buildHollywood() {
   const word = "CONSTANCY", N = word.length, mat = [], sm = new THREE.MeshLambertMaterial({ color: 0x8a8a90 }); HOLLY.mats = mat;
-  for (let i = 0; i < N; i++) { const a = Math.PI / 2 - (i - (N - 1) / 2) * 0.052; let r = MT.R * 0.2; while (r < MT.R && mtnH(MT.x + Math.cos(a) * r, MT.z + Math.sin(a) * r) > 132) r += 2;
+  for (let i = 0; i < N; i++) { const a = Math.PI / 2 - (i - (N - 1) / 2) * 0.074; let r = MT.R * 0.2; while (r < MT.R && mtnH(MT.x + Math.cos(a) * r, MT.z + Math.sin(a) * r) > 132) r += 2;
     const x = MT.x + Math.cos(a) * r, z = MT.z + Math.sin(a) * r, y = mtnH(x, z), c = document.createElement("canvas"); c.width = 256; c.height = 300; const g = c.getContext("2d"); g.fillStyle = "#fff"; g.font = "900 300px Anton, Impact, 'Arial Narrow', Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "alphabetic"; let fs = 300; while (g.measureText(word[i]).width > 236 && fs > 120) { fs -= 10; g.font = `900 ${fs}px Anton, Impact, 'Arial Narrow', Arial, sans-serif`; } g.fillText(word[i], 128, 288);
     const tx = new THREE.CanvasTexture(c), m = new THREE.MeshLambertMaterial({ map: tx, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide, emissive: 0xffffff, emissiveMap: tx, emissiveIntensity: 0 }); mat.push(m);
     const L = new THREE.Mesh(new THREE.PlaneGeometry(19, 22), m), grp = new THREE.Group(); grp.position.set(x, y + 9.5, z); grp.rotation.y = Math.atan2(x - MT.x, z - MT.z); L.rotation.x = -0.2; grp.add(L);
@@ -3886,7 +3897,7 @@ function buildCountryside(r) {
   // fermes : grange rouge, silo, bottes de foin, clôtures, tracteur
   const barnM = new THREE.MeshLambertMaterial({ color: 0x9e2a24 }), roofM = new THREE.MeshLambertMaterial({ color: 0x3b3b40 }), siloM = new THREE.MeshLambertMaterial({ color: 0xc9c4ba }), hayM = new THREE.MeshLambertMaterial({ color: 0xd8b55a }), houseM = new THREE.MeshLambertMaterial({ color: 0xf3ece0 }), tileM = new THREE.MeshLambertMaterial({ color: 0xc0623a });
   const roofGeo = (w, d, hgt) => { const g = new THREE.CylinderGeometry(0.01, 1, 1, 4, 1); g.rotateY(Math.PI / 4); g.scale(w * 0.72, hgt, d * 0.72); return g; };
-  const farm = (x, z, a) => { const h = csH(x, z);
+  const farm = (x, z, a) => { const h = csH(x, z); csBox(x, z, 16, 24, a); csBox(x + Math.cos(a) * 13, z - Math.sin(a) * 13, 6.4, 6.4, 0); csBox(x - Math.cos(a) * 20, z + Math.sin(a) * 20, 11, 9, a);
     addGeo(barnM, new THREE.BoxGeometry(16, 9, 24), x, h + 4.5, z, a); addGeo(roofM, roofGeo(17, 25, 5), x, h + 11.5, z, a);
     const sx = x + Math.cos(a) * 13, sz = z - Math.sin(a) * 13; addGeo(siloM, new THREE.CylinderGeometry(3, 3, 16, 14), sx, csH(sx, sz) + 8, sz); addGeo(siloM, new THREE.SphereGeometry(3, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), sx, csH(sx, sz) + 16, sz);
     const hx = x - Math.cos(a) * 20, hz = z + Math.sin(a) * 20; addGeo(houseM, new THREE.BoxGeometry(11, 6, 9), hx, csH(hx, hz) + 3, hz, a); houseWindows(hx, csH(hx, hz), hz, 11, 9, 6, a, r); addGeo(tileM, roofGeo(12, 10, 3.6), hx, csH(hx, hz) + 7.8, hz, a);
@@ -3898,11 +3909,11 @@ function buildCountryside(r) {
   // village de Saint-Constant : maisons, clocher, café, place
   const vx = -170, vz = -1120;
   for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + r() * 0.2, rr = 38 + r() * 26, x = vx + Math.cos(a) * rr, z = vz + Math.sin(a) * rr; if (nearNat(x, z) < 12) continue; const h = csH(x, z), w = 8 + r() * 5, d = 8 + r() * 4, hg = 5 + r() * 4;
-    addGeo(houseM, new THREE.BoxGeometry(w, hg, d), x, h + hg / 2, z, -a); addGeo(tileM, roofGeo(w + 1, d + 1, 3.4), x, h + hg + 1.7, z, -a); houseWindows(x, h, z, w, d, hg, -a, r); }
-  { const h = csH(vx, vz); addGeo(siloM, new THREE.BoxGeometry(7, 22, 7), vx, h + 11, vz); addGeo(roofM, new THREE.ConeGeometry(5.4, 9, 4), vx, h + 26.5, vz, Math.PI / 4); addGeo(houseM, new THREE.BoxGeometry(12, 9, 22), vx, h + 4.5, vz + 14); }
+    addGeo(houseM, new THREE.BoxGeometry(w, hg, d), x, h + hg / 2, z, -a); csBox(x, z, w, d, -a); addGeo(tileM, roofGeo(w + 1, d + 1, 3.4), x, h + hg + 1.7, z, -a); houseWindows(x, h, z, w, d, hg, -a, r); }
+  { const h = csH(vx, vz); csBox(vx, vz, 7, 7, 0); csBox(vx, vz + 14, 12, 22, 0); addGeo(siloM, new THREE.BoxGeometry(7, 22, 7), vx, h + 11, vz); addGeo(roofM, new THREE.ConeGeometry(5.4, 9, 4), vx, h + 26.5, vz, Math.PI / 4); addGeo(houseM, new THREE.BoxGeometry(12, 9, 22), vx, h + 4.5, vz + 14); }
   // station-service au bord de la nationale
   { const x = 128, z = -868, h = csH(x, z); addGeo(whiteM, new THREE.BoxGeometry(22, 0.6, 14), x, h + 6.5, z); [-8, 8].forEach(dx => [-5, 5].forEach(dz => addGeo(postM, new THREE.BoxGeometry(0.5, 6.4, 0.5), x + dx, h + 3.2, z + dz)));
-    addGeo(houseM, new THREE.BoxGeometry(12, 4.5, 9), x + 18, h + 2.25, z); const st = label("Station · Les Terres", "#ff2d55"); st.position.set(x, h + 10, z); st.scale.set(16, 4, 1); scene.add(st); }
+    addGeo(houseM, new THREE.BoxGeometry(12, 4.5, 9), x + 18, h + 2.25, z); csBox(x + 18, z, 12, 9, 0); const st = label("Station · Les Terres", "#ff2d55"); st.position.set(x, h + 10, z); st.scale.set(16, 4, 1); scene.add(st); }
   // éoliennes qui tournent sur les crêtes
   const turbM = new THREE.MeshLambertMaterial({ color: 0xf2f2f0 });
   [[-420, -760], [-360, -700], [-470, -830], [420, -1000], [470, -1080], [380, -1140]].forEach(([x, z]) => { const h = csH(x, z);
@@ -5454,8 +5465,18 @@ function collide0(o, rad, swim) {
   if (!swim && collideProps(o, Math.min(rad, 1.2))) hit = true;
   return collide0Terrain(o, swim) || hit;
 }
+var CS_BOX; // sans initialiseur : la campagne peut être construite avant que cette ligne ne s'exécute
+function csBox(x, z, w, d, a) { (CS_BOX || (CS_BOX = [])).push([x, z, w / 2, d / 2, a]); }
+// boîtes orientées (bâtiments de la campagne) : on glisse le long des murs
+function pushCsBoxes(o) { if (o.z > -470 || !CS_BOX || !CS_BOX.length) return false; if (o === G.car && G.ride && RIDES[G.ride.kind] && RIDES[G.ride.kind].plane && G.car.alt > 2) return false;
+  const rad = o === G.car && !G.onFoot ? 1.7 : 0.55; let hit = false;
+  for (const b of CS_BOX) { const dx = o.x - b[0], dz = o.z - b[1]; if (Math.abs(dx) > 30 || Math.abs(dz) > 30) continue; const c = Math.cos(b[4]), s = Math.sin(b[4]); let lx = dx * c - dz * s, lz = dx * s + dz * c;
+    const px = b[2] + rad - Math.abs(lx), pz = b[3] + rad - Math.abs(lz); if (px <= 0 || pz <= 0) continue;
+    if (px < pz) lx = Math.sign(lx || 1) * (b[2] + rad); else lz = Math.sign(lz || 1) * (b[3] + rad);
+    o.x = b[0] + lx * c + lz * s; o.z = b[1] - lx * s + lz * c; hit = true; }
+  return hit; }
 function collide0Terrain(o, swim) {
-  let hit = false;
+  let hit = pushCsBoxes(o);
   if (onPier(o.x, o.z)) return false; // la jetée de la fête foraine s'avance loin dans la mer : on y marche jusqu'au bout
   // bord de l'eau : la voiture s'arrête au rivage, à la nage on peut aller jusqu'au large (limite plus loin)
   if (onHighway(o.x, o.z)) { if (o.z < HW.z0 - 30 && o.z > HW.z1 + 10) { const lx = HW.x - 7.2, rx = HW.x + 7.2; if (o.x < lx) { o.x = lx; hit = true; } if (o.x > rx) { o.x = rx; hit = true; } } return hit; }
@@ -6059,11 +6080,14 @@ function updateCamera(dt, follow) {
       return;
     }
   }
-  { const bf = (window.innerWidth < window.innerHeight ? 74 : 62) + (G.tbOn && !G.onFoot ? 12 : 0) + (G.sprintMax && G.onFoot ? 10 : 0) + (!G.onFoot && G.ride && !isPlane(G.ride.kind) && !G.fpv ? clamp((Math.abs(G.car.v) - 12) / 40, 0, 1) * 9 : 0); if (Math.abs(camera.fov - bf) > 0.05) { camera.fov += (bf - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); } }
+  { const bf = (window.innerWidth < window.innerHeight ? 74 : 62) + (G.tbOn && !G.onFoot ? 6 : 0) + (G.sprintMax && G.onFoot ? 8 : 0) + (!G.onFoot && G.ride && !isPlane(G.ride.kind) && !G.fpv ? clamp((Math.abs(G.car.v) - 12) / 40, 0, 1) * 5 : 0); if (Math.abs(camera.fov - bf) > 0.05) { camera.fov += (bf - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); } }
   const fpv = follow && G.fpv && !G.onFoot && G.ride.kind !== "none" && carMesh;
   const fpvPlane = !!fpv && isPlane(G.ride.kind);
   if (pCockpit) pCockpit.visible = fpvPlane;
-  if (cockpit) cockpit.visible = !!fpv && !fpvPlane && !(RIDES[G.ride.kind] && !RIDES[G.ride.kind].car);
+  if (cockpit) cockpit.visible = !!fpv && !fpvPlane && G.ride.kind !== "tank" && !(RIDES[G.ride.kind] && !RIDES[G.ride.kind].car);
+  { const tk = !!fpv && G.ride.kind === "tank"; let ov = $("tankOv"); if (tk && !ov) { ov = document.createElement("div"); ov.id = "tankOv";
+      ov.innerHTML = '<div class="tv-ring"></div><div class="tv-x"></div><div class="tv-y"></div><div class="tv-hud"><b>TOURELLE</b><span id="tankSpd">0 km/h</span></div><div class="tv-bot"><i></i><i></i><i></i><i></i><i></i></div>'; document.body.appendChild(ov); }
+    if (ov) { ov.style.display = tk ? "block" : "none"; if (tk) { const e = $("tankSpd"); if (e) e.textContent = Math.round(Math.abs(G.car.v) * 3.6) + " km/h"; } } }
   { const ov = $("cockpitOv"), lux = !!fpv && !fpvPlane && G.ride.kind === "own" && ["nacre", "hyper", "gt"].includes(P.car);
     if (ov) { ov.style.display = lux ? "block" : "none"; if (!lux && $("cockpitTop")) $("cockpitTop").style.display = "none"; if (lux) { const port = window.innerWidth < window.innerHeight, sh = clamp(Math.abs(G.car.v) / 60, 0, 1), t = performance.now() / 1000;
       ov.style.width = port ? "190%" : "100%"; ov.style.left = port ? "-45%" : "0"; ov.style.objectFit = port ? "contain" : "cover";
@@ -6135,7 +6159,7 @@ function updateCamera(dt, follow) {
   const onBoat = !foot && RIDES[G.ride.kind] && RIDES[G.ride.kind].boat, gy = G.inside || onBoat ? 0 : GH(o.x, o.z); let cy = up + (onBoat ? 0.6 : 0) + Math.max(gy, G.inside || onBoat ? 0 : GH(tx, tz));
   const fc = camClip(o, tx, tz, cy, gy); G.camF = (G.camF || 1) + (fc - (G.camF || 1)) * Math.min(1, dt * (fc < (G.camF || 1) ? 14 : 2.5)); // contre un mur : la caméra se rapproche vite, puis recule en douceur
   if (G.camF < 0.999) { tx = o.x + (tx - o.x) * G.camF; tz = o.z + (tz - o.z) * G.camF; cy = gy + 1.6 + (cy - gy - 1.6) * Math.max(G.camF, 0.55); }
-  const k = G.snapCam ? 1 : 1 - Math.exp(-dt * (foot ? 4 : 4.5) * (G.camF < 0.9 ? 2.5 : 1)); G.snapCam = false; // téléportation (porte, appart) : caméra posée directement
+  const k = G.snapCam ? 1 : 1 - Math.exp(-dt * (foot ? 4 : 4.5 + Math.min(16, sv * 0.28)) * (G.camF < 0.9 ? 2.5 : 1)); G.snapCam = false; // téléportation (porte, appart) : caméra posée directement
   camera.position.x += (tx - camera.position.x) * k; camera.position.y += (cy - camera.position.y) * k; camera.position.z += (tz - camera.position.z) * k;
   cy = Math.max(cy, gy + 0.55); if (camera.position.y < gy + 0.5) camera.position.y = gy + 0.5;
   camera.lookAt(o.x + Math.sin(h) * (foot ? VF[3] : VC[3]), (foot ? VF[2] : VC[2]) + gy + Math.tan(Math.min(1.15, lpU * 0.85)) * (back + (foot ? VF[3] : VC[3])), o.z + Math.cos(h) * (foot ? VF[3] : VC[3]));
@@ -7055,7 +7079,7 @@ function welcomeBack() {
   show(`<div class="panel"><div class="kicker">${n > 1 ? `Jour ${n} d'affilée` : "Te revoilà"}</div><h2>${n > 1 ? "Tu es revenu. C'est ça, la Constancy." : "Nouveau départ. Ça compte aussi."}</h2>
     <p class="lead">${G.pendingHelp || ""}</p>${streakCard()}${dailyCard()}
     <button class="btn" id="wgo" data-focus type="button">C'est parti</button></div>`);
-  G.pendingHelp = null; on("shareS", shareStreak); on("wgo", startPlayHome);
+  G.pendingHelp = null; on("shareS", shareStreak); on("wgo", () => P.mePos || P.carPos ? startPlay() : startPlayHome());
 }
 setTimeout(kitFlush, 4000); window.addEventListener("online", kitFlush);
 function startPlayHome() { G.homeStart = true; startPlay(); setTimeout(refreshReferrals, 8000); }
@@ -7413,7 +7437,7 @@ function arrested() {
   on("ok", () => endDay(true));
 }
 function endDay(arrestedFlag) {
-  if (G.ride && (G.ride.kind === "own" || G.ride.kind === "none") && !G.para) saveNow(); // on garde l'endroit où l'on est pour le lendemain
+  if (!G.para) saveNow(); // on garde l'endroit où l'on est pour le lendemain (à pied, dans sa voiture ou dans un véhicule loué)
   setMode("bilan");
   if (G.mission) { if (G.mission.agent) scene.remove(G.mission.agent.mesh); G.mission = null; destBeacon.visible = false; }
   removePolice(); G.stars = 0; G.idle = 0; G.onFoot = false; if (meMesh) meMesh.visible = false;
@@ -7479,7 +7503,7 @@ function envCar(mesh) { mesh.traverse(o => { if (!o.isMesh || !o.material) retur
 function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "number" && nightK > 0.5) ? ENVR.night : ENVR.day; if (ENVR.cur === want) return; ENVR.cur = want;
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
 window.__W = () => ({ spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ planes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ planes, CS_BOX, pushCsBoxes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

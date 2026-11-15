@@ -4288,8 +4288,8 @@ function addRotors(m, key, speedFn) {
     if (prop) SPIN.push({ o: prop, ax: "z", f: speedFn || (() => 38) });
     else { const r = mkRotor(S.y * 0.62, 0.16, "z"); r.position.set(0, S.y * 0.5, S.z / 2 + 0.08); m.add(r); SPIN.push({ o: r, ax: "z", f: speedFn || (() => 38) }); } }
   if (key === "heli") {
-    const r = mkRotor(S.z * 0.92, 0.32, "y"); r.position.set(0, S.y * 0.97, S.z * 0.06); m.add(r); SPIN.push({ o: r, ax: "y", f: speedFn || (() => 26) });
-    const t = mkRotor(S.y * 0.38, 0.1, "z"); t.rotation.y = Math.PI / 2; t.position.set(0.35, S.y * 0.62, -S.z * 0.47); m.add(t); SPIN.push({ o: t, ax: "z", f: speedFn || (() => 40) });
+    const r = mkRotor(S.z * 0.86, 0.3, "y"); r.position.set(0, S.y * 0.965, S.z * 0.115); m.add(r); SPIN.push({ o: r, ax: "y", f: speedFn || (() => 26) });
+    const t = mkRotor(S.y * 0.38, 0.1, "z"); t.rotation.y = Math.PI / 2; t.position.set(0.3, S.y * 0.7, -S.z * 0.465); m.add(t); SPIN.push({ o: t, ax: "z", f: speedFn || (() => 40) });
   }
 }
 function updateSpin(dt) { for (const s of SPIN) { const v = s.f(); if (v) s.o.rotation[s.ax] += v * dt; } }

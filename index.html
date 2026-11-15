@@ -5651,7 +5651,7 @@ function updateCar(dt) {
 }
 const riverZ = z => z > RZ0 - WALK - 1 && z < RZ1 + WALK + 1;
 function jump() {
-  const me = G.me; if (G.mode !== "play" || !G.onFoot || G.inside || G.swimming || (me.jy || 0) > 0.01) return; me.vy = 5.6; me.jy = 0.02; sfx.step && sfx.step(); stat("saut");
+  const me = G.me; if (G.mode !== "play" || !G.onFoot || G.inside || G.swimming || (me.jy || 0) > 0.01) return; me.vy = 5.5; me.jy = 0.02; G.landT = 0; sfx.step && sfx.step(); stat("saut");
 }
 // à pied : haut = avancer, côtés = tourner, rond poussé tout en haut = sprint (jauge d'énergie)
 function updateMe(dt) {
@@ -5671,7 +5671,8 @@ function updateMe(dt) {
   const tgtV = inp.fwd > 0.05 ? (G.sprint ? (G.sprintMax ? 16 + clamp(G.maxHold / 0.8, 0, 1) * 8 : 15) : 3 + inp.fwd * 8.5) : inp.fwd < -0.05 ? -2.4 : 0; // courir est gratuit, seul le sprint consomme
   { const cur = me.v || 0, rate = Math.abs(tgtV) > Math.abs(cur) ? (G.sprint ? 16 : 22) : 26; me.v = cur + clamp(tgtV - cur, -rate * dt, rate * dt); if (G.inside) me.v = tgtV; }
   const speed = me.v;
-  if ((me.jy || 0) > 0) { me.vy -= 15 * dt; me.jy += me.vy * dt; if (me.jy <= 0) { me.jy = 0; me.vy = 0; } }
+  if ((me.jy || 0) > 0) { me.vy -= (me.vy > 0 ? 12.5 : 19) * dt; me.jy += me.vy * dt; if (me.jy <= 0) { const hard = me.vy < -3; me.jy = 0; me.vy = 0; if (hard) { G.landT = 0.28; sfx.step && sfx.step(); } } }
+  if (G.landT > 0) G.landT = Math.max(0, G.landT - dt);
   G.riverOK = G.swimming || (me.jy || 0) > 0.55;
   if (P && !P.jumpTip && !G.inside && !G.swimming && (Math.abs(me.z - RZ0) < 3 || Math.abs(me.z - RZ1) < 3)) { P.jumpTip = true; help("Envie d'un plongeon ? <b>Double-tape l'écran</b> pour sauter par-dessus la rambarde (Espace sur ordinateur). Tu nages très bien.", 6); }
   me.x += Math.sin(me.h) * speed * dt; me.z += Math.cos(me.h) * speed * dt;
@@ -5746,12 +5747,12 @@ function fpHands(on, dt) {
   }
   // course : les mains montent et descendent en bas de l'écran, en alternance, avec un léger balancier vers le centre
   // (jamais vers l'avant comme un coup de poing) ; à l'arrêt elles sortent du champ
-  const v = Math.abs(G.me.v || 0), U = FPH.userData, tk = clamp((v - 0.6) / 6.5, 0, 1);
+  const v = Math.abs(G.me.v || 0), U = FPH.userData, air = clamp((G.me.jy || 0) / 0.6, 0, 1), tk = Math.max(clamp((v - 0.6) / 6.5, 0, 1), air * 0.9);
   U.k += (tk - U.k) * Math.min(1, dt * (tk > U.k ? 5 : 3)); U.ph += dt * (4.2 + v * 0.75); const k = U.k;
   FPH.visible = k > 0.03;
   const por = (camera.aspect || 1) < 1, xw = por ? 0.15 : 0.3;
   U.hands.forEach(g => { const sd = g.userData.sd, s = Math.sin(U.ph + (sd > 0 ? 0 : Math.PI)), lift = s * 0.5 + 0.5, bob = Math.abs(Math.sin(U.ph)) * 0.012;
-    g.position.set(sd * (xw - 0.04 * lift * k), -0.7 + k * (0.1 + 0.17 * lift) + bob * k, -0.27);
+    g.position.set(sd * (xw - 0.04 * lift * k + air * 0.05), -0.7 + k * (0.1 + 0.17 * lift * (1 - air)) + bob * k * (1 - air) + air * 0.16 - (G.landT > 0 ? Math.sin(Math.PI * (1 - G.landT / 0.28)) * 0.05 : 0), -0.27);
     g.rotation.set(0.6 + 0.22 * lift, sd * (0.22 + 0.08 * lift), -sd * (0.25 + 0.08 * lift)); });
 }
 /* vue à la première personne : volant dans les mains */
@@ -5953,7 +5954,9 @@ function updateCamera(dt, follow) {
   fpHands(!!fpvFoot && !G.swimming && !G.photoMode, dt);
   if (fpvFoot) {
     const me = G.me, fx = Math.sin(me.h), fz = Math.cos(me.h), base = G.inside ? 0 : G.swimming ? -0.6 : GH(me.x, me.z) + 0.25;
-    camera.position.set(me.x + fx * 0.15, base + (G.swimming ? 0.9 : 2.05) + (G.sprint ? Math.sin(performance.now() / 70) * 0.05 : 0), me.z + fz * 0.15);
+    const sv = Math.abs(me.v || 0), bobA = G.swimming || (me.jy || 0) > 0.01 ? 0 : Math.min(0.045, sv * 0.0045), land = G.landT > 0 ? Math.sin(Math.PI * (1 - G.landT / 0.28)) * 0.14 : 0;
+    G.fpBob = (G.fpBob || 0) + dt * (5 + sv * 0.55);
+    camera.position.set(me.x + fx * 0.15, base + (G.swimming ? 0.9 : 2.05) + (me.jy || 0) * 0.92 + Math.abs(Math.sin(G.fpBob)) * bobA - land, me.z + fz * 0.15);
     { const lh = me.h + (G.lookYaw || 0); camera.lookAt(camera.position.x + Math.sin(lh) * 10, camera.position.y - 0.6 - (G.lookPitch || 0) * 9, camera.position.z + Math.cos(lh) * 10); }
     sky.position.copy(camera.position); sun.position.set(me.x - 160, 220, me.z + 100); sun.target.position.set(me.x, 0, me.z);
     return;

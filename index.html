@@ -346,6 +346,16 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
 #minimap{box-shadow:0 0 0 1px rgba(255,255,255,.22),0 0 0 5px rgba(12,12,16,.55),0 10px 16px -4px rgba(0,0,0,.55),0 22px 40px -8px rgba(0,0,0,.5),inset 0 0 0 1px rgba(0,0,0,.6)}
 .menu-btn svg,.act svg,.act img{filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
 #cash,#clock,#mainGoal .t{text-shadow:0 2px 6px rgba(0,0,0,.55)}
+
+/* paysage (téléphone à l'horizontale) : tout reste à sa place, en bas et sur les côtés */
+@media (orientation:landscape) and (max-height:540px){
+  .sub{bottom:calc(58px + env(safe-area-inset-bottom,0px))!important;width:min(520px,58vw)!important;font-size:14px!important}
+  #energy{bottom:calc(14px + env(safe-area-inset-bottom,0px))!important;width:200px!important}
+  #tip{bottom:calc(46px + env(safe-area-inset-bottom,0px))!important}
+  #screen.map3d .m3s{max-width:520px;padding:10px 14px 12px;gap:8px}#screen.map3d .m3b .btn{padding:8px 6px}#m3tools{top:calc(14px + env(safe-area-inset-top,0px))}
+}
+.rotHint{display:none;align-items:center;gap:8px;justify-content:center;font:600 10px Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,214,236,.8);margin-top:2px}.rotHint i{display:inline-block;width:14px;height:22px;border:1.5px solid currentColor;border-radius:4px;animation:rotPh 2.4s ease-in-out infinite}@keyframes rotPh{0%,30%{transform:rotate(0)}50%,80%{transform:rotate(90deg)}100%{transform:rotate(0)}}
+@media (orientation:portrait) and (pointer:coarse){.rotHint{display:flex}}
 </style>
 
 <canvas id="game" aria-label="Ville de Constancy en 3D"></canvas><div id="cockpitTop" style="position:fixed;left:0;top:0;width:100%;display:none;pointer-events:none;z-index:0;background:linear-gradient(180deg,rgba(8,6,16,.72) 0%,rgba(10,8,20,.5) 60%,rgba(14,10,24,.62) 100%);box-shadow:inset 0 -3px 0 rgba(20,18,26,.95),inset 0 -5px 6px rgba(255,63,180,.35)"></div><img id="cockpitOv" alt="" src="assets/cockpit_nacre.webp" style="position:fixed;left:0;bottom:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;pointer-events:none;z-index:0;display:none;transform-origin:50% 100%">
@@ -1949,9 +1959,14 @@ function updateTV(dt) { if (!TVS.mesh || TVS.tex.length < 1) return; TVS.t += dt
   if (t) { const z = 0.94 - 0.06 * Math.min(1, k); t.repeat.set(z, z); t.offset.set((1 - z) * (TVS.i % 2 ? 1 - k : k), (1 - z) * 0.5); }
   TVS.fade.material.opacity = k > 0.93 ? (k - 0.93) / 0.07 : k < 0.07 ? 1 - k / 0.07 : 0;
   if (TVS.t >= D) { TVS.t = 0; for (let n = 1; n <= 3; n++) { const j = (TVS.i + n) % 3; if (TVS.tex[j]) { TVS.i = j; TVS.mesh.material.map = TVS.tex[j]; TVS.mesh.material.needsUpdate = true; break; } } } }
+const HOME = { win: [], cur: [], open: 0 };
+function updateHomeWindow(dt) { if (!HOME.win.length) return; const me = G.me, near = G.inside === "home" && Math.hypot(me.x - (HX - 1.5), me.z - (HZ - HD)) < 4.2; HOME.open += ((near ? 1 : 0) - HOME.open) * Math.min(1, dt * 2.2);
+  const e = HOME.open * HOME.open * (3 - 2 * HOME.open); HOME.win.forEach(w => { w.hinge.rotation.y = w.sd * e * 1.25; }); const T = performance.now() / 1000;
+  HOME.cur.forEach(c => { const p = c.m.geometry.attributes.position, b = c.base; for (let i = 0; i < p.count; i++) { const y = b[i * 3 + 1], x = b[i * 3], low = (0.6 - y / 4) ; p.setZ(i, (Math.sin(T * 1.7 + x * 3 + y * 0.8) * 0.06 + Math.sin(T * 0.9 + y) * 0.03) * (0.25 + e * 1.4) * Math.max(0, low)); } p.needsUpdate = true; });
+  if (SND.loops && SND.loops.city) { try { SND.loops.city.g.gain.setTargetAtTime(0.02 + e * 0.16, SND.ctx.currentTime, 0.4); } catch (x) {} } }
 function updateHomeView(dt) {
   updateTV(dt);
-  if (!HOMEVIEW.rt || G.inside !== "home") { HOMEVIEW.t = 0; return; } HOMEVIEW.t -= dt; if (HOMEVIEW.t > 0) return; HOMEVIEW.t = 1.2;
+  if (!HOMEVIEW.rt || G.inside !== "home") { HOMEVIEW.t = 0; return; } updateHomeWindow(dt); HOMEVIEW.t -= dt; if (HOMEVIEW.t > 0) return; HOMEVIEW.t = 0.35;
   const hx = LM.home.x, hz = LM.home.z, c = HOMEVIEW.cam; c.position.set(hx, 24, hz); c.lookAt(TOWER.x, 70, TOWER.z);
   const vis = meMesh ? meMesh.visible : false; if (meMesh) meMesh.visible = false; const fogF = scene.fog.far, fogN = scene.fog.near; scene.fog.near = 300; scene.fog.far = 1500;
   CHUNKS.forEach(m => { m.visible = true; }); if (cullChunks.big) cullChunks.big.forEach(m => { m.visible = true; });
@@ -1959,20 +1974,43 @@ function updateHomeView(dt) {
   scene.fog.near = fogN; scene.fog.far = fogF; if (meMesh) meMesh.visible = vis;
 }
 function buildHomeInterior() {
-  const floorM = new THREE.MeshLambertMaterial({ color: 0x9a8668 }), wallM = new THREE.MeshLambertMaterial({ color: 0xcfc6b4, side: THREE.BackSide });
-  const room = new THREE.Mesh(new THREE.BoxGeometry(HRW * 2, 5.5, HD * 2), wallM); room.position.set(HX, 2.75, HZ); scene.add(room);
+  const parquet = (() => { const c = document.createElement("canvas"); c.width = 512; c.height = 512; const g = c.getContext("2d"); for (let r = 0; r < 16; r++) { let x = -((r * 97) % 256); while (x < 512) { const w = 160 + Math.random() * 140, l = 120 + Math.random() * 40; g.fillStyle = `rgb(${l + 40},${l + 6},${l - 30})`; g.fillRect(x, r * 32, w, 32); g.fillStyle = "rgba(0,0,0,.18)"; g.fillRect(x, r * 32, 2, 32); for (let q = 0; q < 6; q++) { g.fillStyle = `rgba(60,35,15,${0.05 + Math.random() * 0.08})`; g.fillRect(x, r * 32 + Math.random() * 30, w, 1); } x += w; } g.fillStyle = "rgba(0,0,0,.22)"; g.fillRect(0, r * 32, 512, 1); }
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 3); t.anisotropy = 8; return t; })();
+  const floorM = new THREE.MeshPhongMaterial({ map: parquet, shininess: 30, specular: 0x1a140e }), wallM = new THREE.MeshLambertMaterial({ color: 0xcfc6b4, side: THREE.BackSide });
+  { const bm = new THREE.MeshLambertMaterial({ color: 0xf3efe7 }); [[0, -HD + 0.03, HRW * 2, 0.06], [0, HD - 0.03, HRW * 2, 0.06]].forEach(([dx, dz, w, d]) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, 0.16, d), bm); b.position.set(HX + dx, 0.08, HZ + dz); scene.add(b); const c2 = b.clone(); c2.scale.y = 1.2; c2.position.y = 5.42; scene.add(c2); });
+    [[-HRW + 0.03, 0], [HRW - 0.03, 0]].forEach(([dx]) => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.16, HD * 2), bm); b.position.set(HX + dx, 0.08, HZ); scene.add(b); const c2 = b.clone(); c2.scale.y = 1.2; c2.position.y = 5.42; scene.add(c2); }); }
+  // cadres : affiches de la ville (couleurs de Constancy)
+  [[HX + 6.8, 2.9, HZ - HD + 0.06, 0, "#ff2d95", "#ffc94a", "Constancy City"], [HX - HRW + 0.06, 2.8, HZ - 1.5, Math.PI / 2, "#3ff0ff", "#ff2d95", "Mont Constancy"]].forEach(([x, y, z, ry, c1, c2, t]) => { const c = document.createElement("canvas"); c.width = 300; c.height = 400; const g = c.getContext("2d"); const gr = g.createLinearGradient(0, 0, 0, 400); gr.addColorStop(0, "#1a0b26"); gr.addColorStop(0.55, c1); gr.addColorStop(1, c2); g.fillStyle = gr; g.fillRect(0, 0, 300, 400);
+    g.fillStyle = "rgba(10,6,20,.85)"; for (let k = 0; k < 14; k++) { const w = 12 + Math.random() * 22, h = 50 + Math.random() * 170; g.fillRect(Math.random() * 300, 400 - h, w, h); } g.fillStyle = "#fff"; g.font = "500 34px 'EB Garamond', Georgia, serif"; g.textAlign = "center"; g.fillText(t, 150, 70);
+    const fr = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2, 0.06), new THREE.MeshPhongMaterial({ color: 0xd8b25a, shininess: 90 })); fr.position.set(x, y, z); fr.rotation.y = ry; scene.add(fr); const pic = new THREE.Mesh(new THREE.PlaneGeometry(1.36, 1.86), new THREE.MeshLambertMaterial({ map: new THREE.CanvasTexture(c) })); pic.position.copy(fr.position); pic.rotation.y = ry; pic.translateZ(0.035); scene.add(pic); });
+  const noFace = new THREE.MeshBasicMaterial({ visible: false }), room = new THREE.Mesh(new THREE.BoxGeometry(HRW * 2, 5.5, HD * 2), [wallM, wallM, wallM, wallM, wallM, noFace]); room.position.set(HX, 2.75, HZ); scene.add(room);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(HRW * 2, HD * 2), floorM); floor.rotation.x = -Math.PI / 2; floor.position.set(HX, 0.01, HZ); scene.add(floor);
   // baie vitrée avec vue sur la ville au coucher du soleil
   const vc = document.createElement("canvas"); vc.width = 512; vc.height = 256; const g = vc.getContext("2d");
   const gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, "#2a1e5c"); gr.addColorStop(0.55, "#ff7a59"); gr.addColorStop(1, "#ffd08a"); g.fillStyle = gr; g.fillRect(0, 0, 512, 256);
   for (let k = 0; k < 40; k++) { const w = 12 + Math.random() * 26, h = 40 + Math.random() * 150, x = Math.random() * 512; g.fillStyle = "rgba(20,14,40,.9)"; g.fillRect(x, 256 - h, w, h); g.fillStyle = "rgba(255,220,150,.7)"; for (let y = 256 - h + 6; y < 250; y += 9) if (Math.random() < .4) g.fillRect(x + 3, y, 3, 3); }
   // petite fenêtre aux stores à moitié baissés (pas de baie vitrée au début)
-  HOMEVIEW.rt = new THREE.WebGLRenderTarget(1024, 576); HOMEVIEW.cam = new THREE.PerspectiveCamera(48, 1024 / 576, 0.5, 2400);
-  const view = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 2), new THREE.MeshBasicMaterial({ map: HOMEVIEW.rt.texture })); view.position.set(HX - 1.5, 2.7, HZ - HD + 0.06); scene.add(view); HOMEVIEW.mesh = view;
-  const frameM = new THREE.MeshLambertMaterial({ color: 0xe8e4dc });
-  [[-3.1, 0], [0.1, 0]].forEach(([dx]) => { const f = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.1, 0.1), frameM); f.position.set(HX + dx, 2.7, HZ - HD + 0.1); scene.add(f); });
-  for (let k = 0; k < 2; k++) { const sl = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.1, 0.05), new THREE.MeshLambertMaterial({ color: 0xd8d2c4 })); sl.position.set(HX - 1.5, 3.65 - k * 0.12, HZ - HD + 0.12); scene.add(sl); }
-  { const f = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.12, 0.1), frameM); f.position.set(HX - 1.5, 1.7, HZ - HD + 0.1); scene.add(f); const f2 = f.clone(); f2.position.y = 3.72; scene.add(f2); }
+  HOMEVIEW.rt = new THREE.WebGLRenderTarget(1024, 640); HOMEVIEW.cam = new THREE.PerspectiveCamera(52, 1024 / 640, 0.5, 2600);
+  // la vue est un peu en retrait derrière le mur : on a l'épaisseur de l'embrasure, et la ville bouge (voitures, avions, lumières)
+  const WX0 = HX - 1.5, WY = 2.75, WZ = HZ - HD, WW = 3.6, WH = 2.5;
+  const view = new THREE.Mesh(new THREE.PlaneGeometry(WW + 2.4, WH + 1.6), new THREE.MeshBasicMaterial({ map: HOMEVIEW.rt.texture })); view.position.set(WX0, WY, WZ - 0.9); scene.add(view); HOMEVIEW.mesh = view;
+  const frameM = new THREE.MeshPhongMaterial({ color: 0xf4f1ea, shininess: 40 }), revealM = new THREE.MeshLambertMaterial({ color: 0xd9d1c2 });
+  // embrasure (épaisseur du mur) et cadre
+  [[-WW / 2 - 0.15, 0, 0.3, WH + 0.3], [WW / 2 + 0.15, 0, 0.3, WH + 0.3]].forEach(([dx, dy, w, h]) => { const f = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.9), revealM); f.position.set(WX0 + dx, WY + dy, WZ - 0.42); scene.add(f); });
+  [[WH / 2 + 0.15], [-WH / 2 - 0.15]].forEach(([dy]) => { const f = new THREE.Mesh(new THREE.BoxGeometry(WW + 0.6, 0.3, 0.9), revealM); f.position.set(WX0, WY + dy, WZ - 0.42); scene.add(f); });
+  // la vue est cachée tout autour par le mur : quatre bandes de mur devant la vue
+  { const wm = new THREE.MeshLambertMaterial({ color: 0xcfc6b4 }), xl = WX0 - WW / 2 - 0.3, xr = WX0 + WW / 2 + 0.3, yb = WY - WH / 2 - 0.3, yt = WY + WH / 2 + 0.3, seg = (x0, x1, y0, y1) => { const b = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, 0.85), wm); b.position.set((x0 + x1) / 2, (y0 + y1) / 2, WZ - 0.44); scene.add(b); };
+    seg(HX - HRW, xl, 0, 5.5); seg(xr, HX + HRW, 0, 5.5); seg(xl, xr, yt, 5.5); seg(xl, xr, 0, yb); }
+  const sill = new THREE.Mesh(new THREE.BoxGeometry(WW + 0.9, 0.1, 0.55), new THREE.MeshPhongMaterial({ color: 0xece7de, shininess: 70 })); sill.position.set(WX0, WY - WH / 2 - 0.05, WZ + 0.2); scene.add(sill);
+  // deux battants vitrés sur charnières
+  const glassM = new THREE.MeshPhongMaterial({ color: 0xcfe6ff, transparent: true, opacity: 0.16, shininess: 200, specular: 0xffffff, depthWrite: false }); HOME.win = [];
+  [-1, 1].forEach(sd => { const hinge = new THREE.Group(); hinge.position.set(WX0 + sd * WW / 2, WY, WZ - 0.06); scene.add(hinge); const pw = WW / 2, sash = new THREE.Group(); sash.position.x = -sd * pw / 2; hinge.add(sash);
+    [[0, WH / 2 - 0.04, pw, 0.08], [0, -WH / 2 + 0.04, pw, 0.08], [sd * (pw / 2 - 0.04), 0, 0.08, WH], [-sd * (pw / 2 - 0.04), 0, 0.08, WH], [0, 0.35, pw, 0.05]].forEach(([dx, dy, w, h]) => { const f = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.07), frameM); f.position.set(dx, dy, 0); sash.add(f); });
+    const gl = new THREE.Mesh(new THREE.PlaneGeometry(pw - 0.12, WH - 0.12), glassM); sash.add(gl); const hd = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.05), new THREE.MeshPhongMaterial({ color: 0xd8b25a, shininess: 100 })); hd.position.set(-sd * (pw / 2 - 0.14), 0, 0.06); sash.add(hd);
+    HOME.win.push({ hinge, sd }); });
+  // rideaux en voile qui bougent avec l'air quand la fenêtre est ouverte
+  HOME.cur = []; [-1, 1].forEach(sd => { const g = new THREE.PlaneGeometry(1.1, WH + 1.1, 8, 10); const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: 0xfff6f0, transparent: true, opacity: 0.78, side: THREE.DoubleSide })); m.position.set(WX0 + sd * (WW / 2 + 0.75), WY + 0.35, WZ + 0.18); scene.add(m); HOME.cur.push({ m, base: g.attributes.position.array.slice(), sd }); });
+  { const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, WW + 2.4, 8), new THREE.MeshPhongMaterial({ color: 0xd8b25a, shininess: 100 })); rod.rotation.z = Math.PI / 2; rod.position.set(WX0, WY + WH / 2 + 0.95, WZ + 0.18); scene.add(rod); }
   // traces d'humidité sur le mur, ampoule nue au plafond
   { const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d"); const gr = x.createRadialGradient(64, 64, 4, 64, 64, 62); gr.addColorStop(0, "rgba(120,105,80,.35)"); gr.addColorStop(1, "rgba(120,105,80,0)"); x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
     const st = new THREE.Mesh(new THREE.PlaneGeometry(3, 2.2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false })); st.position.set(HX + 7, 4.2, HZ - HD + 0.05); scene.add(st); }
@@ -1999,7 +2037,7 @@ function buildHomeInterior() {
     [[HX - 4.3, HZ - 1.2, 0x2a3550], [HX - 3.6, HZ - 0.6, 0x9a9a9a], [HX - 4.8, HZ - 0.2, 0x5a2020]].forEach(([x, z, col], k) => box(1.2, 0.18, 0.9, col, x, 0.1 + k * 0.05, z, k));
     [[HX + 8.1, HZ - 6.6], [HX + 8.6, HZ - 6.4], [HX + 9.1, HZ - 6.7]].forEach(([x, z]) => { const d = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.26, 0.06, 14), new THREE.MeshPhongMaterial({ color: 0xf2f2f2 })); d.position.set(x, 1.95, z); homeMess.add(d); }); }
   homeDeco = new THREE.Group(); scene.add(homeDeco); // trophées qui apparaissent avec la progression
-  homeLight = new THREE.PointLight(0xfff0dd, 0, 50); homeLight.position.set(HX, 4.5, HZ); scene.add(homeLight);
+  homeLight = new THREE.PointLight(0xffe2c0, 0, 34, 1.4); homeLight.position.set(HX, 4.6, HZ); scene.add(homeLight);
   const ring = (x, z, col) => { const r = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.4, 32), new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide })); r.rotation.x = -Math.PI / 2; r.position.set(x, 0.03, z); scene.add(r); };
   ring(HZN.bed.x + 3.6, HZN.bed.z + 3.4, 0xffffff); ring(HZN.exit.x, HZN.exit.z, 0xff2d55);
   const ex = wallSign("Sortie", "#ff2d55", 3, 0.75); ex.position.set(HZN.exit.x, 3.6, HZ + HD - 0.08); ex.rotation.y = Math.PI; scene.add(ex);
@@ -2011,7 +2049,7 @@ function refreshHomeDeco() {
   for (let k = 0; k < n; k++) { const t = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, 0.7, 8), gold); t.position.set(HX - 9.6 + (k % 4) * 0.7, 2.6 + Math.floor(k / 4) * 0.8, HZ + 6.5); homeDeco.add(t); }
 }
 function enterHome() {
-  fade(() => { G.snapCam = true; G.inside = "home"; G.me.x = HZN.exit.x; G.me.z = HZN.exit.z - 1.5; G.me.h = Math.PI; homeLight.intensity = 1.1; G.lastZone = "inside"; refreshHomeDeco(); help("<b>Chez toi.</b> Le lit (cercle blanc) pour finir la journée. Ton appart évoluera avec ton statut."); });
+  fade(() => { G.snapCam = true; G.inside = "home"; G.me.x = HZN.exit.x; G.me.z = HZN.exit.z - 1.5; G.me.h = Math.PI; homeLight.intensity = 1.25; G.lastZone = "inside"; refreshHomeDeco(); help("<b>Chez toi.</b> Le lit (cercle blanc) pour finir la journée. Ton appart évoluera avec ton statut."); });
 }
 function leaveHome() {
   fade(() => { G.snapCam = true; G.inside = false; G.me.x = LM.home.x; G.me.z = LM.home.z - 3; G.me.h = Math.PI; homeLight.intensity = 0; G.lastZone = "home";
@@ -2029,7 +2067,7 @@ function updateGuideArrow(dt) {
 }
 function startInHome(first) { // le joueur se réveille chez lui ; la voiture attend devant l'immeuble
   if (carMesh && G.ride.kind === "own") { G.parked = { mesh: carMesh, x: G.car.x, z: G.car.z, h: G.car.h }; carMesh = null; }
-  G.ride = { kind: "none" }; G.onFoot = true; meMesh.visible = true; resetPose(); G.inside = "home"; G.snapCam = true; homeLight.intensity = 1.1; refreshHomeDeco();
+  G.ride = { kind: "none" }; G.onFoot = true; meMesh.visible = true; resetPose(); G.inside = "home"; G.snapCam = true; homeLight.intensity = 1.25; refreshHomeDeco();
   G.me.x = HZN.bed.x + 1.5; G.me.z = HZN.bed.z + 6.2; G.me.h = Math.atan2(HZN.exit.x - G.me.x, HZN.exit.z - G.me.z); G.lastZone = "inside"; G.intro = "door";
   help(first ? (hourNow() >= 19 || hourNow() < 6 ? "<b>Première nuit à Constancy City.</b> Regarde par la fenêtre… Puis <b>suis la flèche rouge</b> pour sortir." : "<b>Jour 1.</b> Petit appart, gros réveil. Tout commence ici. <b>Suis la flèche rouge</b> pour sortir.") : `<b>Jour ${P.day}.</b> Debout. La flèche rouge t'indique la sortie.`, 7);
 }
@@ -5583,7 +5621,7 @@ function applySky(h) {
   const ang = (h - 6) / 12 * Math.PI, sd = skyMat.uniforms.sunDir.value; sd.set(-Math.cos(ang), Math.max(-0.2, Math.sin(ang)), 0.35).normalize();
   const day = clamp(Math.sin(ang), 0, 1);
   skyMat.uniforms.sunCol.value.setRGB(1, 0.65 + day * 0.3, 0.45 + day * 0.4).multiplyScalar(day > 0 ? 1 : 0);
-  sun.intensity = 0.34 + day * 0.63; hemi.intensity = 0.66 + day * 0.21; if (IMG.sky) skyMat.uniforms.cloudK.value = 0.25 + day * 0.4;
+  sun.intensity = 0.34 + day * 0.63; hemi.intensity = 0.66 + day * 0.21; if (G.inside) { sun.intensity *= 0.18; hemi.intensity = 0.32 + day * 0.12; } // intérieur : lumière douce, les lampes de la pièce font le reste if (IMG.sky) skyMat.uniforms.cloudK.value = 0.25 + day * 0.4;
   sun.color.setRGB(1, 0.74 + day * 0.18, 0.56 + day * 0.24);
   nightK = 1 - clamp(day * 1.8, 0, 1); sun.color.lerp(new THREE.Color(0.62, 0.7, 1.0), nightK * 0.85); // clair de lune bleuté
   // Vice City : la nuit, la lumière d'ambiance vire au rose-violet (néons), sans délaver l'image
@@ -7409,7 +7447,7 @@ function titleScreen() {
   setMode("title"); setTimeout(() => { if (G.mode === "title") screen.classList.add("titled"); }, 0);
   const saved = store.load();
   show(`<div class="panel ttl"><div class="kicker"><i></i>${CREATOR ? "Mode créateur · tout débloqué" : "Bêta · accès anticipé"}</div><div class="logo" id="logoTap">Constancy</div><div class="vc"></div>
-    <div class="tag">Le jeu où ta régularité<br><em>fait le score.</em></div>
+    <div class="tag">Le jeu où ta régularité<br><em>fait le score.</em></div><div class="rotHint"><i></i>Meilleur à l'horizontale</div>
     <p class="lead">Tu pars de zéro. Fauché, une voiture qui tient avec du scotch, pas un muscle. Mission après mission, jour après jour, tu fais de ton perso une légende.</p>
     ${saved ? `<button class="btn" id="cont" data-focus type="button">Continuer · jour ${saved.day} · $${fmt(saved.cash)}</button><button class="btn alt" id="newg" type="button">Nouvelle partie</button>` : `<button class="btn" id="quick" data-focus type="button">Jouer maintenant</button><button class="btn alt" id="newg" type="button">Créer mon perso d'abord</button>`}
     <button class="btn alt sm" id="tcodeBtn" type="button">J'ai un code de partie</button>
@@ -7840,12 +7878,12 @@ function satShot(x0, z0, w, px) {
   const c = document.createElement("canvas"); c.width = c.height = px; const g = c.getContext("2d"), im = g.createImageData(px, px); for (let y = 0; y < px; y++) im.data.set(buf.subarray((px - 1 - y) * px * 4, (px - y) * px * 4), y * px * 4); g.putImageData(im, 0, 0);
   // léger étalonnage : plus de contraste, couleurs de la ville
   g.globalCompositeOperation = "soft-light"; g.fillStyle = nightK > 0.5 ? "rgba(255,60,160,.10)" : "rgba(255,210,150,.06)"; g.fillRect(0, 0, px, px); g.globalCompositeOperation = "source-over"; return c; }
-function satRender() { if (!renderer || SAT.busy) return; SAT.busy = true;
+function satRender() { if (!renderer || SAT.busy || G.map3d) return; SAT.busy = true;
   const hidden = []; const hide = o => { if (o && o.visible) { o.visible = false; hidden.push(o); } };
   hide(sky); hide(sea); hide(FX.clouds); hide(WX.lines); hide(meMesh); (HOLLY.sky || []).forEach(hide); (M3.beams || []).forEach(hide); (M3.tags || []).forEach(hide); scene.children.forEach(o => { if (o.isPoints || o.isSprite) hide(o); });
   const fog = scene.fog; scene.fog = null; const vis = []; CHUNKS.forEach(m => { vis.push(m.visible); m.visible = true; }); TLOD.forEach(t => { t.lo.userData.v = t.lo.visible; t.hi.userData.v = t.hi.visible; t.lo.visible = true; t.hi.visible = false; });
   const wp = new THREE.Mesh(new THREE.PlaneGeometry(MAPW * 1.3, MAPW * 1.3), new THREE.MeshBasicMaterial({ color: nightK > 0.5 ? 0x0e3050 : 0x2aa3c8, transparent: true, opacity: 0.84, depthWrite: false })); wp.rotation.x = -Math.PI / 2; wp.position.y = -0.22; wp.renderOrder = 2; scene.add(wp);
-  try { SAT.world = satShot(-MO, -MO, MAPW, 2048); const CR = SHORE + 130; SAT.city = satShot(-CR, -CR, CR * 2, 2048); SAT.cr = CR; SAT.nk = nightK; } catch (e) { SAT.world = SAT.city = null; }
+  try { SAT.world = satShot(-MO, -MO, MAPW, 1024); const CR = SHORE + 130; SAT.city = satShot(-CR, -CR, CR * 2, 1280); SAT.cr = CR; SAT.nk = nightK; } catch (e) { SAT.world = SAT.city = null; }
   scene.remove(wp); wp.geometry.dispose(); wp.material.dispose(); scene.fog = fog; CHUNKS.forEach((m, i) => { m.visible = vis[i]; }); TLOD.forEach(t => { t.lo.visible = t.lo.userData.v; t.hi.visible = t.hi.userData.v; }); hidden.forEach(o => o.visible = true); SAT.busy = false; }
 /* Grande carte */
 function openBigMap(zone) {

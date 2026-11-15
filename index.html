@@ -5554,10 +5554,12 @@ function carWade(c, dt, two) {
   if (c.z < -470 || onPier(c.x, c.z) || onHighway(c.x, c.z) || !isWater(c.x, c.z)) { c.wd = 0; return 0; }
   const ee = shoreE(c.x, c.z), ed = shoreEdge(c.x, c.z), wd = clamp((ee - ed + 4.5) / 12.5, 0, 1); c.wd = wd;
   c.v *= Math.pow(1 - 0.8 * wd, dt * 4);
+  if (FX.mat && wd > 0.05 && (Math.abs(c.v) > 2 || G.stall)) { FX.mat.uniforms.col.value.setHex(0xeef8ff); const fx = Math.sin(c.h), fz = Math.cos(c.h), rx = Math.cos(c.h), rz = -Math.sin(c.h), n = G.stall ? 2 : 1 + Math.floor(Math.min(3, Math.abs(c.v) / 6));
+    for (let q = 0; q < n; q++) { const sd = q % 2 ? 1 : -1, bx = c.x - fx * 1.6 + rx * sd * 1.0, bz = c.z - fz * 1.6 + rz * sd * 1.0; emitDust(bx, -0.45, bz, -fx * c.v * 0.12 + rx * sd * 2, -fz * c.v * 0.12 + rz * sd * 2, 1.4 + wd * 1.6); } }
   if (Math.abs(c.v) > 3 && (G.splT = (G.splT || 0) - dt) < 0) { G.splT = 0.9 - wd * 0.4; playBuf("splash", 0.12 + wd * 0.22); }
   if (wd > 0.92 && !G.stall) { G.stall = 1.8; c.v = 0; if (sfx.splash) sfx.splash(); help("<b>Le moteur a pris l'eau.</b> La dépanneuse arrive…", 3); }
   if (G.stall) { c.v = 0; G.stall -= dt; if (G.stall <= 0) { G.stall = 0; const k = (ed - 16) / ee; c.x *= k; c.z *= k; c._lx = c.x; c._lz = c.z; c.h = Math.atan2(-c.x, -c.z); c.jy = null; c.wd = 0; help("Voiture relivrée sur la plage. On sèche, on repart.", 3); return 0; } }
-  return two ? wd * 0.6 : wd;
+  return two ? wd * 0.8 : wd * 1.35;
 }
 function updateCar(dt) {
   if (!carMesh) return;

@@ -130,6 +130,41 @@ body{font-family:var(--font-ui);-webkit-user-select:none;user-select:none;touch-
 #tankOv .tv-x,#tankOv .tv-y{position:absolute;left:50%;top:46%;background:rgba(150,255,170,.6)}#tankOv .tv-x{width:min(30vw,30vh);height:1px;transform:translate(-50%,0)}#tankOv .tv-y{height:min(30vw,30vh);width:1px;transform:translate(0,-50%)}
 #tankOv .tv-hud{position:absolute;left:50%;top:calc(46% + min(36vw,36vh));transform:translateX(-50%);display:flex;gap:14px;font:600 11px Inter,sans-serif;letter-spacing:.2em;color:rgba(170,255,190,.85)}
 #tankOv .tv-bot{position:absolute;left:0;right:0;bottom:0;height:16vh;background:linear-gradient(180deg,#2d3226,#171a13);border-top:3px solid #3e4534;display:flex;justify-content:center;gap:6vw;align-items:center}#tankOv .tv-bot i{width:22px;height:22px;border-radius:50%;background:radial-gradient(#7c8466,#2a2e22);box-shadow:inset 0 2px 0 rgba(255,255,255,.15)}
+/* V183 · style commun des écrans */
+#screen:not(.titled):not(.hidden){background:linear-gradient(180deg,rgba(10,5,18,.62),rgba(6,3,12,.9));-webkit-backdrop-filter:blur(12px) saturate(1.1);backdrop-filter:blur(12px) saturate(1.1)}
+#screen .panel h2{font-family:var(--font-ui);font-weight:800;letter-spacing:-.02em;font-size:clamp(26px,7vw,36px);line-height:1.08;text-shadow:0 2px 0 rgba(0,0,0,.35),0 10px 26px rgba(0,0,0,.55)}
+#screen .panel .kicker{color:#ff6fb8;letter-spacing:.2em}
+#screen .panel .card{border-radius:16px;background:linear-gradient(180deg,rgba(42,28,56,.72),rgba(14,9,20,.82));border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 4px 0 rgba(0,0,0,.3),0 16px 32px rgba(0,0,0,.42)}
+#screen .panel .choice{border-radius:16px;background:linear-gradient(180deg,rgba(46,30,60,.78),rgba(16,10,24,.82));border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 5px 0 rgba(0,0,0,.38),0 14px 26px rgba(0,0,0,.4);transition:transform .14s,border-color .2s,box-shadow .14s}
+#screen .panel .choice b{font-family:var(--font-ui);font-weight:700;letter-spacing:-.01em;font-size:17px}
+#screen .panel .choice:active{transform:translateY(4px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 1px 0 rgba(0,0,0,.38),0 6px 14px rgba(0,0,0,.4)}
+@media (hover:hover){#screen .panel .choice:hover{border-color:rgba(255,124,192,.5);transform:translateY(-1px)}}
+#screen .panel .btn{font-family:var(--font-ui);font-weight:700;letter-spacing:.03em;font-size:16px;border-radius:14px;transition:transform .14s,box-shadow .14s,border-color .2s}
+#screen .panel .btn:not(.alt){color:#fff;background:linear-gradient(180deg,#ff7cc3,#ff2d95 52%,#dd1a78);text-shadow:0 1px 2px rgba(110,0,55,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 0 rgba(0,0,0,.16),0 5px 0 #8e1250,0 14px 26px rgba(255,45,149,.3),0 22px 40px rgba(0,0,0,.4)}
+#screen .panel .btn:not(.alt):active{transform:translateY(4px);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 1px 0 #8e1250,0 8px 16px rgba(255,45,149,.28)}
+#screen .panel .btn.alt{color:#efeaf2;font-weight:600;font-size:15px;background:linear-gradient(180deg,rgba(40,26,52,.72),rgba(18,10,26,.72));border:1px solid rgba(255,255,255,.13);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 4px 0 rgba(0,0,0,.4),0 12px 22px rgba(0,0,0,.4)}
+#screen .panel .btn.alt:active{transform:translateY(3px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 1px 0 rgba(0,0,0,.4),0 6px 12px rgba(0,0,0,.4)}
+@media (hover:hover){#screen .panel .btn.alt:hover{border-color:rgba(255,124,192,.5)}}
+#screen .panel .btn:focus-visible{outline:2px solid rgba(255,190,225,.55);outline-offset:3px}
+/* V182 · menu de pause */
+.pm{max-width:440px;gap:12px}
+.pm .pm-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.pm h2{font-family:var(--font-ui);font-weight:800;font-size:34px;letter-spacing:-.02em;text-shadow:0 2px 0 rgba(0,0,0,.35),0 10px 26px rgba(0,0,0,.55)}
+.pm .pm-av{width:58px;height:58px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(180deg,rgba(255,111,184,.25),rgba(40,20,52,.6));border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 10px 24px rgba(0,0,0,.45)}.pm .pm-av svg{width:34px;height:50px}
+.pm .pm-chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pm .pm-chips div{padding:10px 6px 9px;border-radius:14px;text-align:center;background:linear-gradient(180deg,rgba(44,30,58,.75),rgba(18,12,26,.75));border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 4px 0 rgba(0,0,0,.35),0 12px 22px rgba(0,0,0,.4)}
+.pm .pm-chips b{display:block;font:700 15px var(--font-ui);color:#fff;letter-spacing:-.01em}.pm .pm-chips span{display:block;margin-top:3px;font:600 9px var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:rgba(239,234,242,.6)}
+.pm>.btn:not(.alt){font-family:var(--font-ui);font-weight:700;font-size:17px;letter-spacing:.03em;border-radius:14px;color:#fff;background:linear-gradient(180deg,#ff7cc3,#ff2d95 52%,#dd1a78);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 5px 0 #8e1250,0 14px 26px rgba(255,45,149,.32),0 22px 40px rgba(0,0,0,.45);transition:transform .14s}
+.pm>.btn:not(.alt):active{transform:translateY(4px);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 1px 0 #8e1250,0 8px 16px rgba(255,45,149,.3)}
+.pm .pm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.pm .pm-grid.two{grid-template-columns:1fr 1fr}
+.pm .pm-t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:84px;padding:12px 6px;border-radius:16px;cursor:pointer;color:#efeaf2;font:600 12px var(--font-ui);letter-spacing:.02em;background:linear-gradient(180deg,rgba(46,30,60,.78),rgba(16,10,24,.78));border:1px solid rgba(255,255,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 5px 0 rgba(0,0,0,.4),0 14px 26px rgba(0,0,0,.42);transition:transform .14s,border-color .2s,box-shadow .14s}
+.pm .pm-t svg{width:24px;height:24px;color:#ff8cc8;filter:drop-shadow(0 2px 6px rgba(255,79,163,.45))}
+.pm .pm-t.pk{background:linear-gradient(180deg,rgba(255,79,163,.35),rgba(90,20,60,.7));border-color:rgba(255,124,192,.4)}.pm .pm-t.pk svg{color:#fff}
+.pm .pm-t:active{transform:translateY(4px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 1px 0 rgba(0,0,0,.4),0 6px 14px rgba(0,0,0,.4)}
+@media (hover:hover){.pm .pm-t:hover{border-color:rgba(255,124,192,.5);transform:translateY(-1px)}}
+.pm .pm-keys{padding:12px 14px;border-radius:14px}.pm .pm-keys .kgrid{font-size:12px}
+.pm .pm-links{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:2px}.pm .pm-links button{background:none;border:0;color:rgba(239,234,242,.6);font:600 12px var(--font-ui);letter-spacing:.06em;cursor:pointer;padding:6px}.pm .pm-links i{width:3px;height:3px;border-radius:50%;background:rgba(239,234,242,.35)}
+.pm .pm-links button:hover{color:#fff}
 /* V179 · écran titre */
 #screen.titled .ttl{max-width:480px;display:grid;grid-template-columns:1fr 1fr;gap:10px;--ci:6px}
 #screen.titled .ttl>*{grid-column:1/-1;margin:0}
@@ -7377,30 +7412,30 @@ async function shareStreak() {
   try { if (navigator.share) { await navigator.share({ title: "Constancy", text, url }); return; } } catch (e) { return; }
   try { await navigator.clipboard.writeText(text + " " + url); help("Texte et lien copiés. Colle-les où tu veux.", 3); } catch (e) { help(url, 4); }
 }
+const PM_IC = { perso: '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0"/>', board: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/>', share: '<path d="M20 12v8H4v-8M2 7h20v5H2zM12 22V7M12 7S10 2 7.5 3.5 9 7 12 7Zm0 0s2-5 4.5-3.5S15 7 12 7Z"/>',
+  son: '<path d="M11 5 6 9H3v6h3l5 4V5ZM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>', guide: '<path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20ZM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>', transf: '<path d="M4 7h13l-3-3M20 17H7l3 3"/>', keys: '<path d="M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M7 14h10"/>' };
+const pmIcon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${PM_IC[k]}</svg>`;
 function openMenu() {
-  setMode("menu"); const m = MUSCLES[P.muscle];
-  show(`<div class="panel" data-out><div class="kicker">${careerName()} · jour ${P.day}</div><h2>Ton perso</h2>
-    <div class="card avatar">${avatarSvg()}<div class="statline">
-      <span>Niveau</span><span style="color:var(--gold)">${playerLevel().lvl} · ${playerLevel().pct}%</span><span>Compte</span><span style="color:var(--cash)">$${fmt(P.cash)}</span><span>${m.label}</span><span>${P.cm.toFixed(1).replace(".", ",")} cm</span>
-      <span>Business</span><span>niv. ${lvl(P.biz)}</span><span>Statut</span><span>niv. ${lvl(P.statut)}</span><span>Mindset</span><span>niv. ${lvl(P.mindset)}</span>
-      <span>Santé</span><span>${Math.round(santeVal())}%</span><span>Constancy</span><span>${multTxt(P.mult)}</span><span>Jokers</span><span>${P.jokers}</span><span>Voiture</span><span>${Math.round((1 - (P.dirt || 0)) * 100)}% propre</span><span>Jours d'affilée (vraie vie)</span><span>${P.streakDays || 1}</span></div></div>
-    ${streakCard()}
-    ${dailyCard()}
-    <div class="card goals-card">${$("goals").innerHTML}</div>
-    ${timelineHtml()}
-    <p class="note">Objectif : ${OBJ[P.objective].label}. Ta progression est sauvegardée sur cet appareil.</p>
+  setMode("menu"); const L = playerLevel(), desk = matchMedia("(hover: hover) and (pointer: fine)").matches;
+  show(`<div class="panel pm" data-out><div class="pm-top"><div><div class="kicker">${careerName()} · jour ${P.day}</div><h2>Pause</h2></div><div class="pm-av">${avatarSvg()}</div></div>
+    <div class="pm-chips"><div><b>${L.lvl}</b><span>Niveau</span></div><div><b>$${fmt(P.cash)}</b><span>Compte</span></div><div><b>${multTxt(P.mult)}</b><span>Constancy</span></div><div><b>${P.streakDays || 1}</b><span>Jours d'affilée</span></div></div>
     <button class="btn" id="res" data-focus type="button">Reprendre</button>
-    <div class="row" style="font-size:0"><button class="btn pink" id="shareM" type="button" style="font-size:16px">🎁 Inviter un ami</button><button class="btn alt" id="boardM" type="button" style="font-size:16px">🏆 Classement</button></div>
-    ${SIGNUP_URL ? `<a class="btn pink" href="${SIGNUP_URL}" target="_blank" rel="noopener">Recevoir les prochaines versions</a>` : ""}
-    <div class="row" style="font-size:0"><button class="btn alt" id="sndT" type="button" style="font-size:16px">${SND.on ? "Son : activé" : "Son : coupé"}</button><button class="btn alt" id="guideT" type="button" style="font-size:16px">Revoir le guide</button></div>
-    <button class="btn alt" id="transf" type="button">Transférer ma partie</button>
-    ${matchMedia("(hover: hover) and (pointer: fine)").matches ? `<div class="card keys"><div class="kicker" style="margin-bottom:8px">Raccourcis clavier</div><div class="kgrid"><kbd>Z Q S D</kbd><span>Se déplacer (ou flèches)</span><kbd>Maj</kbd><span>Sprint, turbo</span><kbd>Espace</kbd><span>Sauter, freiner</span><kbd>F</kbd><span>Monter, descendre, entrer</span><kbd>V</kbd><span>Vue première personne</span><kbd>M</kbd><span>Carte et GPS</span><kbd>J</kbd><span>Joker</span><kbd>Échap</kbd><span>Menu, fermer un écran</span></div></div>` : ""}
-    ${CREATOR ? `<div class="row" style="font-size:0"><button class="btn alt" id="crDay" type="button" style="font-size:16px">☀︎ Plein jour</button><button class="btn alt" id="crNight" type="button" style="font-size:16px">☾ Nuit</button></div><p class="note">Mode créateur : touche la carte pour t'y téléporter.</p>` : ""}
-    <button class="btn alt" id="credits" type="button">Crédits</button>
-    <button class="btn alt" id="stopG" type="button">Arrêter la partie</button><button id="quitHidden" type="button" hidden></button></div>`);
+    <div class="pm-grid">
+      <button class="pm-t" id="persoM" type="button">${pmIcon("perso")}<span>Mon perso</span></button>
+      <button class="pm-t" id="boardM" type="button">${pmIcon("board")}<span>Classement</span></button>
+      <button class="pm-t pk" id="shareM" type="button">${pmIcon("share")}<span>Inviter un ami</span></button>
+      <button class="pm-t" id="sndT" type="button">${pmIcon("son")}<span>${SND.on ? "Son activé" : "Son coupé"}</span></button>
+      <button class="pm-t" id="guideT" type="button">${pmIcon("guide")}<span>Revoir le guide</span></button>
+      <button class="pm-t" id="transf" type="button">${pmIcon("transf")}<span>Transférer</span></button>
+    </div>
+    ${SIGNUP_URL ? `<a class="btn alt" href="${SIGNUP_URL}" target="_blank" rel="noopener">Recevoir les prochaines versions</a>` : ""}
+    ${CREATOR ? `<div class="pm-grid two"><button class="pm-t" id="crDay" type="button"><span>☀︎ Plein jour</span></button><button class="pm-t" id="crNight" type="button"><span>☾ Nuit</span></button></div><p class="note">Mode créateur : touche la carte pour t'y téléporter.</p>` : ""}
+    ${desk ? `<div class="card keys pm-keys"><div class="kgrid"><kbd>Z Q S D</kbd><span>Se déplacer</span><kbd>Maj</kbd><span>Sprint, turbo</span><kbd>Espace</kbd><span>Sauter (×2 : double saut), freiner</span><kbd>F</kbd><span>Monter, descendre, entrer</span><kbd>V</kbd><span>Vue première personne</span><kbd>M</kbd><span>Carte et GPS</span><kbd>J</kbd><span>Joker</span><kbd>Échap</kbd><span>Menu</span></div></div>` : ""}
+    <div class="pm-links"><button type="button" id="credits">Crédits</button><i></i><button type="button" id="stopG">Arrêter la partie</button></div><button id="quitHidden" type="button" hidden></button></div>`);
+  on("persoM", openPersoDetails);
   on("crDay", () => { creatorSetHour(13); resume(); }); on("crNight", () => { creatorSetHour(22.5); resume(); });
   on("res", resume); on("stopG", stopMenu); on("shareS", shareStreak); on("shareM", () => openShare(true)); on("boardM", openBoard);
-  on("sndT", () => { $("soundBtn").click(); const b = $("sndT"); if (b) b.textContent = SND.on ? "Son : activé" : "Son : coupé"; });
+  on("sndT", () => { $("soundBtn").click(); const b = $("sndT"); if (b) b.querySelector("span").textContent = SND.on ? "Son activé" : "Son coupé"; });
   on("guideT", () => { resume(); startGuide(true); });
   on("transf", () => openTransfer(false));
   on("credits", () => show(`<div class="panel"><div class="kicker">Crédits</div><h2>Merci aux créateurs</h2>
@@ -7409,6 +7444,18 @@ function openMenu() {
     Ciel et textures : Poly Haven (CC0) · Sons : Freesound (CC0) · Moteur 3D : three.js.</p>
     <button class="btn" id="back" data-focus type="button">Retour</button></div>`) || on("back", openMenu));
   on("quitHidden", () => { saveNow(); G.started = false; removePolice(); if (G.mission && G.mission.agent) scene.remove(G.mission.agent.mesh); G.mission = null; destBeacon.visible = false; if (meMesh) meMesh.visible = false; titleScreen(); });
+}
+function openPersoDetails() {
+  const m = MUSCLES[P.muscle];
+  show(`<div class="panel pm" data-out><div class="kicker">${careerName()} · jour ${P.day}</div><h2>Ton perso</h2>
+    <div class="card avatar">${avatarSvg()}<div class="statline">
+      <span>Niveau</span><span style="color:var(--gold)">${playerLevel().lvl} · ${playerLevel().pct}%</span><span>Compte</span><span style="color:var(--cash)">$${fmt(P.cash)}</span><span>${m.label}</span><span>${P.cm.toFixed(1).replace(".", ",")} cm</span>
+      <span>Business</span><span>niv. ${lvl(P.biz)}</span><span>Statut</span><span>niv. ${lvl(P.statut)}</span><span>Mindset</span><span>niv. ${lvl(P.mindset)}</span>
+      <span>Santé</span><span>${Math.round(santeVal())}%</span><span>Constancy</span><span>${multTxt(P.mult)}</span><span>Jokers</span><span>${P.jokers}</span><span>Voiture</span><span>${Math.round((1 - (P.dirt || 0)) * 100)}% propre</span></div></div>
+    ${streakCard()}${dailyCard()}<div class="card goals-card">${$("goals").innerHTML}</div>${timelineHtml()}
+    <p class="note">Objectif : ${OBJ[P.objective].label}. Ta progression est sauvegardée sur cet appareil.</p>
+    <button class="btn" id="backM" data-focus type="button">Retour</button></div>`);
+  on("backM", openMenu); on("shareS", shareStreak);
 }
 /* Niveaux : chaque action rapporte de l'expérience ; chaque niveau donne une récompense */
 function playerLevel() { const xp = (P && P.xp) || 0, lvl = Math.floor(Math.sqrt(xp / 120)) + 1, a = 120 * (lvl - 1) ** 2, b = 120 * lvl ** 2; return { lvl, pct: Math.round((xp - a) / (b - a) * 100) }; }

@@ -1319,6 +1319,7 @@ function makeRide(kind) {
     const ring = new THREE.Mesh(new THREE.TorusGeometry(1.62, 0.05, 8, 48), new THREE.MeshBasicMaterial({ color: 0x5dff9a })); ring.rotation.x = Math.PI / 2; ring.position.y = 1.45; g.add(ring); g.userData.gyroRing = ring; return g; }
   if (kind === "airbus") { const m = modelInstance("plane_liner"); if (m) { g.add(m); navLights(m); } return g; }
   if (kind === "avion") { const m = modelInstance("plane_small"); if (m) { g.add(m); navLights(m); addRotors(m, "plane_small", () => carMesh === g && !G.onFoot ? 14 + Math.abs(G.car.v) * 1.2 : 0); } else { const b = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 9), RENT_M); b.position.y = 1.4; g.add(b); const w = new THREE.Mesh(new THREE.BoxGeometry(11, 0.2, 1.8), RENT_M); w.position.set(0, 1.8, 0.6); g.add(w); } return g; }
+  if (kind === "jetski" && MODELS.jetski) { const m = modelInstance("jetski"); m.position.y = -0.12; g.add(m); return g; }
   if (kind === "jetski") {
     const pink = new THREE.MeshPhongMaterial({ color: 0xff3fa4, shininess: 90, specular: 0xffffff }), white = new THREE.MeshPhongMaterial({ color: 0xf4f4f6, shininess: 90 }), black = new THREE.MeshLambertMaterial({ color: 0x15151a });
     const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.78, 3.1, 10), white); hull.rotation.x = Math.PI / 2; hull.scale.set(1, 1, 0.42); hull.position.y = 0.2; g.add(hull);
@@ -1691,7 +1692,7 @@ const MODEL_DEFS = {
   plane_liner: { len: 64, face: "x" }, plane_small: { len: 12, face: "-z" }, heli: { len: 15, face: "-x" },
   yacht: { len: 24, face: "x" }, sailboat: { len: 10 }, gull: { len: 1.8, face: "x" }, shark: { len: 4.5, anim: "Swim" }, dolphin: { len: 3.2, anim: "Swim" },
   dog: { len: 1.3, anim: "Walk" }, cat: { h: 0.7 }, flamingo: { h: 1.7 }, trex: { len: 13, anim: "Walk" }, stego: { len: 10, anim: "Walk" }, trice: { len: 9, anim: "Walk" },
-  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, moto_cross: { len: 2.2, vc: true, face: "x" },
+  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, jetski: { len: 3.3, vc: true }, icecream: { h: 2.7, vc: true }, moto_cross: { len: 2.2, vc: true, face: "x" },
   // montagne : faune et nature (Quaternius / Kenney, CC0)
   w_deer: { len: 1.9, anim: "Eating" }, w_stag: { len: 2.2, anim: "Idle" }, w_wolf: { len: 1.7, anim: "Idle" }, w_fox: { len: 1.05, anim: "Idle" },
   w_yeti: { h: 2.7, anim: "Idle" }, w_raptor: { len: 3.2, anim: "Velociraptor_Idle" }, w_bat: { len: 0.7, anim: "Bat_Flying" },
@@ -2982,7 +2983,7 @@ function buildFair() {
   PIER.z = bC(5) + 28; PIER.x0 = -HALF - 14; PIER.x1 = -HALF - 120; PIER.x2 = -HALF - 215;
   const z0 = PIER.z, Y = PIER.y, wood = new THREE.MeshLambertMaterial({ color: 0x8a6440 }), darkW = new THREE.MeshLambertMaterial({ color: 0x5a3c26 }), white = new THREE.MeshLambertMaterial({ color: 0xf4efe6 });
   const paveM = new THREE.MeshLambertMaterial({ map: fairTex(256, 256, (g, w) => { g.fillStyle = "#e8dcc8"; g.fillRect(0, 0, w, w); for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { g.fillStyle = ["#e2d3bb", "#efe4d0", "#d8c6aa", "#f2e8d8"][(x * 3 + y * 5) % 4]; g.fillRect(x * 32 + 1, y * 32 + 1, 30, 30); if ((x + y) % 7 === 0) { g.fillStyle = "#c98f8f"; g.fillRect(x * 32 + 1, y * 32 + 1, 30, 30); } } }) });
-  paveM.map.wrapS = paveM.map.wrapT = THREE.RepeatWrapping; paveM.map.repeat.set(12, 3);
+  paveM.map.wrapS = paveM.map.wrapT = THREE.RepeatWrapping; paveM.map.repeat.set(12, 3); paveM.color.setHex(0xcbbfab);
   const deck = (xa, xb, w) => { const L = xa - xb, cx = (xa + xb) / 2; addGeo(paveM, new THREE.BoxGeometry(L, 0.5, w), cx, Y - 0.25, z0);
     addGeo(darkW, new THREE.BoxGeometry(L, 0.9, 0.5), cx, Y - 0.9, z0 - w / 2); addGeo(darkW, new THREE.BoxGeometry(L, 0.9, 0.5), cx, Y - 0.9, z0 + w / 2);
     for (let x = xb + 4; x < xa; x += 8) for (let zz = -w / 2 + 1; zz <= w / 2 - 1; zz += Math.max(6, (w - 2) / 3)) addGeo(darkW, new THREE.CylinderGeometry(0.35, 0.4, Y + 6, 7), x, Y / 2 - 3.2, z0 + zz);
@@ -3015,11 +3016,14 @@ function buildFair() {
     addGeo(white, new THREE.BoxGeometry(4.2, 0.12, 0.7), x, Y + 1.15, zz + face * 1.75);
     addGeo(awn[k % awn.length], new THREE.BoxGeometry(4.5, 0.08, 1.4), x, Y + 2.55, zz + face * 2.1, 0, 1, 1, 1, face * 0.35);
     const lb = label(name, col); lb.position.set(x, Y + 4.9, zz + face * 1.2); lb.scale.set(5.2, 1.3, 1); scene.add(lb);
-    addProp(x - 1.2, zz, 1.9); addProp(x + 1.2, zz, 1.9);
+    addProp(x - 1.2, zz, 1.9); addProp(x + 1.2, zz, 1.9); (FAIR.boxes = FAIR.boxes || []).push([x - 2.4, zz - 1.8, x + 2.4, zz + 1.8]);
     if (C) { const h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x34e0ff, 0xf6c945]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k % 3 === 0, sleeve: 0.25 }));
       h.position.set(x, Y, zz - face * 0.2); h.rotation.y = face > 0 ? 0 : Math.PI; scene.add(h); setClip(h, k % 2 ? "Idle_Talking_Loop" : "Idle_Loop", 0.9); h.userData.manual = true; FAIR.people.push(h);
       for (let q = 0; q < (k % 3 === 1 ? 2 : 1); q++) { const cu = bodyVar(makeHuman({ shirt: pick([0xffffff, 0x111114, 0x34e0ff, 0xf6c945, 0x9b5cff, 0xeadfcf, 0xff9f1a]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: (k + q) % 2 === 0, shorts: q === 1, sleeve: 0.25 }), true);
         cu.position.set(x + (q ? 1.1 : -0.5), Y, zz + face * (3.5 + q * 1.0)); cu.rotation.y = face > 0 ? Math.PI : 0; scene.add(cu); setClip(cu, (k + q) % 2 ? "Idle_Talking_Loop" : "Idle_Loop", 0.85 + Math.random() * 0.3); cu.userData.manual = true; if (q) giveDrink(cu); FAIR.people.push(cu); } } });
+  if (MODELS.icecream) [[PIER.x1 - 9, z0 + 17, -0.4], [PIER.x1 - 9, z0 - 17, Math.PI + 0.4], [PIER.x1 - 34, z0 + 33, -0.9]].forEach(([x, zz, ry], k) => { const m = modelInstance("icecream"); m.position.set(x, Y, zz); m.rotation.y = ry; scene.add(m); (FAIR.boxes = FAIR.boxes || []).push([x - 1.3, zz - 1.3, x + 1.3, zz + 1.3]);
+    if (C) { const fx = Math.sin(ry), fz = Math.cos(ry), v = bodyVar(makeHuman({ shirt: 0xffffff, pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k !== 1, sleeve: 0.25 })); v.position.set(x - fx * 1.6, Y, zz - fz * 1.6); v.rotation.y = ry; scene.add(v); setClip(v, "Idle_Talking_Loop", 0.9); v.userData.manual = true; FAIR.people.push(v);
+      for (let q = 0; q < 2 + (k % 2); q++) { const cu = bodyVar(makeHuman({ shirt: pick([0xff6fb5, 0x34e0ff, 0xf6c945, 0xeadfcf, 0x111114]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: (k + q) % 2 === 0 }), q === 2); cu.position.set(x + fx * (2.4 + q * 1.1) + (q % 2 ? 0.4 : -0.3), Y, zz + fz * (2.4 + q * 1.1)); cu.rotation.y = ry + Math.PI; scene.add(cu); setClip(cu, q ? "Idle_Loop" : "Idle_Talking_Loop", 0.85 + Math.random() * 0.3); cu.userData.manual = true; if (q === 1) giveDrink(cu); FAIR.people.push(cu); } } });
   // promeneurs qui flânent dans l'allée
   if (C) for (let k = 0; k < 26; k++) { const h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x111114, 0x34e0ff, 0xf6c945, 0x9b5cff, 0xeadfcf]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k % 2 === 0, shorts: k % 3 === 0, sleeve: 0.25 }), true);
     scene.add(h); setClip(h, "Walk_Loop", 0.9); h.userData.manual = true; if (k % 3 === 0) giveDrink(h); FAIR.walkers.push({ h, u: Math.random(), sp: rand(0.012, 0.02) * (k % 2 ? 1 : -1), lane: rand(-3.5, 3.5) }); }
@@ -6321,7 +6325,7 @@ function updateMe(dt) {
   if (P && !P.jumpTip && !G.inside && !G.swimming && (Math.abs(me.z - RZ0) < 3 || Math.abs(me.z - RZ1) < 3)) { P.jumpTip = true; help("Envie d'un plongeon ? <b>Double-tape l'écran</b> pour sauter par-dessus la rambarde (Espace sur ordinateur). Tu nages très bien.", 6); }
   me.x += Math.sin(me.h) * speed * dt; me.z += Math.cos(me.h) * speed * dt;
   if (G.inside === "home") { me.x = clamp(me.x, HX - HRW + 0.8, HX + HRW - 0.8); me.z = clamp(me.z, HZ - HD + 0.8, HZ + HD - 0.8); pushOutBoxes(me, 0.45, HOME_OBST); }
-  else if (G.inside) { me.x = clamp(me.x, IX - IW + 0.8, IX + IW - 0.8); me.z = clamp(me.z, IZ - ID + 0.8, IZ + ID - 0.8); pushOutBoxes(me, 0.45, GYM_OBST); } else { collideProps.metal = false; collide(me, 0.6, true); if (collideProps.metal && Math.abs(speed) > 2.5) clang(Math.abs(speed) / 30); bumpPeds(me, speed, dt); }
+  else if (G.inside) { me.x = clamp(me.x, IX - IW + 0.8, IX + IW - 0.8); me.z = clamp(me.z, IZ - ID + 0.8, IZ + ID - 0.8); pushOutBoxes(me, 0.45, GYM_OBST); } else { collideProps.metal = false; collide(me, 0.6, true); if (collideProps.metal && Math.abs(speed) > 2.5) clang(Math.abs(speed) / 30); bumpPeds(me, speed, dt); if (FAIR.boxes && Math.abs(me.z - PIER.z) < 70 && me.x < PIER.x0 + 4) pushOutBoxes(me, 0.45, FAIR.boxes); }
   // nage : dans l'eau on avance lentement et l'énergie fond ; à zéro, retour sur la plage
   const water = !G.inside && isWater(me.x, me.z);
   if (water) {

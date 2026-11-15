@@ -1485,7 +1485,7 @@ const SND_FILES = { race: "assets/eng_race.mp3", moto: "assets/eng_moto.mp3", sc
 /* --- modèles 3D (voitures, bus, avions, bateaux, animaux, mobilier) --- */
 // face : direction du nez du modèle d'origine ; len : longueur voulue dans le monde (h : hauteur à la place)
 const MODEL_DEFS = {
-  bougain: { h: 1.9 }, abribus: { len: 4.4 }, lifeguard: { h: 6.2 }, gyro: { h: 3.1 }, jet: { len: 17 }, tank: { len: 9.5 }, car_or: { len: 4.8 }, car_minuit: { len: 4.9 }, car_city: { len: 5.4 }, car_sport: { len: 5.7 }, car_taxi: { len: 5.6 }, car_police: { len: 5.7 }, car_suv: { len: 5.9 }, car_pickup: { len: 6.3 },
+  bougain: { h: 1.9 }, abribus: { len: 4.4 }, lifeguard: { h: 6.2 }, gyro: { h: 3.1, face: "-z" }, jet: { len: 17 }, tank: { len: 9.5 }, car_or: { len: 4.8 }, car_minuit: { len: 4.9 }, car_city: { len: 5.4 }, car_sport: { len: 5.7 }, car_taxi: { len: 5.6 }, car_police: { len: 5.7 }, car_suv: { len: 5.9 }, car_pickup: { len: 6.3 },
   ambulance: { len: 7.4 }, bus: { len: 13 }, firetruck: { len: 10, face: "x" }, moto: { len: 2.5, face: "-z" },
   plane_liner: { len: 64 }, plane_small: { len: 12, face: "-z" }, heli: { len: 15, face: "-x" },
   yacht: { len: 24, face: "x" }, sailboat: { len: 10 }, gull: { len: 1.8, face: "x" }, shark: { len: 4.5, anim: "Swim" }, dolphin: { len: 3.2, anim: "Swim" },
@@ -3392,7 +3392,8 @@ function groundDetailTex() {
   for (let k = 0; k < 900; k++) { const x = Math.random() * S, y = Math.random() * S, r = 0.6 + Math.random() * 1.6, v = 90 + Math.random() * 150; g.fillStyle = `rgba(${v},${v},${v},.6)`; g.beginPath(); g.arc(x, y, r, 0, 6.283); g.fill(); }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; FX.groundTex = t; return t;
 }
-function detailMat(repX, repY) { const t = groundDetailTex().clone(); t.needsUpdate = true; t.repeat.set(repX, repY); return new THREE.MeshLambertMaterial({ vertexColors: true, map: t }); }
+function detailMat(repX, repY) { const m = new THREE.MeshLambertMaterial({ vertexColors: true, map: (t => { t.needsUpdate = true; t.repeat.set(repX, repY); return t; })(groundDetailTex().clone()) });
+  new THREE.TextureLoader().load("assets/tex_grassdetail.jpg", t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; t.repeat.set(repX * 1.6, repY * 1.6); m.map = t; m.needsUpdate = true; }); return m; }
 // vergers d'orangers en rangées (ambiance Californie / Floride)
 function orangeGrove(cx, cz, w, d, a, r) {
   const leaf = FX.groveLeaf || (FX.groveLeaf = new THREE.MeshLambertMaterial({ color: 0x2f5a26 })), fruit = FX.groveFruit || (FX.groveFruit = new THREE.MeshLambertMaterial({ color: 0xff8c1a, emissive: 0x401800 })), trunk = FX.groveTrunk || (FX.groveTrunk = new THREE.MeshLambertMaterial({ color: 0x5a4030 }));
@@ -3479,7 +3480,7 @@ function buildJungle(r) {
     const mj = jgMask(x, z), dlg = Math.hypot(x - JG.lag[0], z - JG.lag[1]) / JG.lag[2]; if (h < 0.4 || mj > 0.9 || (dlg < 1.25 && h < 2.2)) c = [0.74, 0.66, 0.48]; else if (nearJT(x, z) < 4.5) c = [0.55, 0.42, 0.28]; else { const v = 0.5 + 0.5 * Math.sin(x * 0.05) * Math.cos(z * 0.06); c = [0.1 + v * 0.06, 0.3 + v * 0.1, 0.1 + v * 0.03]; }
     col.push(c[0] * n, c[1] * n, c[2] * n); }
   geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
-  const land = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true })); land.rotation.x = -Math.PI / 2; land.position.set(JG.cx, 0, JG.cz); land.receiveShadow = true; scene.add(land);
+  const land = new THREE.Mesh(geo, detailMat(W / 7, H / 7)); land.rotation.x = -Math.PI / 2; land.position.set(JG.cx, 0, JG.cz); land.receiveShadow = true; scene.add(land);
   // remblai de la piste le long du versant ouest (au-dessus de la mer)
   const tg = new THREE.PlaneGeometry(520, 940, 104, 188), tp = tg.attributes.position, tc = [];
   for (let k = 0; k < tp.count; k++) { const x = tp.getX(k) - 285, z = -tp.getY(k) - 1990, h = jtH(x, z), hm = Math.max(mtnH(x, z), jgH(x, z)); tp.setZ(k, h > hm + 0.05 ? h : Math.min(h, hm - 0.8)); const d = nearJT(x, z), n = 0.9 + Math.random() * 0.15, c = d < 4.5 ? [0.55, 0.42, 0.28] : d < 9 ? [0.3, 0.42, 0.2] : [0.74, 0.66, 0.48]; tc.push(c[0] * n, c[1] * n, c[2] * n); }

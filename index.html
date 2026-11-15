@@ -1898,7 +1898,7 @@ function addProp(x, z, rr) { const k = Math.floor(x / 16) + "," + Math.floor(z /
 function collideProps(o, rad) {
   let hit = false; const gx = Math.floor(o.x / 16), gz = Math.floor(o.z / 16);
   for (let a = gx - 1; a <= gx + 1; a++) for (let b = gz - 1; b <= gz + 1; b++) { const l = PROPC.get(a + "," + b); if (!l) continue;
-    for (const [x, z, rr] of l) { const dx = o.x - x, dz = o.z - z, d = Math.hypot(dx, dz), m = rad + rr; if (d < m && d > 0.001) { o.x = x + dx / d * m; o.z = z + dz / d * m; hit = true; } } }
+    for (const [x, z, rr] of l) { const dx = o.x - x, dz = o.z - z, d = Math.hypot(dx, dz), m = rad + rr; if (d < m && d > 0.001) { o.x = x + dx / d * m; o.z = z + dz / d * m; hit = true; if (rr <= 0.26) collideProps.metal = true; } } }
   return hit;
 }
 function palm(x, z, r, y0 = 0) {
@@ -2946,6 +2946,13 @@ function swayModels() {
   Object.entries(MODELS).forEach(([k, M]) => { if (!/tree|bush|pine|palm/i.test(k) || !M.proto) return;
     M.proto.traverse(o => { if (!o.isMesh) return; (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { const c = m.color || { r: 1, g: 1, b: 1 }, n = (m.name || "").toLowerCase();
       const trunk = /trunk|wood|bark|stem|log/.test(n) || (c.r > c.g && c.g > c.b && c.r < 0.62 && c.g < 0.45); if (!trunk) swayMaterial(m, /bush/.test(k) ? 0.05 : 0.11); }); }); });
+}
+// poteau métallique : un « gong » court avec des partiels inharmoniques qui résonnent
+function clang(k) {
+  const c = SND.ctx; if (!c || !SND.on) return; const now = performance.now(); if (now - (SND.lastClang || 0) < 450) return; SND.lastClang = now;
+  k = clamp(k, 0.2, 1); const t = c.currentTime, out = c.createGain(); out.gain.value = 0.55 * k + 0.1; out.connect(c.destination);
+  [[312, 1], [847, 0.6], [1488, 0.42], [2233, 0.3], [3104, 0.18]].forEach(([f, a], i) => { const o = c.createOscillator(), g = c.createGain(); o.frequency.value = f * rand(0.97, 1.03); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(a * 0.22, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9 - i * 0.12); o.connect(g); g.connect(out); o.start(t); o.stop(t + 1); });
+  const s = c.createBufferSource(); s.buffer = SND.clickB || (SND.clickB = noiseBuf(0.05, q => Math.exp(-q * 40))); const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 2500; s.connect(hp); hp.connect(out); s.start(t);
 }
 function crash(k) {
   const c = SND.ctx; if (!c || !SND.on) return; const now = performance.now(); if (now - (SND.lastCrash || 0) < 320) return; SND.lastCrash = now;
@@ -5626,7 +5633,7 @@ function updateCar(dt) {
   c.x += Math.sin(c.h) * c.v * dt; c.z += Math.cos(c.h) * c.v * dt;
   const two = RIDES[G.ride.kind] && !RIDES[G.ride.kind].car;
   if (!two) updateSkid(dt, c, inp, sp, c.s * grip * clamp(c.v / 7, -1, 1), tb, onRoadC); else skidSound(0);
-  if (two ? collide(c, def.rad || 1.2) : collideCar(c, def.rad || 2.1)) { if (Math.abs(c.v) > 10) sfx.bump(); c.v *= Math.pow(0.02, dt); }
+  collideProps.metal = false; if (two ? collide(c, def.rad || 1.2) : collideCar(c, def.rad || 2.1)) { if (collideProps.metal && Math.abs(c.v) > 3) clang(Math.abs(c.v) / 22); if (Math.abs(c.v) > 10) sfx.bump(); c.v *= Math.pow(0.02, dt); }
   const gh = GH(c.x, c.z), ghF = GH(c.x + Math.sin(c.h) * 2.2, c.z + Math.cos(c.h) * 2.2), ghB = GH(c.x - Math.sin(c.h) * 2.2, c.z - Math.cos(c.h) * 2.2);
   const rh = RAMPS.length ? rampH(c.x, c.z) : 0, gnd = gh + rh; let pitch = -Math.atan2(ghF - ghB, 4.4);
   if (c.jy == null || Math.abs(c.jy - gnd) > 40) { c.jy = gnd; c.jv = 0; c.air = 0; }
@@ -5703,7 +5710,7 @@ function updateMe(dt) {
   if (P && !P.jumpTip && !G.inside && !G.swimming && (Math.abs(me.z - RZ0) < 3 || Math.abs(me.z - RZ1) < 3)) { P.jumpTip = true; help("Envie d'un plongeon ? <b>Double-tape l'écran</b> pour sauter par-dessus la rambarde (Espace sur ordinateur). Tu nages très bien.", 6); }
   me.x += Math.sin(me.h) * speed * dt; me.z += Math.cos(me.h) * speed * dt;
   if (G.inside === "home") { me.x = clamp(me.x, HX - HRW + 0.8, HX + HRW - 0.8); me.z = clamp(me.z, HZ - HD + 0.8, HZ + HD - 0.8); pushOutBoxes(me, 0.45, HOME_OBST); }
-  else if (G.inside) { me.x = clamp(me.x, IX - IW + 0.8, IX + IW - 0.8); me.z = clamp(me.z, IZ - ID + 0.8, IZ + ID - 0.8); pushOutBoxes(me, 0.45, GYM_OBST); } else collide(me, 0.6, true);
+  else if (G.inside) { me.x = clamp(me.x, IX - IW + 0.8, IX + IW - 0.8); me.z = clamp(me.z, IZ - ID + 0.8, IZ + ID - 0.8); pushOutBoxes(me, 0.45, GYM_OBST); } else { collideProps.metal = false; collide(me, 0.6, true); if (collideProps.metal && Math.abs(speed) > 2.5) clang(Math.abs(speed) / 30); }
   // nage : dans l'eau on avance lentement et l'énergie fond ; à zéro, retour sur la plage
   const water = !G.inside && isWater(me.x, me.z);
   if (water) {
@@ -7359,7 +7366,7 @@ function envCar(mesh) { mesh.traverse(o => { if (!o.isMesh || !o.material) retur
 function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "number" && nightK > 0.5) ? ENVR.night : ENVR.day; if (ENVR.cur === want) return; ENVR.cur = want;
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
 window.__W = () => ({ spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__X = () => ({ POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
+window.__X = () => ({ VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;

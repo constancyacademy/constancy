@@ -8245,7 +8245,7 @@ function gate() {
 let last = performance.now();
 // post-traitement : bloom à demi-résolution, intensité selon l'heure (fort la nuit, léger le jour)
 const FXR = { comp: null, bloom: null, on: false, fail: false, k: -1 };
-function PR_MAX() { const fine = window.matchMedia && matchMedia("(pointer:fine)").matches; return Math.min(fine ? 2 : 1.5, window.devicePixelRatio || 1); }
+function PR_MAX() { const fine = window.matchMedia && matchMedia("(pointer:fine)").matches; return Math.min(2, window.devicePixelRatio || 1); }
 function PR_MIN() { const fine = window.matchMedia && matchMedia("(pointer:fine)").matches; return fine ? Math.min(1, PR_MAX()) : 0.75; }
 function fxInit() {
   if (FXR.comp || FXR.fail) return; try {
@@ -8292,8 +8292,10 @@ function loop(now) {
   // résolution adaptative : si le téléphone peine (< 28 i/s), on baisse un peu la définition
   if (G.mode === "play" && !window.__virtOn) { const PF = loop.pf || (loop.pf = { t: 0, n: 0, pr: renderer.getPixelRatio() }); PF.t += (now - (PF.last || now)) / 1000; PF.last = now; PF.n++;
     if (PF.t > 2) { const fps = PF.n / PF.t, lo = PR_MIN(), hi = PR_MAX(); PF.good = fps > 58.5 ? (PF.good || 0) + 1 : 0;
-      if (fps < 54) { // trop lent : on baisse d'un cran (définition d'abord, puis le halo lumineux, puis encore la définition)
-        if (PF.pr > Math.max(lo, 1.0) + 0.01) { PF.pr = Math.max(lo, Math.max(1.0, PF.pr - 0.25)); renderer.setPixelRatio(PF.pr); fxSize(); }
+      PF.bad = fps < 52 ? (PF.bad || 0) + 1 : 0;
+      if (PF.bad >= 2) { PF.bad = 0; // trop lent deux fois de suite : on garde la netteté le plus longtemps possible (halo d'abord, puis définition par petits pas)
+        if (FXR.on && PF.pr <= 1.5 + 0.01) { FXR.on = false; FXR.auto = true; }
+        else if (PF.pr > Math.max(lo, 1.0) + 0.01) { PF.pr = Math.max(lo, Math.max(1.0, PF.pr - 0.125)); renderer.setPixelRatio(PF.pr); fxSize(); }
         else if (FXR.on) { FXR.on = false; FXR.auto = true; }
         else if (PF.pr > lo + 0.01) { PF.pr = Math.max(lo, PF.pr - 0.125); renderer.setPixelRatio(PF.pr); fxSize(); }
         else if (fps < 36 && !cv.classList.contains("nograde")) cv.classList.add("nograde"); }
@@ -8386,8 +8388,15 @@ $("pTime").addEventListener("click", () => { P.dayT = (P.dayT + DAY_SECONDS / 8)
     PHOTO.yaw -= (e.clientX - px) * 0.009; PHOTO.pitch = clamp(PHOTO.pitch + (e.clientY - py) * 0.006, -0.05, 1.25); });
   const up = e => { last.delete(e.pointerId); PHOTO.pinch = 0; }; d.addEventListener("pointerup", up); d.addEventListener("pointercancel", up);
   d.addEventListener("wheel", e => { e.preventDefault(); PHOTO.dist = clamp(PHOTO.dist * (1 + e.deltaY * 0.001), 2.2, 28); }, { passive: false }); }
+// pincer pour zoomer : deux doigts écartés = plus près (jusqu'à la vue intérieure), rapprochés = plus loin
+{ const ORDER = [3, 0, 1, 2]; let pz = null; const d2 = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  const setV = v => { G.camView = v; G.fpv = v === 3; const vb = $("viewBtn"); if (vb) vb.classList.toggle("on", G.fpv); if (P) P.camView = v; help(["Vue <b>proche</b>", "Vue <b>moyenne</b>", "Vue <b>lointaine</b>", "Vue <b>intérieure</b>"][v], 1.2); };
+  window.addEventListener("touchstart", e => { if (e.touches.length === 2 && G.started && !G.map3d && !document.body.classList.contains("photo")) { const H = innerHeight; if ([...e.touches].every(t => t.clientY < H * 0.68)) pz = { d: d2(e.touches) }; } }, { passive: true });
+  window.addEventListener("touchmove", e => { if (!pz || e.touches.length !== 2) return; const r = d2(e.touches) / pz.d, i = ORDER.indexOf(G.camView || 0);
+    if (r > 1.3 && i > 0) { setV(ORDER[i - 1]); pz.d = d2(e.touches); } else if (r < 0.77 && i < 3) { setV(ORDER[i + 1]); pz.d = d2(e.touches); } }, { passive: true });
+  window.addEventListener("touchend", e => { if (e.touches.length < 2) pz = null; }, { passive: true }); }
 $("viewBtn").addEventListener("click", () => { G.camView = ((G.camView || 0) + 1) % 4; G.fpv = G.camView === 3; $("viewBtn").classList.toggle("on", !!G.fpv); if (P) { P.camView = G.camView; } stat("vue-" + G.camView);
-  help(["Vue <b>proche</b>", "Vue <b>moyenne</b>", "Vue <b>lointaine</b>", "Vue <b>intérieure</b>"][G.camView], 1.4); });
+  help(["Vue <b>proche</b>", "Vue <b>moyenne</b>", "Vue <b>lointaine</b>", "Vue <b>intérieure</b>"][G.camView] + (matchMedia("(pointer:coarse)").matches && !P.pinchTip ? " · Astuce : pince l'écran avec deux doigts pour zoomer" : ""), 2.6); if (P) P.pinchTip = true; });
 $("minimap").addEventListener("click", () => { if (G.mode === "play") openMap(); });
 $("soundBtn").addEventListener("click", () => { audioInit(); SND.on = !SND.on; $("soundBtn").textContent = SND.on ? "SON" : "MUET"; if (SND.on) sfx.ping(); });
 // petit son doux sur chaque bouton, choix et menu

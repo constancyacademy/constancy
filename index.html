@@ -91,7 +91,9 @@ body{font-family:var(--font-ui);-webkit-user-select:none;user-select:none;touch-
 .bl{position:absolute;left:max(12px,env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:5px}
 #screen .pcInfo{display:flex;align-items:center;gap:8px;margin:2px auto 0;background:none;border:0;color:rgba(242,240,236,.62);font:500 12.5px Inter,sans-serif;cursor:pointer;text-align:left;line-height:1.35;max-width:100%}
 #screen .pcInfo b{flex:0 0 18px;height:18px;border-radius:50%;border:1px solid rgba(255,111,191,.7);color:#ff6fbf;font:700 11px Georgia,serif;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(255,79,163,.35)}
-#screen .pcInfo u{color:#fff;text-decoration-color:rgba(255,111,191,.6)}
+#screen .pcInfo{position:relative;white-space:nowrap}
+#screen .pcTip{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translate(-50%,4px);opacity:0;pointer-events:none;white-space:nowrap;padding:7px 11px;border-radius:10px;background:rgba(22,8,30,.92);border:1px solid rgba(255,79,163,.35);color:#fff;font:500 12px Inter,sans-serif;box-shadow:0 8px 20px rgba(0,0,0,.5);transition:opacity .2s,transform .2s;z-index:5}
+#screen .pcInfo.open .pcTip{opacity:1;transform:translate(-50%,0)}
 #minimap{pointer-events:auto;cursor:pointer;width:clamp(120px,30vw,160px);height:clamp(120px,30vw,160px);border-radius:50%;border:3px solid rgba(0,0,0,.85);box-shadow:0 0 0 2px rgba(255,255,255,.25),0 6px 18px rgba(0,0,0,.5);background:#1b1a20;display:block}
 #energy{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(200px + env(safe-area-inset-bottom,0px));width:250px;pointer-events:none}
 #energy .gauge{height:10px!important}
@@ -243,6 +245,47 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 .swatches{display:flex;gap:10px;flex-wrap:wrap}
 .sw{width:58px;height:58px;border-radius:10px;border:2px solid rgba(255,255,255,.18);cursor:pointer;display:flex;align-items:flex-end;justify-content:center;padding:4px;font-size:10px;font-weight:800;color:#fff;text-shadow:0 1px 2px #000}
 .sw.sel{border-color:#fff;box-shadow:0 0 0 2px #fff}
+.av2{gap:12px}
+.eg{gap:12px}
+.eg .egh{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:36px;line-height:1.05;margin:2px 0 0;color:#fff;text-shadow:0 0 18px rgba(255,79,163,.35)}
+.eg .egh em{font-style:italic;background:linear-gradient(180deg,#fff 30%,#ffb3db 70%,#ff4fa3);-webkit-background-clip:text;background-clip:text;color:transparent}
+.eg .egl{margin:0;color:rgba(242,240,236,.75);font-size:14.5px;line-height:1.45}
+.egcard{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:18px;background:linear-gradient(160deg,rgba(255,63,164,.14),rgba(120,70,255,.10) 55%,rgba(14,13,18,.92));border:1px solid rgba(255,111,191,.38);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 22px rgba(255,79,163,.18),0 18px 34px -10px rgba(0,0,0,.65);transform:perspective(900px) rotateX(3deg)}
+.egf{display:flex;flex-direction:column;gap:6px}
+.egf label{font:700 11px Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#ff7cc0}
+.eginp{box-sizing:border-box;width:100%;max-width:100%;-webkit-user-select:text;user-select:text;font:500 16px Inter,sans-serif;color:#fff;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.16);background:linear-gradient(180deg,rgba(10,8,16,.9),rgba(26,20,36,.9));box-shadow:inset 0 2px 6px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.06);outline:none;transition:border-color .2s,box-shadow .2s}
+.eginp:focus{border-color:rgba(255,79,163,.75);box-shadow:inset 0 2px 6px rgba(0,0,0,.6),0 0 0 3px rgba(255,79,163,.18),0 0 18px rgba(255,79,163,.25)}
+.eginp::placeholder{color:rgba(242,240,236,.38)}
+.egchk{min-height:16px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:rgba(242,240,236,.6)}
+.egeye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:0;color:rgba(242,240,236,.6);font:600 12px Inter,sans-serif;cursor:pointer}
+.eg .egbtn{background:linear-gradient(135deg,#ff2d55,#ff4fc8);color:#fff;border:0;box-shadow:0 0 24px rgba(255,79,200,.45),0 6px 0 #8a1846,0 14px 24px rgba(0,0,0,.45)}
+.eg .egfoot{opacity:.7;margin:0;text-align:center;font-size:12px}
+.eglink{background:none;border:0;color:rgba(242,240,236,.55);font:500 13px Inter,sans-serif;padding:2px;margin:0 auto;cursor:pointer}
+.avk{justify-self:center;align-self:center;display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 11px;border-radius:999px;background:rgba(22,8,30,.6);border:1px solid rgba(255,79,163,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 24px rgba(0,0,0,.45);color:#ff7cc0!important;font-size:10px;letter-spacing:.22em;width:max-content;margin:0 auto}
+.avk i{width:6px;height:6px;border-radius:50%;background:#ff4fa3;box-shadow:0 0 8px #ff4fa3,0 0 16px #ff4fa3;animation:vcDot 1.8s ease-in-out infinite}
+.av2 .avh{text-align:center;font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:34px;letter-spacing:.01em;margin:0;color:#fff;text-shadow:0 0 18px rgba(255,79,163,.35)}
+.av2 .avh em{font-style:italic;background:linear-gradient(180deg,#fff 30%,#ffb3db 70%,#ff4fa3);-webkit-background-clip:text;background-clip:text;color:transparent}
+.avstage{perspective:900px;display:flex;justify-content:center;padding:4px 0 0}
+.avframe{position:relative;width:min(210px,52vw);height:min(250px,30vh);border-radius:20px;transform:rotateX(6deg);transform-style:preserve-3d;background:radial-gradient(ellipse at 50% 85%,rgba(255,79,163,.28),transparent 60%),linear-gradient(180deg,rgba(40,16,52,.85),rgba(10,8,16,.95));box-shadow:0 0 0 1px rgba(255,111,191,.55),0 0 24px rgba(255,79,163,.35),inset 0 0 30px rgba(120,60,255,.18),0 26px 40px -10px rgba(0,0,0,.7);overflow:hidden}
+.avframe::before{content:"";position:absolute;inset:0;border-radius:20px;background:linear-gradient(115deg,rgba(255,255,255,.14),rgba(255,255,255,0) 35%);pointer-events:none;z-index:3}
+.av2 .avprev{position:absolute;left:0;right:0;bottom:16%;margin:auto;width:100%;height:80%;object-fit:contain;background:none;border-radius:0;z-index:2;filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
+.avrefl{position:absolute;left:0;right:0;bottom:-48%;margin:auto;width:100%;height:80%;object-fit:contain;transform:scaleY(-1);opacity:.22;-webkit-mask-image:linear-gradient(0deg,transparent 55%,#000);mask-image:linear-gradient(0deg,transparent 55%,#000);z-index:1;filter:blur(1px)}
+.avfloor{position:absolute;left:12%;right:12%;bottom:13%;height:12px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,79,163,.6),transparent);filter:blur(3px);z-index:1}
+.avgen{position:relative;display:grid;grid-template-columns:1fr 1fr;border-radius:999px;background:rgba(20,16,28,.8);border:1px solid rgba(255,255,255,.14);padding:4px;overflow:hidden}
+.avgen button{position:relative;z-index:1;background:none;border:0;color:rgba(242,240,236,.65);font:600 15px Inter,sans-serif;letter-spacing:.04em;padding:11px;cursor:pointer;transition:color .2s}
+.avgen button.sel{color:#fff}
+.avgbar{position:absolute;left:4px;top:4px;bottom:4px;width:calc(50% - 4px);border-radius:999px;background:linear-gradient(135deg,#ff2d55,#ff4fc8);box-shadow:0 0 18px rgba(255,79,200,.45);transition:transform .25s ease}
+.av2 .avscroll{display:flex;flex-direction:column;gap:2px;border-radius:16px;background:rgba(14,12,20,.6);border:1px solid rgba(255,255,255,.08);padding:4px 12px;margin:0}
+.avline{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;border-bottom:1px solid rgba(255,255,255,.06)}
+.avline:last-child{border-bottom:0}
+.avlbl{font:600 13px Inter,sans-serif;color:rgba(242,240,236,.75);letter-spacing:.02em;flex:0 0 auto}
+.avsws{display:flex;gap:5px;flex-wrap:nowrap;justify-content:flex-end}
+.avsw{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:var(--c);border:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);cursor:pointer;padding:0;transition:transform .15s}
+.avsw.sel{box-shadow:0 0 0 2px #0e0b14,0 0 0 4px #ff4fa3,0 0 12px rgba(255,79,163,.6);transform:scale(1.08)}
+.avsel{position:relative}
+.avsel select{-webkit-appearance:none;appearance:none;background:rgba(30,24,40,.9);border:1px solid rgba(255,111,191,.35);border-radius:999px;color:#fff;font:600 14px Inter,sans-serif;padding:9px 34px 9px 14px;cursor:pointer;min-width:150px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.avsel::after{content:"";position:absolute;right:14px;top:50%;width:7px;height:7px;border-right:2px solid #ff7cc0;border-bottom:2px solid #ff7cc0;transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.av2 #ok{background:linear-gradient(135deg,#ff2d55,#ff4fc8);color:#fff;border:0;box-shadow:0 0 24px rgba(255,79,200,.45)}
 .avtop{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center}.avprev{width:120px;height:150px;object-fit:contain;background:radial-gradient(circle at 50% 70%,#2a2a33,#0e0d12);border-radius:10px}
 .avscroll{max-height:42vh;overflow-y:auto;margin:6px -4px 10px;padding:0 4px;-webkit-overflow-scrolling:touch}.avrow{display:flex;gap:8px;flex-wrap:wrap}
 .avc{display:inline-flex;align-items:center;gap:6px;padding:8px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:rgba(20,18,26,.85);color:var(--fg);font-size:13px;cursor:pointer}
@@ -381,7 +424,8 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
   #screen.titled .ttl .lead,#screen.titled .ttl .note,#screen.titled .ttl .rotHint{display:none}
   #screen.titled .ttl .logo{font-size:clamp(46px,9vh,74px)!important}
   .avpanel{display:grid;grid-template-columns:200px 1fr;column-gap:26px;align-items:start}
-  .avpanel>.kicker,.avpanel>h2,.avpanel>.avtop,.avpanel>#ok{grid-column:1}
+  .avpanel>.kicker,.avpanel>h2,.avpanel>.avtop,.avpanel>.avstage,.avpanel>.avgen,.avpanel>#ok{grid-column:1}
+  .avpanel .avframe{height:min(150px,34vh);width:min(170px,30vw)}.av2 .avh{font-size:26px}
   .avpanel>.avscroll{grid-column:2;grid-row:1/6;max-height:calc(100vh - 60px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));margin:0}
   .avpanel .avtop{grid-template-columns:1fr;gap:10px}.avpanel .avprev{width:100%;height:min(130px,30vh)}
   .avpanel .seg button{padding:9px;font-size:16px}
@@ -6848,7 +6892,7 @@ function updateCamera(dt, follow) {
     camera.position.set(c.x + fx * (two ? 0.2 : 0.1) + Math.cos(c.h) * (two ? 0 : 0.45), (two ? 1.9 : 1.6) + GH(c.x, c.z), c.z + fz * (two ? 0.2 : 0.1) - Math.sin(c.h) * (two ? 0 : 0.45));
     { const sp = Math.abs(c.v), vib = (Math.sin(performance.now() / 37) + Math.sin(performance.now() / 23)) * 0.0025 * clamp(sp / 25, 0, 1) * (Math.abs(c.x) > HALF + 2 || Math.abs(c.z) > HALF + 2 ? 2.5 : 1), la = c.h + (G.lookYaw || 0) - c.s * 0.14 * clamp(sp / 12, 0, 1), pitchK = clamp(-(c.acc || 0) * 0.0015, -0.03, 0.03);
       camera.position.y += vib; camera.lookAt(camera.position.x + Math.sin(la) * 10, camera.position.y - 0.4 + pitchK * 10 - (G.lookPitch || 0) * 9, camera.position.z + Math.cos(la) * 10); }
-    if (cockpit) { const land = window.innerWidth > window.innerHeight; cockpit.position.set(0, land ? 0.1 : 0, land ? 0.06 : 0); if (cockpit.userData.navG) cockpit.userData.navG.position.x = land ? 0.62 : 0.32; G.wRot = (G.wRot || 0) + (-c.s * 2.2 - (G.wRot || 0)) * Math.min(1, dt * 10); cockpit.userData.wheel.rotation.z = G.wRot; if (cockpit.visible) { drawGauge(Math.abs(c.v) * 4.2); drawNav(dt); if (cockpit.userData.hoodFor !== carMesh) { cockpit.userData.hoodFor = carMesh; cockpit.userData.hoodM.color.setHex(paintOf(carMesh)); } cockpit.userData.amb.color.setHex(nightK > 0.4 ? 0xff2d55 : 0x5a1220); cockpit.userData.mirG.color.setHex(nightK > 0.5 ? 0x1a2230 : 0x52687c); } }
+    if (cockpit) { const land = window.innerWidth > window.innerHeight; cockpit.position.set(0, land ? 0.1 : 0, land ? 0.06 : 0); if (cockpit.userData.navG) cockpit.userData.navG.position.x = land ? 0.62 : 0.32; { const tgt = -c.s * 2.2, h = Math.min(dt, 0.05); G.wRot = G.wRot || 0; G.wVel = G.wVel || 0; G.wVel += ((tgt - G.wRot) * 38 - G.wVel * 12.3) * h; G.wRot += G.wVel * h; cockpit.userData.wheel.rotation.z = G.wRot; } /* volant sur ressort amorti : il tourne sans à-coups */ if (cockpit.visible) { drawGauge(Math.abs(c.v) * 4.2); drawNav(dt); if (cockpit.userData.hoodFor !== carMesh) { cockpit.userData.hoodFor = carMesh; cockpit.userData.hoodM.color.setHex(paintOf(carMesh)); } cockpit.userData.amb.color.setHex(nightK > 0.4 ? 0xff2d55 : 0x5a1220); cockpit.userData.mirG.color.setHex(nightK > 0.5 ? 0x1a2230 : 0x52687c); } }
     sky.position.copy(camera.position); sun.position.set(c.x - 160, 220, c.z + 100); sun.target.position.set(c.x, 0, c.z);
     return;
   }
@@ -7563,24 +7607,22 @@ function emailMoment(dt) { // le bon moment : juste après une mission, ou quand
 function openEmailGate(after) {
   if (G.emailGate) return; G.emailGate = true; P.emailAsks = (P.emailAsks || 0) + 1; setMode("email"); stat("ecran-email-" + P.emailAsks);
   const perk = (ic, b, t) => `<div style="display:flex;gap:12px;align-items:flex-start"><span style="flex:0 0 34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:rgba(255,63,164,.16);border:1px solid rgba(255,63,164,.4);font-size:17px">${ic}</span><span style="font-size:14px;line-height:1.4;color:#dcd8e2"><b style="color:#fff">${b}</b><br>${t}</span></div>`;
-  show(`<div class="panel" style="gap:16px"><div class="kicker" style="color:#ff6fbf">Sauvegarde · Accès anticipé</div>
-    <h2>Pour continuer, crée ta sauvegarde.</h2>
-    <p class="lead" style="margin:-4px 0 0">Ta ville, ton perso, ton cash, ta série : tout est lié à ton adresse. Un e-mail, et tu reprends là où tu en es.</p>
-    <div class="card" style="gap:14px;background:linear-gradient(160deg,rgba(255,63,164,.10),rgba(120,70,255,.08) 60%,rgba(14,13,18,.92));border-color:rgba(255,63,164,.35)">
-      ${perk("🎮", "Les nouvelles bêtas en avant-première", "Nouveaux quartiers, véhicules et missions : tu les testes avant leur sortie.")}
-      ${perk("💾", "Ta progression gardée", "Ton perso, ton cash et ta série restent liés à ton adresse.")}
-      ${perk("🎁", "+$" + fmt(EMAIL_BONUS) + " offerts tout de suite", "Un bonus de bienvenue, versé dans ton compte en jeu.")}
+  show(`<div class="panel eg"><div class="kicker avk"><i></i>Sauvegarde · Accès anticipé</div>
+    <h2 class="egh">Crée ta <em>sauvegarde</em></h2>
+    <p class="egl">Ta ville, ton perso, ton cash, ta série : tout reste lié à ton compte.</p>
+    <div class="egcard">
+      ${perk("🎮", "Les bêtas en avant-première", "Nouveaux quartiers, véhicules et missions avant tout le monde.")}
+      ${perk("💾", "Ta progression gardée", "Tu reprends là où tu en es, sur n'importe quel appareil.")}
+      ${perk("🎁", "+$" + fmt(EMAIL_BONUS) + " offerts tout de suite", "Un bonus de bienvenue versé dans ton compte en jeu.")}
     </div>
-    <input id="em" class="linkbox" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="ton@email.com" data-focus style="-webkit-user-select:text;user-select:text;text-align:left;margin:0;font-size:16px;padding:14px">
-    <div id="emChk" class="note" style="min-height:16px;margin:-8px 0 0;display:flex;align-items:center;gap:8px;color:rgba(242,240,236,.6)"></div>
-    <div style="position:relative;margin:-6px 0 0"><input id="emPw" class="linkbox" type="password" autocomplete="new-password" placeholder="Choisis un mot de passe" style="-webkit-user-select:text;user-select:text;text-align:left;margin:0;font-size:16px;padding:14px 60px 14px 14px;width:100%"><button id="emEye" type="button" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;color:rgba(242,240,236,.6);font:600 12px Inter,sans-serif;cursor:pointer">Voir</button></div>
-    <div id="pwMeter" style="margin:-8px 0 0;display:none"><div style="height:4px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden"><i id="pwBar" style="display:block;height:100%;width:0;background:#ff6b8a;transition:width .25s,background .25s"></i></div><div id="pwRules" class="note" style="margin:6px 0 0;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px"></div></div>
-    <input id="emPs" class="linkbox" type="text" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="Ton pseudo (classement)" style="-webkit-user-select:text;user-select:text;text-align:left;margin:-6px 0 0;font-size:16px;padding:14px">
-    <div id="emErr" class="note" style="color:#ff6b8a;min-height:16px;margin-top:-8px"></div>
-    <button class="btn pink" id="emGo" type="button" style="margin-top:-6px">Sauvegarder et continuer</button>
-    <p class="note" style="opacity:.75;margin:0;text-align:center">Un e-mail seulement quand une nouvelle version sort. Jamais de spam · Désinscription en 1 clic.</p>
-    <button id="emForgot" type="button" style="background:none;border:0;color:rgba(242,240,236,.55);font:500 13px Inter,sans-serif;padding:2px;margin:-8px auto 0;cursor:pointer">Déjà un compte · Mot de passe oublié ?</button>
-    <button id="emLater" type="button" style="background:none;border:0;color:rgba(242,240,236,.45);font:500 13px Inter,sans-serif;padding:4px;margin:-6px auto 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px">${P.acct ? "Jouer sans sauvegarder" : "Plus tard"}</button></div>`, "mail");
+    <div class="egf"><label for="emPs">Pseudo</label><input id="emPs" class="eginp" type="text" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="Ton nom au classement" data-focus></div>
+    <div class="egf"><label for="em">E-mail</label><input id="em" class="eginp" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="ton@email.com"><div id="emChk" class="egchk"></div></div>
+    <div class="egf"><label for="emPw">Mot de passe</label><div style="position:relative"><input id="emPw" class="eginp" type="password" autocomplete="new-password" placeholder="8 caractères minimum" style="padding-right:64px"><button id="emEye" type="button" class="egeye">Voir</button></div>
+      <div id="pwMeter" style="margin:8px 0 0;display:none"><div style="height:4px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden"><i id="pwBar" style="display:block;height:100%;width:0;background:#ff6b8a;transition:width .25s,background .25s"></i></div><div id="pwRules" class="note" style="margin:6px 0 0;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px"></div></div></div>
+    <div id="emErr" class="note" style="color:#ff6b8a;min-height:16px;margin:0"></div>
+    <button class="btn egbtn" id="emGo" type="button">Créer ma sauvegarde</button>
+    <p class="note egfoot">Un e-mail seulement quand une nouvelle version sort · Jamais de spam · Désinscription en 1 clic.</p>
+    <button id="emForgot" type="button" class="eglink">Déjà un compte · Mot de passe oublié ?</button></div>`, "mail");
   // vérification de l'adresse en direct : format, puis domaine qui reçoit vraiment des e-mails
   const chk = $("emChk"), spin = '<i style="width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:#ff6fbf;display:inline-block;animation:emSpin .7s linear infinite"></i>';
   let okMail = false, okJunk = false, chkN = 0; const verify = async () => { const v = ($("em").value || "").trim().toLowerCase(), n = ++chkN; okMail = false;
@@ -7758,7 +7800,7 @@ function installGuide(back) {
 function addInstallButton() {
   const E = envInfo(), panel = screen.querySelector(".panel"); if (!panel || E.framed) return;
   if (E.mobile && panel.querySelector(".ttl, .logo") !== null || (E.mobile && panel.classList.contains("ttl"))) {
-    { const n = panel.querySelector(".note"); if (n && !panel.querySelector(".pcInfo")) { const i = document.createElement("button"); i.type = "button"; i.className = "pcInfo"; i.innerHTML = '<b>i</b>Aussi sur ordinateur · clavier ou manette'; panel.insertBefore(i, n); i.addEventListener("click", () => { i.classList.toggle("open"); i.innerHTML = i.classList.contains("open") ? '<b>i</b>Ouvre <u>' + SITE_URL().replace(/^https?:\/\//, "") + '</u> sur ton ordinateur : le jeu s\'installe aussi comme une appli.' : '<b>i</b>Aussi sur ordinateur · clavier ou manette'; }); } }
+    { const n = panel.querySelector(".note"); if (n && !panel.querySelector(".pcInfo")) { const i = document.createElement("button"); i.type = "button"; i.className = "pcInfo"; i.innerHTML = '<b>i</b>Aussi sur ordinateur · clavier ou manette'; panel.insertBefore(i, n); i.addEventListener("click", () => { i.classList.toggle("open"); clearTimeout(i._t); i._t = setTimeout(() => i.classList.remove("open"), 3500); }); i.insertAdjacentHTML("beforeend", '<span class="pcTip">Même lien sur ordinateur · le jeu s\'installe comme une appli</span>'); } }
   }
   if (E.standalone) return;
   if (!addInstallButton.seen) { addInstallButton.seen = true; if (E.app) stat("vient-de-" + E.app.toLowerCase()); }
@@ -7809,29 +7851,36 @@ let pickObj = null, pickMus = null, pickTier = 0;
 const look = { gender: "homme", outfit: 0, skin: 1, hs: 1, hc: 0, beard: 0, top: 0, tc: 0, bot: 0, sh: 0 };
 const hex = n => "#" + n.toString(16).padStart(6, "0");
 function createAvatar() {
-  const L = look, key = "av-" + JSON.stringify(L), big = snapshot(key, () => makeHuman(lookHuman(L)), 240, 300, 0.9);
-  const chip = (attr, i, sel, label, bg) => `<button type="button" class="avc ${sel ? "sel" : ""}" data-${attr}="${i}"${bg != null ? ` style="--c:${hex(bg)}"` : ""}>${bg != null ? `<i></i>` : ""}${label}</button>`;
-  const row = (title, html) => `<div class="lbl">${title}</div><div class="avrow">${html}</div>`;
-  show(`<div class="panel avpanel"><div class="kicker">Étape 1 sur 3</div><h2>Crée ton perso</h2>
-    <div class="avtop"><img src="${big}" alt="Aperçu de ton perso" class="avprev">
-      <div class="seg"><button type="button" data-g="homme" class="${L.gender === "homme" ? "sel" : ""}">Homme</button><button type="button" data-g="femme" class="${L.gender === "femme" ? "sel" : ""}">Femme</button></div></div>
+  const L = look, key = "av-" + JSON.stringify(L), NF = 36, big = snapshot(key + "@0", () => makeHuman(lookHuman(L)), 240, 300, 0.9);
+  const sw = (attr, i, sel, c, t) => `<button type="button" class="avsw ${sel ? "sel" : ""}" data-${attr}="${i}" style="--c:${hex(c)}" aria-label="${t}" title="${t}"></button>`;
+  const sel = (attr, list, cur) => `<div class="avsel"><select data-sel="${attr}">${list.map((t, i) => `<option value="${i}" ${cur === i ? "selected" : ""}>${t}</option>`).join("")}</select></div>`;
+  const row = (t, html) => `<div class="avline"><span class="avlbl">${t}</span>${html}</div>`;
+  show(`<div class="panel avpanel av2"><div class="kicker avk"><i></i>Étape 1 sur 3</div><h2 class="avh">Crée ton <em>perso</em></h2>
+    <div class="avstage"><div class="avframe"><img src="${big}" alt="Aperçu de ton perso" class="avprev" id="avImg"><img src="${big}" alt="" class="avrefl" id="avRefl"><i class="avfloor"></i></div></div>
+    <div class="avgen"><button type="button" data-g="homme" class="${L.gender === "homme" ? "sel" : ""}">Homme</button><button type="button" data-g="femme" class="${L.gender === "femme" ? "sel" : ""}">Femme</button><i class="avgbar" style="transform:translateX(${L.gender === "femme" ? 100 : 0}%)"></i></div>
     <div class="avscroll">
-    ${row("Peau", AV.skinOrder.map(i => chip("s", i, L.skin === i, "", SKIN_TONES[i])).join(""))}
-    ${row("Coupe", AV.hs.map((h, i) => chip("hs", i, L.hs === i, h.n)).join(""))}
-    ${row("Couleur des cheveux et des sourcils", AV.hc.map((c, i) => chip("hc", i, L.hc === i, AV.hcN[i], c)).join(""))}
-    ${L.gender === "homme" ? row("Barbe", chip("b", 0, !L.beard, "Sans barbe") + chip("b", 1, !!L.beard, "Barbe")) : ""}
-    ${row("Haut", AV.tops.map((t, i) => chip("t", i, L.top === i, t.n)).join(""))}
-    ${row("Couleur du haut", AV.tc.map((c, i) => chip("tc", i, L.tc === i, "", c)).join(""))}
-    ${row("Bas", AV.bots.map((t, i) => chip("bt", i, L.bot === i, t.n, t.c)).join(""))}
-    ${row("Chaussures", AV.shoes.map((t, i) => chip("sh", i, L.sh === i, t.n, t.c)).join(""))}
+    ${row("Peau", `<div class="avsws">${AV.skinOrder.map(i => sw("s", i, L.skin === i, SKIN_TONES[i], "Teinte " + (i + 1))).join("")}</div>`)}
+    ${row("Coupe", sel("hs", AV.hs.map(h => h.n), L.hs))}
+    ${row("Cheveux", `<div class="avsws">${AV.hc.map((c, i) => sw("hc", i, L.hc === i, c, AV.hcN[i])).join("")}</div>`)}
+    ${L.gender === "homme" ? row("Barbe", sel("b", ["Sans barbe", "Barbe"], L.beard ? 1 : 0)) : ""}
+    ${row("Haut", sel("t", AV.tops.map(t => t.n), L.top))}
+    ${row("Couleur", `<div class="avsws">${AV.tc.map((c, i) => sw("tc", i, L.tc === i, c, "Couleur " + (i + 1))).join("")}</div>`)}
+    ${row("Bas", sel("bt", AV.bots.map(t => t.n), L.bot))}
+    ${row("Chaussures", sel("sh", AV.shoes.map(t => t.n), L.sh))}
     </div>
     <button class="btn" id="ok" data-focus type="button">C'est moi</button></div>`);
-  const bind = (attr, fn) => screen.querySelectorAll(`[data-${attr}]`).forEach(b => b.addEventListener("click", () => { fn(b.dataset[attr]); sfx.ui && sfx.ui(); createAvatar(); }));
-  bind("g", v => { L.gender = v; L.outfit = 0; L.hs = v === "femme" ? 2 : 1; L.beard = 0; });
-  bind("s", v => L.skin = +v); bind("hs", v => L.hs = +v); bind("hc", v => L.hc = +v); bind("b", v => L.beard = +v);
-  bind("t", v => L.top = +v); bind("tc", v => L.tc = +v); bind("bt", v => L.bot = +v); bind("sh", v => L.sh = +v);
+  const redo = () => { sfx.ui && sfx.ui(); createAvatar(); };
+  screen.querySelectorAll("[data-g]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.g; if (v === L.gender) return; L.gender = v; L.outfit = 0; L.hs = v === "femme" ? 2 : 1; L.beard = 0; redo(); }));
+  const setF = { s: v => L.skin = +v, hc: v => L.hc = +v, tc: v => L.tc = +v, hs: v => L.hs = +v, b: v => L.beard = +v, t: v => L.top = +v, bt: v => L.bot = +v, sh: v => L.sh = +v };
+  screen.querySelectorAll(".avsw").forEach(b => { const a = Object.keys(b.dataset)[0]; b.addEventListener("click", () => { setF[a](b.dataset[a]); redo(); }); });
+  screen.querySelectorAll("select[data-sel]").forEach(s => s.addEventListener("change", () => { setF[s.dataset.sel](s.value); redo(); }));
+  // vitrine : le perso tourne très lentement sur lui-même, les angles sont calculés au fil de l'eau sans bloquer l'écran
+  const frames = [big], img = $("avImg"), refl = $("avRefl"); let fi = 0, gen = 1; clearInterval(createAvatar._spin); clearTimeout(createAvatar._gen);
+  const mk = () => { if (!img || !img.isConnected || gen >= NF) return; const a = gen / NF * Math.PI * 2; frames.push(snapshot(key + "@" + gen, () => { const h = makeHuman(lookHuman(L)); h.rotation.y = a; const g = new THREE.Group(); g.add(h); return g; }, 240, 300, 0.9)); gen++; createAvatar._gen = setTimeout(mk, 40); };
+  createAvatar._gen = setTimeout(mk, 120);
+  createAvatar._spin = setInterval(() => { if (!img || !img.isConnected) { clearInterval(createAvatar._spin); return; } if (frames.length < 2) return; fi = (fi + 1) % frames.length; if (fi === 0 && frames.length < NF) return; img.src = frames[fi]; if (refl) refl.src = frames[fi]; }, 160);
   const sc = screen.querySelector(".avscroll"); if (sc && createAvatar._st) sc.scrollTop = createAvatar._st; if (sc) sc.addEventListener("scroll", () => createAvatar._st = sc.scrollTop);
-  on("ok", () => { createAvatar._st = 0; chooseObjective(); });
+  on("ok", () => { createAvatar._st = 0; clearInterval(createAvatar._spin); clearTimeout(createAvatar._gen); chooseObjective(); });
 }
 // démarrage rapide : un seul écran, l'objectif principal est obligatoire (perso par défaut, premier palier ; tout reste modifiable)
 function quickObjective() {
@@ -7844,18 +7893,18 @@ function quickObjective() {
   on("back", titleScreen);
 }
 function chooseObjective() {
-  show(`<div class="panel"><div class="kicker">Étape 2 sur 3</div><h2>Ton objectif principal ?</h2><div class="choices">${Object.entries(OBJ).map(([k, o]) => `<button class="choice" data-k="${k}" type="button"><b>${o.label}</b><span>${o.sub}</span></button>`).join("")}</div><button class="btn alt" id="back" type="button">Retour</button></div>`);
+  show(`<div class="panel"><div class="kicker avk"><i></i>Étape 2 sur 3</div><h2>Ton objectif principal ?</h2><div class="choices">${Object.entries(OBJ).map(([k, o]) => `<button class="choice" data-k="${k}" type="button"><b>${o.label}</b><span>${o.sub}</span></button>`).join("")}</div><button class="btn alt" id="back" type="button">Retour</button></div>`);
   screen.querySelectorAll(".choice").forEach(b => b.addEventListener("click", () => { pickObj = b.dataset.k; if (pickObj === "muscle") chooseMuscle(); else { pickMus = look.gender === "femme" ? "fessiers" : "bras"; chooseTier(); } }));
   on("back", createAvatar);
 }
 function chooseMuscle() {
-  show(`<div class="panel"><div class="kicker">Étape 2 sur 3</div><h2>Quel muscle ?</h2><div class="choices">${Object.entries(MUSCLES).map(([k, m]) => `<button class="choice" data-k="${k}" type="button"><b>${m.label}</b><span>${m.ex}</span></button>`).join("")}</div><button class="btn alt" id="back" type="button">Retour</button></div>`);
+  show(`<div class="panel"><div class="kicker avk"><i></i>Étape 2 sur 3</div><h2>Quel muscle ?</h2><div class="choices">${Object.entries(MUSCLES).map(([k, m]) => `<button class="choice" data-k="${k}" type="button"><b>${m.label}</b><span>${m.ex}</span></button>`).join("")}</div><button class="btn alt" id="back" type="button">Retour</button></div>`);
   screen.querySelectorAll(".choice").forEach(b => b.addEventListener("click", () => { pickMus = b.dataset.k; chooseTier(); }));
   on("back", chooseObjective);
 }
 function chooseTier() {
   const list = tierList(pickObj, pickMus);
-  show(`<div class="panel"><div class="kicker">Étape 3 sur 3 · ${OBJ[pickObj].label}</div><h2>Tu vises quoi ?</h2>
+  show(`<div class="panel"><div class="kicker avk"><i></i>Étape 3 sur 3 · ${OBJ[pickObj].label}</div><h2>Tu vises quoi ?</h2>
     <div class="choices">${list.map((t, i) => `<button class="choice ${i ? "locked" : ""}" data-i="${i}" type="button" ${i ? "disabled" : ""}><b>${t.l}</b>${i ? `<span class="lock">Verrouillé · atteins le palier d'avant</span>` : `<span>Ton premier palier. Les suivants se débloquent ensuite.</span>`}</button>`).join("")}</div>
     <button class="btn alt" id="back" type="button">Retour</button></div>`);
   screen.querySelectorAll(".choice:not(.locked)").forEach(b => b.addEventListener("click", () => { pickTier = +b.dataset.i; intro(); }));
@@ -7901,6 +7950,7 @@ function welcomeBack() {
 setTimeout(kitFlush, 4000); window.addEventListener("online", kitFlush);
 function startPlayHome() { G.homeStart = true; startPlay(); setTimeout(refreshReferrals, 8000); }
 function startPlay() {
+  if (P && !P.email && !G.emailGate && !startPlay._go && !navigator.webdriver) { openEmailGate(() => { startPlay._go = true; try { startPlay(); } finally { startPlay._go = false; } }); return; } // sauvegarde obligatoire avant de jouer
   window.__showcase = false; FW.party = 0; G.playT0 = performance.now(); if (!CREATOR) G.wxForce = null;
   if (TCAM.fade) { TCAM.fade.remove(); TCAM.fade = null; } if (TCAM.car) { scene.remove(TCAM.car); TCAM.car = null; }
   if (!G.statDay || G.statDay !== P.day) { G.statDay = P.day; stat(P.day === 1 ? "partie-lancee" : "retour-jour-" + Math.min(P.day, 30)); }
@@ -8267,7 +8317,7 @@ function openMenu() {
   show(`<div class="panel pm" data-out><div class="pm-top"><div><div class="kicker">${careerName()} · jour ${P.day}</div><h2>Pause</h2></div><div class="pm-av">${avatarSvg()}</div></div>
     <div class="pm-chips"><div><b>${L.lvl}</b><span>Niveau</span></div><div><b>$${fmt(P.cash)}</b><span>Compte</span></div><div><b>${multTxt(P.mult)}</b><span>Constancy</span></div><div><b>${P.streakDays || 1}</b><span>Jours d'affilée</span></div></div>
     <button class="btn" id="res" data-focus type="button">Reprendre</button>
-    ${!P.email && !CREATOR ? `<button class="btn alt" id="saveM" type="button">💾 Créer ma sauvegarde</button>` : ""}
+    ${!P.email ? `<button class="btn alt" id="saveM" type="button">💾 Créer ma sauvegarde</button>` : ""}
     <div class="pm-grid">
       <button class="pm-t" id="persoM" type="button">${pmIcon("perso")}<span>Mon perso</span></button>
       <button class="pm-t" id="boardM" type="button">${pmIcon("board")}<span>Classement</span></button>
@@ -8402,7 +8452,7 @@ function envAdd(m, refl = 0.32) { if (!m || ENVR.mats.has(m) || !(m.isMeshPhongM
 function envCar(mesh) { mesh.traverse(o => { if (!o.isMesh || !o.material) return; (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { const n = (m.name || "").toLowerCase(); if (n === "paint" || /paint|body|carpaint/.test(n)) envAdd(m, 0.34); else if (/glass|window|vitre/.test(n) || (m.transparent && m.opacity < 0.75)) envAdd(m, 0.55); }); }); }
 function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "number" && nightK > 0.5) ? ENVR.night : ENVR.day; if (ENVR.cur === want) return; ENVR.cur = want;
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
-window.__W = () => ({ BIGS, HELI, spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
+window.__W = () => ({ BIGS, HELI, openMap3D, M3, spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
 window.__X = () => ({ planes, callUfo, SND, sfx, updateMusic, screech, traffic, SH3, CS_BOX, pushCsBoxes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 window.__simFrame = dt => { if (G.onFoot) updateMe(dt); else updateCar(dt); updateWorldLife(dt); if (!G.onFoot) planeGuard(); };
 function loop(now) {

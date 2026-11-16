@@ -7649,7 +7649,7 @@ async function openBoard() {
   } catch (e) { const el = $("bdList"); if (el) el.innerHTML = `<p class="note">Classement indisponible pour l'instant. Réessaie dans un moment.</p>`; }
 }
 function kitSend(email) {
-  const ps = []; if (KIT_FORM) { const fd = new FormData(); fd.append("email_address", email); ps.push(fetch("https://app.kit.com/forms/" + KIT_FORM + "/subscriptions", { method: "POST", body: fd, mode: "no-cors" })); }
+  const ps = []; if (KIT_FORM) { const fd = new FormData(); fd.append("email_address", email); try { const ps0 = pseudo(); if (ps0) fd.append("fields[first_name]", ps0); } catch (e) {} ps.push(fetch("https://app.kit.com/forms/" + KIT_FORM + "/subscriptions", { method: "POST", body: fd, mode: "no-cors" })); }
   if (GFORM) ps.push(kitSendG(email)); return ps.length ? Promise.all(ps) : Promise.reject(new Error("no-form"));
 }
 function kitSendG(email) {

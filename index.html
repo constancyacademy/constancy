@@ -248,7 +248,7 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 .av2{gap:12px}
 .eg{gap:12px}
 .eg .egh{font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:36px;line-height:1.05;margin:2px 0 0;color:#fff;text-shadow:0 0 18px rgba(255,79,163,.35)}
-.eg .egh em{font-style:italic;background:linear-gradient(180deg,#fff 30%,#ffb3db 70%,#ff4fa3);-webkit-background-clip:text;background-clip:text;color:transparent}
+.eg .egh em{display:inline-block;padding:0 .16em 0 .02em;margin-right:-.12em;font-style:italic;background:linear-gradient(180deg,#fff 30%,#ffb3db 70%,#ff4fa3);-webkit-background-clip:text;background-clip:text;color:transparent}
 .eg .egl{margin:0;color:rgba(242,240,236,.75);font-size:14.5px;line-height:1.45}
 .egcard{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:18px;background:linear-gradient(160deg,rgba(255,63,164,.14),rgba(120,70,255,.10) 55%,rgba(14,13,18,.92));border:1px solid rgba(255,111,191,.38);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 22px rgba(255,79,163,.18),0 18px 34px -10px rgba(0,0,0,.65);transform:perspective(900px) rotateX(3deg)}
 .egf{display:flex;flex-direction:column;gap:6px}
@@ -260,11 +260,12 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 .egeye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:0;color:rgba(242,240,236,.6);font:600 12px Inter,sans-serif;cursor:pointer}
 .eg .egbtn{background:linear-gradient(135deg,#ff2d55,#ff4fc8);color:#fff;border:0;box-shadow:0 0 24px rgba(255,79,200,.45),0 6px 0 #8a1846,0 14px 24px rgba(0,0,0,.45)}
 .eg .egfoot{opacity:.7;margin:0;text-align:center;font-size:12px}
+.egalt{display:block;width:100%;margin:2px 0 0;padding:13px 16px;border-radius:14px;background:rgba(255,63,164,.08);border:1px solid rgba(255,111,191,.55);color:#fff;font:600 15px Inter,sans-serif;cursor:pointer;box-shadow:0 0 16px rgba(255,79,163,.18)}.egalt b{color:#ff8fd0}
 .eglink{background:none;border:0;color:rgba(242,240,236,.55);font:500 13px Inter,sans-serif;padding:2px;margin:0 auto;cursor:pointer}
 .avk{justify-self:center;align-self:center;display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 11px;border-radius:999px;background:rgba(22,8,30,.6);border:1px solid rgba(255,79,163,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 24px rgba(0,0,0,.45);color:#ff7cc0!important;font-size:10px;letter-spacing:.22em;width:max-content;margin:0 auto}
 .avk i{width:6px;height:6px;border-radius:50%;background:#ff4fa3;box-shadow:0 0 8px #ff4fa3,0 0 16px #ff4fa3;animation:vcDot 1.8s ease-in-out infinite}
 .av2 .avh{text-align:center;font-family:'EB Garamond',Georgia,serif;font-weight:500;font-size:34px;letter-spacing:.01em;margin:0;color:#fff;text-shadow:0 0 18px rgba(255,79,163,.35)}
-.av2 .avh em{font-style:italic;background:linear-gradient(180deg,#fff 30%,#ffb3db 70%,#ff4fa3);-webkit-background-clip:text;background-clip:text;color:transparent}
+.av2 .avh em{display:inline-block;padding:0 .16em 0 .02em;margin-right:-.12em;font-style:italic;background:linear-gradient(180deg,#fff 30%,#ffb3db 70%,#ff4fa3);-webkit-background-clip:text;background-clip:text;color:transparent}
 .avstage{perspective:900px;display:flex;justify-content:center;padding:4px 0 0}
 .avframe{position:relative;width:min(210px,52vw);height:min(250px,30vh);border-radius:20px;transform:rotateX(6deg);transform-style:preserve-3d;background:radial-gradient(ellipse at 50% 85%,rgba(255,79,163,.28),transparent 60%),linear-gradient(180deg,rgba(40,16,52,.85),rgba(10,8,16,.95));box-shadow:0 0 0 1px rgba(255,111,191,.55),0 0 24px rgba(255,79,163,.35),inset 0 0 30px rgba(120,60,255,.18),0 26px 40px -10px rgba(0,0,0,.7);overflow:hidden}
 .avframe::before{content:"";position:absolute;inset:0;border-radius:20px;background:linear-gradient(115deg,rgba(255,255,255,.14),rgba(255,255,255,0) 35%);pointer-events:none;z-index:3}
@@ -3961,7 +3962,7 @@ const CTRAIL = { n: 900, i: 0, pts: null };
 function trailPuff(x, y, z) {
   if (!CTRAIL.pts) { const g = new THREE.BufferGeometry(); CTRAIL.pos = new Float32Array(CTRAIL.n * 3).fill(-9999); CTRAIL.col = new Float32Array(CTRAIL.n * 3); CTRAIL.age = new Float32Array(CTRAIL.n).fill(99);
     g.setAttribute("position", new THREE.BufferAttribute(CTRAIL.pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(CTRAIL.col, 3));
-    CTRAIL.pts = new THREE.Points(g, new THREE.PointsMaterial({ size: 1.3, map: glowTexture(), vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false, sizeAttenuation: true })); CTRAIL.pts.frustumCulled = false; scene.add(CTRAIL.pts); }
+    CTRAIL.pts = new THREE.Points(g, new THREE.PointsMaterial({ size: window.__fxBoost ? 3.4 : 1.3, map: glowTexture(), vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false, sizeAttenuation: true })); CTRAIL.pts.frustumCulled = false; scene.add(CTRAIL.pts); }
   const i = CTRAIL.i = (CTRAIL.i + 1) % CTRAIL.n; if (!CTRAIL.hue) CTRAIL.hue = new Float32Array(CTRAIL.n); { const T = performance.now() / 1000; CTRAIL.hue[i] = (i % 2) ? 0.5 + 0.5 * Math.sin(T * 0.3) : 0.5 - 0.5 * Math.sin(T * 0.3); } CTRAIL.pos[i * 3] = x; CTRAIL.pos[i * 3 + 1] = y; CTRAIL.pos[i * 3 + 2] = z; CTRAIL.age[i] = 0;
 }
 function updateTrails(dt) {
@@ -5825,7 +5826,7 @@ function saveNow() {
   if (G.mode !== "bilan") { // pendant le bilan du soir, on garde l'endroit où le joueur s'est arrêté
   if (G.ride.kind === "own") P.carPos = { x: G.car.x, z: G.car.z, h: G.car.h }; else if (G.parked) P.carPos = { x: G.parked.x, z: G.parked.z, h: G.parked.h };
   { const o = G.onFoot ? G.me : G.car; P.mePos = G.inside ? null : { x: o.x, z: o.z, h: o.h || 0, foot: !(G.ride.kind === "own" && !G.onFoot) }; } }
-  store.save(P);
+  store.save(P); cloudPush();
 }
 const lvl = v => 1 + Math.floor(v / 25);
 function careerName() { return P.biz >= 100 ? "Livreur légende" : P.biz >= 50 ? "Livreur pro" : "Livreur"; }
@@ -6352,7 +6353,7 @@ function updatePlane(dt) {
     if (G.crash.splash) { carMesh.position.set(c.x, c.alt, c.z); return; } }
   if (!air && collide(c, 4.5)) c.v *= Math.pow(0.05, dt);
   carMesh.rotation.order = "YXZ"; carMesh.position.set(c.x, c.alt, c.z); carMesh.rotation.set(-c.pitch, c.h, -c.roll); c._air = c.alt > planeGround(c.x, c.z) + 1.2; c._px = c.x; c._pz = c.z; c._pv = c.v;
-  if (air && c.alt > 90 && c.v > 35) { const big = G.ride.kind === "airbus", wing = big ? 17 : 5.5, back = big ? 14 : 2.5, rx = Math.cos(c.h), rz = -Math.sin(c.h); [-1, 1].forEach(sd => trailPuff(c.x + rx * wing * sd - Math.sin(c.h) * back, c.alt + 0.4, c.z + rz * wing * sd - Math.cos(c.h) * back)); }
+  if (air && (c.alt > 90 || (window.__fxBoost && c.alt > 1.5)) && c.v > 35) { const big = G.ride.kind === "airbus", wing = big ? 17 : 5.5, back = big ? 14 : 2.5, rx = Math.cos(c.h), rz = -Math.sin(c.h); [-1, 1].forEach(sd => trailPuff(c.x + rx * wing * sd - Math.sin(c.h) * back, c.alt + 0.4, c.z + rz * wing * sd - Math.cos(c.h) * back)); }
 }
 // hauteur du toit sous l'avion (blocs de la ville)
 function buildingTop(x, z) {
@@ -7260,7 +7261,7 @@ function updateNightSky(dt) {
     const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3)); lg.setAttribute("color", new THREE.BufferAttribute(new Float32Array([1, 1, 1, 0, 0, 0]), 3));
     NSKY.shoot = new THREE.Line(lg, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); NSKY.shoot.frustumCulled = false; NSKY.shoot.visible = false;
     NSKY.pool = []; const glow = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.25, "rgba(255,220,240,.85)"); g.addColorStop(0.6, "rgba(255,120,200,.25)"); g.addColorStop(1, "rgba(255,120,200,0)"); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
-    for (let q = 0; q < 4; q++) { const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(12), 3)); geo.setAttribute("a", new THREE.BufferAttribute(new Float32Array([0, 0, 1, 1]), 1)); geo.setIndex([0, 1, 2, 2, 1, 3]);
+    for (let q = 0; q < 10; q++) { const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(12), 3)); geo.setAttribute("a", new THREE.BufferAttribute(new Float32Array([0, 0, 1, 1]), 1)); geo.setIndex([0, 1, 2, 2, 1, 3]);
       const mat = new THREE.ShaderMaterial({ uniforms: { op: { value: 0 } }, vertexShader: "attribute float a; varying float va; void main(){ va = a; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
         fragmentShader: "uniform float op; varying float va; void main(){ vec3 c = mix(vec3(1.0,0.45,0.75), vec3(1.0,0.97,0.93), va); gl_FragColor = vec4(c * op * pow(va, 1.6) * 1.6, 1.0); }", transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true, fog: false });
       const m = new THREE.Mesh(geo, mat); m.frustumCulled = false; m.visible = false; m.renderOrder = 5; scene.add(m);
@@ -7271,14 +7272,14 @@ function updateNightSky(dt) {
   const sd = sea.material.uniforms.sunDir.value, mx = -sd.x * 0.8 + 0.3, my = Math.max(0.12, -sd.y * 0.9 + 0.25), mz = -sd.z * 0.8 - 0.3, ml = Math.hypot(mx, my, mz);
   NSKY.moon.position.set(cp.x + mx / ml * 1150, cp.y + my / ml * 1150, cp.z + mz / ml * 1150); NSKY.moon.material.opacity = clamp((nightK - 0.3) / 0.5, 0, 1) * (0.25 + 0.75 * clear) * (G.inside ? 0 : 1); NSKY.moon.visible = NSKY.moon.material.opacity > 0.01;
   // étoiles filantes : dans le champ de vision, une longue traînée rose et blanche (parfois une petite pluie de 2 ou 3)
-  if (k > 0.45) { NSKY.next -= dt; if (NSKY.next <= 0) { NSKY.next = window.__showcase ? 2.5 + Math.random() * 2.5 : 10 + Math.random() * 12; const fw = new THREE.Vector3(); camera.getWorldDirection(fw); const yaw = Math.atan2(fw.z, fw.x), n = Math.random() < 0.1 ? 2 : 1;
+  if (k > 0.45) { NSKY.next -= dt; if (NSKY.next <= 0) { NSKY.next = window.__fxBoost ? 0.3 + Math.random() * 0.45 : window.__showcase ? 2.5 + Math.random() * 2.5 : 10 + Math.random() * 12; const fw = new THREE.Vector3(); camera.getWorldDirection(fw); const yaw = Math.atan2(fw.z, fw.x), n = window.__fxBoost ? 2 + (Math.random() < 0.5 ? 1 : 0) : Math.random() < 0.1 ? 2 : 1;
       for (let q = 0; q < n; q++) { const S = NSKY.pool.find(o => !o.on); if (!S) break; const az = yaw + (Math.random() - 0.5) * 1.1, el = 0.5 + Math.random() * 0.32, d = new THREE.Vector3(Math.cos(az) * Math.cos(el), Math.sin(el), Math.sin(az) * Math.cos(el)), sgn = Math.random() < 0.5 ? -1 : 1, side = new THREE.Vector3(-Math.sin(az) * sgn, -0.16, Math.cos(az) * sgn).normalize();
-        Object.assign(S, { on: true, p: d.multiplyScalar(1500), v: side.multiplyScalar(820 + Math.random() * 200), t: -q * 0.22, life: 1.0 + Math.random() * 0.3 }); }
+        Object.assign(S, { on: true, p: d.multiplyScalar(1500), v: side.multiplyScalar(820 + Math.random() * 200), t: -q * 0.22, life: (window.__fxBoost ? 1.5 : 1.0) + Math.random() * 0.3 }); }
       if (G.mode === "play" && !P.shootSeen) { P.shootSeen = true; help("Une étoile filante. Pas besoin de faire un vœu : tu as un plan. ✨", 5); stat("etoile-filante"); } } }
   if (NSKY.pool) for (const S of NSKY.pool) { if (!S.on) continue; S.t += dt; if (S.t < 0) continue; if (S.t > S.life || k <= 0.05) { S.on = false; S.m.visible = S.h.visible = false; continue; }
-    const head = S.p.clone().addScaledVector(S.v, S.t).add(cp), tail = S.p.clone().addScaledVector(S.v, Math.max(0, S.t - 0.5)).add(cp), dir = head.clone().sub(tail), vw = head.clone().sub(cp), sd2 = dir.clone().cross(vw).normalize(), w = 12, A = S.m.geometry.attributes.position;
+    const head = S.p.clone().addScaledVector(S.v, S.t).add(cp), tail = S.p.clone().addScaledVector(S.v, Math.max(0, S.t - 0.5)).add(cp), dir = head.clone().sub(tail), vw = head.clone().sub(cp), sd2 = dir.clone().cross(vw).normalize(), w = window.__fxBoost ? 22 : 12, A = S.m.geometry.attributes.position;
     A.setXYZ(0, tail.x + sd2.x * w * 0.2, tail.y + sd2.y * w * 0.2, tail.z + sd2.z * w * 0.2); A.setXYZ(1, tail.x - sd2.x * w * 0.2, tail.y - sd2.y * w * 0.2, tail.z - sd2.z * w * 0.2); A.setXYZ(2, head.x + sd2.x * w, head.y + sd2.y * w, head.z + sd2.z * w); A.setXYZ(3, head.x - sd2.x * w, head.y - sd2.y * w, head.z - sd2.z * w); A.needsUpdate = true;
-    const op = Math.sin(Math.min(1, S.t / S.life) * Math.PI) * k; S.m.material.uniforms.op.value = op; S.m.visible = true; S.h.position.copy(head); S.h.scale.setScalar(80); S.h.material.opacity = op; S.h.visible = true; }
+    const op = Math.sin(Math.min(1, S.t / S.life) * Math.PI) * k; S.m.material.uniforms.op.value = op; S.m.visible = true; S.h.position.copy(head); S.h.scale.setScalar(window.__fxBoost ? 150 : 80); S.h.material.opacity = op; S.h.visible = true; }
 }
 // ---------- radio de la voiture : deux stations (chargées seulement à la première écoute), qui « tournent » même quand tu ne les écoutes pas
 const RADIO = { i: 0, list: [null, { k: "lofi", name: "Lo-fi Constancy", url: "assets/radio_lofi.mp3", len: 48 }, { k: "drive", name: "Drive FM", url: "assets/radio_drive.mp3", len: 16 * 4 * 60 / 112 }], buf: {}, src: null, g: null, f: null };
@@ -7531,6 +7532,79 @@ const EM_FIX = { "gmial.com": "gmail.com", "gmal.com": "gmail.com", "gmai.com": 
 const EM_JUNK = /(^|\.)(yopmail|mailinator|guerrillamail|10minutemail|tempmail|temp-mail|trashmail|jetable|throwawaymail|getnada|maildrop|sharklasers|dispostable|fakeinbox|mohmal|emailondeck|mintemail|spamgourmet|tempr|discard)\./i;
 const KIT_FORM = "10198155"; // formulaire Kit « Constancy - Jeu » (double opt-in : e-mail « Confirme ton adresse »)
 const EMAIL_GATE_S = 120;
+const VERIFY_URL = "https://script.google.com/macros/s/AKfycbxFiuYqwJzJ7XlKYMkvvJ_lH8ZVk4znGWgh9TeY3YSZ3c_lsDI_dlHhhy7SYcNg3mIaIQ/exec"; // Apps Script de Thomas : renvoie l'état Kit d'une adresse (active = confirmée). Vide = pas de blocage.
+function emailBlocked() { return !!(VERIFY_URL && P && P.email && !P.emailOk && !G.cwGrace && !navigator.webdriver && !CREATOR); } // mode créateur : jamais d'identifiants demandés
+async function checkConfirmed() {
+  if (!VERIFY_URL || !P || !P.email) return null;
+  try { const r = await fetch(VERIFY_URL + "?email=" + encodeURIComponent(P.email) + "&t=" + Date.now(), { cache: "no-store" }), j = await r.json(); if (!j || j.state === "error" || j.state === "invalid") throw 0; G.cwFails = 0;
+    if (j && j.state === "active") { P.emailOk = 1; saveNow(); stat("email-confirme"); return true; } return false;
+  } catch (e) { G.cwFails = (G.cwFails || 0) + 1; return null; } }
+function pwHashOf(v, pw) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(v + "|" + pw)).then(h => [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("")); }
+function cloudPush(force) { // sauvegarde en ligne : au plus une fois par minute
+  if (!VERIFY_URL || !P || !P.email || !P.pwH || navigator.webdriver) return; const now = Date.now(); if (!force && now - (G.cloudAt || 0) < 60000) return; G.cloudAt = now;
+  try { const data = localStorage.getItem(SAVE_KEY) || ""; if (data.length > 48000) return; fetch(VERIFY_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ email: P.email, h: P.pwH, data }) }).catch(() => {}); } catch (e) {} }
+function gateMode() { if (G.started) setMode("email"); } // avant la partie : on reste sur la musique et la ville du menu
+function openLogin(after) {
+  G.emailGate = true; gateMode(); stat("ecran-connexion");
+  show(`<div class="panel eg"><div class="kicker avk"><i></i>Connexion · Déjà inscrit</div>
+    <h2 class="egh">Content de te <em>retrouver</em></h2>
+    <p class="egl">Constancy City et toute la team Constancy sont heureuses de te revoir. Ton e-mail, ton mot de passe, et tu reprends là où tu t'étais arrêté.</p>
+    <div class="egf"><label for="lgE">E-mail</label><input id="lgE" class="eginp" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="ton@email.com" data-focus></div>
+    <div class="egf"><label for="lgP">Mot de passe</label><div style="position:relative"><input id="lgP" class="eginp" type="password" autocomplete="current-password" placeholder="Ton mot de passe" style="padding-right:64px"><button id="lgEye" type="button" class="egeye">Voir</button></div></div>
+    <div id="lgErr" class="note" style="color:#ff6b8a;min-height:16px;margin:0"></div>
+    <button class="btn egbtn" id="lgGo" type="button">Me connecter</button>
+    <button id="lgForgot" type="button" class="eglink">Mot de passe oublié ?</button>
+    <button id="lgNew" type="button" class="egalt">Pas encore de compte ? <b>Créer ma sauvegarde</b></button>
+    <button id="lgCode" type="button" class="eglink">J'ai un code de partie</button></div>`, "mail");
+  const err = (t, c) => { const e = $("lgErr"); e.style.color = c || "#ff6b8a"; e.innerHTML = t; };
+  on("lgEye", () => { const p = $("lgP"); p.type = p.type === "password" ? "text" : "password"; $("lgEye").textContent = p.type === "password" ? "Voir" : "Cacher"; });
+  on("lgNew", () => { G.emailGate = false; if (P) openEmailGate(after); else createAvatar(); }); on("lgCode", () => { G.emailGate = false; openTransfer(true); });
+  on("lgForgot", () => { const v = ($("lgE").value || "").trim().toLowerCase();
+    err(`Écris-nous depuis ton adresse : on réinitialise ton mot de passe, ta partie est gardée.<br><a href="mailto:contact@constancyacademy.com?subject=${encodeURIComponent("Mot de passe oublié")}&body=${encodeURIComponent("Mon adresse de jeu : " + (v || "…"))}" style="color:#ff6fbf;font-weight:700">Écrire à contact@constancyacademy.com</a>`, "rgba(242,240,236,.8)"); stat("mdp-oublie"); });
+  let busy = false; const go = async () => { if (busy) return; const v = ($("lgE").value || "").trim().toLowerCase(), pw = $("lgP").value || "";
+    if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(v)) { err("Vérifie ton adresse e-mail."); return; } if (!pw) { err("Entre ton mot de passe."); return; }
+    if (!VERIFY_URL) { err("La connexion arrive avec la prochaine mise à jour."); return; }
+    busy = true; const b = $("lgGo"); b.textContent = "Connexion…"; err("");
+    try { const h = await pwHashOf(v, pw), r = await fetch(VERIFY_URL + "?action=load&email=" + encodeURIComponent(v) + "&h=" + h + "&t=" + Date.now(), { cache: "no-store" }), j = await r.json();
+      if (j.ok && j.data) { let d = null; try { d = JSON.parse(j.data); } catch (e) {} if (d && typeof d === "object") { d.email = v; d.pwH = h; d.kitV = 1; d.emailBonus = 1; if (j.state === "active") d.emailOk = 1; localStorage.setItem(SAVE_KEY, JSON.stringify(d)); stat("connexion-ok"); b.textContent = "✓ Partie retrouvée"; setTimeout(() => location.reload(), 600); return; } }
+      if (j.reason === "badpass") { err("Mot de passe incorrect."); }
+      else if (j.state === "active" || j.state === "inactive" || j.ok) { // adresse connue mais partie gardée seulement sur l'ancien appareil
+        if (!P) { pickMus = look.gender === "femme" ? "fessiers" : "bras"; P = freshSave("muscle", pickMus); P.look = Object.assign({}, look); P.goal = { type: "muscle", tier: 0, base: MUSCLES[pickMus].base }; if (!after) after = () => startPlayHome(); }
+        P.email = v; P.pwH = h; P.kitV = 1; P.emailBonus = 1; P.emailOk = j.state === "active" ? 1 : 0; saveNow(); cloudPush(true); stat("connexion-liee"); G.emailGate = false;
+        if (emailBlocked()) openConfirmWait(after); else { if (after) after(); else resume(); notify("gold", "<b>Compte retrouvé ✓</b> Ta partie est maintenant sauvegardée en ligne.", 6); } return; }
+      else if (j.state === "error") { err("Connexion impossible pour l'instant · réessaie dans un instant."); }
+      else { err('Aucun compte avec cette adresse. <button type="button" id="lgNew2" class="eglink" style="display:inline;margin:0;color:#ff6fbf;font-weight:700">Créer ma sauvegarde</button>'); on("lgNew2", () => { G.emailGate = false; openEmailGate(after); }); }
+    } catch (e) { err("Connexion impossible · vérifie ton réseau."); }
+    busy = false; b.textContent = "Me connecter"; };
+  on("lgGo", go); $("lgP").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+}
+function openConfirmWait(after) {
+  G.emailGate = true; gateMode(); stat("ecran-confirmation"); clearInterval(G.cwIv);
+  const v = P.email, dom = v.split("@")[1] || "", safe = v.replace(/[<>"&]/g, "");
+  const box = /gmail|googlemail/.test(dom) ? "https://mail.google.com/mail/u/0/#search/Constancy" : /outlook|hotmail|live\.|msn/.test(dom) ? "https://outlook.live.com/mail/" : /yahoo/.test(dom) ? "https://mail.yahoo.com/" : /icloud|me\.com|mac\.com/.test(dom) ? "https://www.icloud.com/mail" : /orange|wanadoo/.test(dom) ? "https://messagerie.orange.fr" : /sfr|neuf/.test(dom) ? "https://webmail.sfr.fr" : /laposte/.test(dom) ? "https://www.laposte.net" : /free\.fr/.test(dom) ? "https://zimbra.free.fr" : "";
+  const spin = '<i style="width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:#ff6fbf;display:inline-block;animation:emSpin .7s linear infinite"></i>';
+  if (!P.kitV) { P.kitV = 1; saveNow(); kitSend(v).catch(() => {}); } // anciens joueurs : on les inscrit sur Kit, ce qui envoie l'e-mail
+  show(`<div class="panel eg"><div class="kicker avk"><i></i>Dernière étape</div>
+    <h2 class="egh">Confirme ton <em>adresse</em></h2>
+    <p class="egl">E-mail envoyé à <b style="color:#fff">${safe}</b><br>Touche le bouton rose <b style="color:#fff">« Confirmer mon adresse »</b>, le jeu se débloque tout seul.</p>
+    <div id="cwSt" class="egchk" style="justify-content:center;margin:4px 0 2px">${spin}En attente de ta confirmation…</div>
+    ${box ? `<a class="btn egbtn" id="cwBox" href="${box}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">Ouvrir ma boîte mail</a>` : ""}
+    <button class="btn${box ? "" : " egbtn"}" id="cwChk" type="button">J'ai confirmé</button>
+    <p class="note egfoot">Rien reçu ? Regarde dans Promotions ou Spam.</p>
+    <div style="display:flex;justify-content:center;gap:22px"><button id="cwRe" type="button" class="eglink" style="margin:0">Renvoyer l'e-mail</button><button id="cwCh" type="button" class="eglink" style="margin:0">Changer d'adresse</button></div></div>`, "mail");
+  const st = (h, c) => { const e = $("cwSt"); if (e) { e.style.color = c || ""; e.innerHTML = h; } };
+  const done = () => { clearInterval(G.cwIv); document.removeEventListener("visibilitychange", vis); G.emailGate = false; if (after) after(); else resume(); celebrate(4);
+    notify("gold", "<b>Adresse confirmée ✓</b> Ta sauvegarde est sécurisée. Bienvenue à Constancy City.", 6); };
+  let busy = false; const tick = async manual => { if (busy || !G.emailGate) return; busy = true; if (manual) st(spin + "Vérification…"); const r = await checkConfirmed(); busy = false;
+    if (r === true) { st("✓ Adresse confirmée", "#5ef0a0"); setTimeout(done, 700); return; }
+    if (r === null && G.cwFails >= 3) { G.cwGrace = true; st("Vérification indisponible pour l'instant · on revérifiera au prochain lancement", "#ffc94a"); setTimeout(done, 1600); return; } // serveur injoignable : on ne bloque jamais le joueur par erreur
+    if (manual) st("Pas encore confirmée · ouvre l'e-mail et touche le bouton rose", "#ff6b8a"); };
+  const vis = () => { if (document.visibilityState === "visible") tick(false); }; document.addEventListener("visibilitychange", vis);
+  G.cwIv = setInterval(() => { if (document.visibilityState === "visible") tick(false); }, 5000); setTimeout(() => tick(false), 1200);
+  on("cwChk", () => tick(true));
+  on("cwRe", () => { const now = Date.now(); if (now - (G.cwSent || 0) < 60000) { st("E-mail déjà renvoyé · patiente une minute", "#ffc94a"); return; } G.cwSent = now; kitSend(v).catch(() => {}); stat("email-renvoye"); st("✓ Nouvel e-mail envoyé", "#5ef0a0"); });
+  on("cwCh", () => { clearInterval(G.cwIv); document.removeEventListener("visibilitychange", vis); P.email = ""; P.emailOk = 0; P.kitV = 0; saveNow(); G.emailGate = false; openEmailGate(after); });
+}
 const GFORM = "https://docs.google.com/forms/d/e/1FAIpQLSfgcY6KTadD9c1LdzIL3WmtBz8ZlVWjpta8SI4ibkqrQ_5P-g/formResponse"; // Google Form de secours (réponses → Google Sheet)
 const GFORM_ENTRY = "entry.705392280"; // secondes de jeu avant de demander l'e-mail
 function kitQueue() { try { return JSON.parse(localStorage.getItem("constancy-kitq") || "[]"); } catch (e) { return []; } }
@@ -7604,10 +7678,10 @@ function emailMoment(dt) { // le bon moment : juste après une mission, ou quand
   const afterMission = G.emailAfterMission && t > G.emailAfterMission;
   if (afterMission || G.emailStill > 2.5 || t > (P.emailNext || (P.acct ? 14 : 120)) + (P.acct ? 4 : 45)) { G.emailAfterMission = 0; openEmailGate(); }
 }
-function openEmailGate(after) {
-  if (G.emailGate) return; G.emailGate = true; P.emailAsks = (P.emailAsks || 0) + 1; setMode("email"); stat("ecran-email-" + P.emailAsks);
+function openEmailGate(after, step) {
+  if (G.emailGate) return; G.emailGate = true; P.emailAsks = (P.emailAsks || 0) + 1; gateMode(); stat("ecran-email-" + P.emailAsks);
   const perk = (ic, b, t) => `<div style="display:flex;gap:12px;align-items:flex-start"><span style="flex:0 0 34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:rgba(255,63,164,.16);border:1px solid rgba(255,63,164,.4);font-size:17px">${ic}</span><span style="font-size:14px;line-height:1.4;color:#dcd8e2"><b style="color:#fff">${b}</b><br>${t}</span></div>`;
-  show(`<div class="panel eg"><div class="kicker avk"><i></i>Sauvegarde · Accès anticipé</div>
+  show(`<div class="panel eg"><div class="kicker avk"><i></i>${step ? "Étape " + step + " sur 3 · Sauvegarde" : "Sauvegarde · Accès anticipé"}</div>
     <h2 class="egh">Crée ta <em>sauvegarde</em></h2>
     <p class="egl">Ta ville, ton perso, ton cash, ta série : tout reste lié à ton compte.</p>
     <div class="egcard">
@@ -7622,7 +7696,7 @@ function openEmailGate(after) {
     <div id="emErr" class="note" style="color:#ff6b8a;min-height:16px;margin:0"></div>
     <button class="btn egbtn" id="emGo" type="button">Créer ma sauvegarde</button>
     <p class="note egfoot">Un e-mail seulement quand une nouvelle version sort · Jamais de spam · Désinscription en 1 clic.</p>
-    <button id="emForgot" type="button" class="eglink">Déjà un compte · Mot de passe oublié ?</button></div>`, "mail");
+    <button id="emForgot" type="button" class="egalt">J'ai déjà un compte · <b>Me connecter</b></button></div>`, "mail");
   // vérification de l'adresse en direct : format, puis domaine qui reçoit vraiment des e-mails
   const chk = $("emChk"), spin = '<i style="width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:#ff6fbf;display:inline-block;animation:emSpin .7s linear infinite"></i>';
   let okMail = false, okJunk = false, chkN = 0; const verify = async () => { const v = ($("em").value || "").trim().toLowerCase(), n = ++chkN; okMail = false;
@@ -7640,16 +7714,16 @@ function openEmailGate(after) {
     $("pwRules").innerHTML = PW_R.map(([f, t]) => `<span style="color:${f(p) ? "#5ef0a0" : "rgba(242,240,236,.5)"}">${f(p) ? "✓" : "○"} ${t}</span>`).join(""); };
   $("emPw").addEventListener("input", pwDraw);
   on("emEye", () => { const p = $("emPw"); p.type = p.type === "password" ? "text" : "password"; $("emEye").textContent = p.type === "password" ? "Voir" : "Cacher"; });
-  on("emForgot", () => { $("emErr").style.color = "rgba(242,240,236,.75)"; $("emErr").textContent = "Ta sauvegarde est liée à ton adresse sur ce téléphone. La récupération du mot de passe par e-mail arrive avec les comptes en ligne : tu recevras un lien sur ton adresse."; });
+  on("emForgot", () => { G.emailGate = false; openLogin(after); });
   const inp = $("em"), go = () => { const v = (inp.value || "").trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(v)) { $("emErr").textContent = "Vérifie ton adresse e-mail."; return; }
     if (okJunk || /Adresse jetable/.test(chk.textContent)) { $("emErr").textContent = "Les adresses jetables ne sont pas acceptées."; return; }
     if (/Tu voulais dire/.test(chk.textContent)) { $("emErr").textContent = "Vérifie l'orthographe de ton adresse (suggestion juste au-dessus)."; return; }
     if (!okMail && /Ce domaine/.test(chk.textContent)) { $("emErr").textContent = "Cette adresse ne peut pas recevoir d'e-mails."; return; }
     const pw = ($("emPw") && $("emPw").value) || ""; if (pwScore(pw) < 4) { $("emErr").style.color = "#ff6b8a"; $("emErr").textContent = "Mot de passe trop faible : 8 caractères, 1 majuscule, 1 chiffre et 1 caractère spécial."; pwDraw(); return; }
-    try { crypto.subtle.digest("SHA-256", new TextEncoder().encode(v + "|" + pw)).then(h => { P.pwH = [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join(""); saveNow(); }); } catch (e) {}
-    { const ps = ($("emPs") && $("emPs").value || "").replace(/[<>"&]/g, "").trim().slice(0, 16); if (ps) P.pseudo = ps; } pid(); P.email = v; addCash(EMAIL_BONUS); saveNow(); stat("email-ok"); if (refCode()) stat("inscription-parrainee"); const q = kitQueue(); q.push(v); kitSave(q); kitFlush();
-    G.emailGate = false; if (after) after(); else resume(); celebrate(4); notify("gold", "<b>Tu es sur la liste.</b> Tu recevras la prochaine bêta avant tout le monde. <b style=\"color:var(--cash)\">+$" + fmt(EMAIL_BONUS) + "</b> versés.", 6); };
+    try { pwHashOf(v, pw).then(h => { P.pwH = h; saveNow(); cloudPush(true); }); } catch (e) {}
+    { const ps = ($("emPs") && $("emPs").value || "").replace(/[<>"&]/g, "").trim().slice(0, 16); if (ps) P.pseudo = ps; } pid(); P.email = v; if (!P.emailBonus) { P.emailBonus = 1; addCash(EMAIL_BONUS); } saveNow(); stat("email-ok"); if (refCode()) stat("inscription-parrainee"); const q = kitQueue(); q.push(v); kitSave(q); kitFlush();
+    P.kitV = 1; saveNow(); G.emailGate = false; if (VERIFY_URL && !navigator.webdriver) { openConfirmWait(after); return; } if (after) after(); else resume(); celebrate(4); notify("gold", "<b>Sauvegarde créée.</b> 📩 Dernière étape : ouvre l'e-mail <b>« Confirme ton adresse · Constancy »</b> et touche le bouton rose (regarde aussi dans Promotions ou Spam). <b style=\"color:var(--cash)\">+$" + fmt(EMAIL_BONUS) + "</b> versés.", 10); };
   on("emGo", go); inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
   // « Plus tard » : on ne redemande plus en pleine partie, seulement au retour d'un jour suivant (3 fois maximum)
   on("emLater", () => { P.emailLater = (P.emailLater || 0) + 1; saveNow(); stat("email-plus-tard"); if (P.acct) notify("gold", "Partie non sauvegardée. Crée ta sauvegarde depuis le menu quand tu veux.", 5); G.emailGate = false; if (after) after(); else resume(); });
@@ -7673,7 +7747,7 @@ function avatarSvg() {
 }
 function alignTitle() { const go = () => { const pn = screen.querySelector(".ttl"), lg = pn && pn.querySelector(".logo"); if (!lg) return; const cs = getComputedStyle(lg), cx = document.createElement("canvas").getContext("2d");
     cx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`; const m = cx.measureText("C"), ci = Math.max(0, -m.actualBoundingBoxLeft || 0); pn.style.setProperty("--ci", ci.toFixed(1) + "px");
-    if (!screen.querySelector(".ttl .sm + .sm") && pn.querySelector("#tcodeBtn")) pn.querySelector("#tcodeBtn").style.gridColumn = "1/-1"; };
+    const lb = pn.querySelector("#tlogin"); if (lb) lb.style.gridColumn = "1/-1"; };
   go(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); }
 function titleScreen() {
   setMode("title"); setTimeout(() => { if (G.mode === "title") screen.classList.add("titled"); }, 0);
@@ -7681,14 +7755,15 @@ function titleScreen() {
   show(`<div class="panel ttl"><div class="kicker"><i></i>${CREATOR ? "Mode créateur · tout débloqué" : "Bêta · accès anticipé"}</div><div class="logo" id="logoTap">Constancy</div><div class="vc"></div>
     <div class="tag">Le jeu où ta régularité<br><em>fait le score.</em></div><div class="rotHint"><i></i>Meilleur à l'horizontale</div>
     <p class="lead">Tu pars de zéro. Fauché, une voiture qui tient avec du scotch, pas un muscle. Mission après mission, jour après jour, tu fais de ton perso une légende.</p>
-    ${saved ? `<button class="btn" id="cont" data-focus type="button">Continuer · jour ${saved.day} · $${fmt(saved.cash)}</button><button class="btn alt" id="newg" type="button">Nouvelle partie</button>` : `<button class="btn" id="quick" data-focus type="button">Jouer maintenant</button><button class="btn alt" id="newg" type="button">Créer mon perso d'abord</button>`}
-    <button class="btn alt sm" id="tcodeBtn" type="button">J'ai un code de partie</button>
+    ${saved ? `<button class="btn" id="cont" data-focus type="button">Continuer · jour ${saved.day} · $${fmt(saved.cash)}</button><button class="btn alt" id="newg" type="button">Nouvelle partie</button>` : `<button class="btn" id="quick" data-focus type="button">Jouer maintenant</button>`}
+    ${saved ? "" : `<button class="btn alt sm" id="tlogin" type="button">J'ai déjà un compte</button>`}
     <p class="note">Téléphone : pose ton pouce en bas de l'écran et glisse vers le haut pour avancer, vers le bas pour reculer, sur les côtés pour tourner. Ordinateur : flèches ou ZQSD, Espace pour freiner, F pour sortir de la voiture, Maj pour sprinter à pied. Sur téléphone, pousse le doigt au-delà du rond pour sprinter.</p></div>`);
   on("cont", () => { audioInit(); P = Object.assign(freshSave(saved.objective, saved.muscle), saved); P.counts = P.counts || {}; if (P.jokers == null) P.jokers = 2; dailyReturn(); const next = () => { if (G.newDay) welcomeBack(); else startPlay(); };
     if (G.newDay && !P.email && !CREATOR && P.emailLater && (P.emailReask || 0) < 3) { P.emailReask = (P.emailReask || 0) + 1; saveNow(); openEmailGate(next); } else next(); });
   on("newg", () => { audioInit(); saved ? confirmNew() : createAvatar(); });
-  on("quick", () => { audioInit(); quickObjective(); });
-  on("tcodeBtn", () => openTransfer(true));
+  on("quick", () => { audioInit(); stat("jouer"); if (CREATOR) quickObjective(); else createAvatar(); }); // créateur : départ direct, perso par défaut
+  on("tlogin", () => { audioInit(); openLogin(null); });
+  
   addInstallButton(); alignTitle();
   // la musique démarre au premier contact (les navigateurs bloquent le son avant)
   const kick = () => { audioInit(); screen.removeEventListener("pointerdown", kick); }; screen.addEventListener("pointerdown", kick);
@@ -7702,6 +7777,8 @@ function titleScreen() {
 const GC_CODE = "constancy"; // compte goatcounter.com : constancy.goatcounter.com
 const onWeb = /^https?:$/.test(location.protocol) && !/claude\.ai|claudeusercontent|anthropic/.test(location.hostname);
 // mode sans statistiques : ?nostat=1 coupe GoatCounter sur cet appareil pour toujours (localStorage « skipgc », reconnu aussi par count.js), puis le paramètre disparaît de l'adresse
+const CONFIRMED = (() => { try { const u = new URL(location.href); if (u.searchParams.get("confirme") === "1") { u.searchParams.delete("confirme"); history.replaceState(null, "", u.pathname + (u.search.length > 1 ? u.search : "") + u.hash); return true; } } catch (e) {} return false; })();
+if (CONFIRMED) { setTimeout(() => { try { stat("retour-lien-confirmation"); if (!P || !P.email) notify("gold", "<b>Adresse confirmée ✓</b> Retourne dans l'appli Constancy : ton jeu est débloqué.", 9); else if (!VERIFY_URL) { P.emailOk = 1; saveNow(); notify("gold", "<b>Adresse confirmée ✓</b> Ta sauvegarde est sécurisée.", 7); } } catch (e) {} }, 2500); }
 const NOSTAT = (() => { try { const u = new URL(location.href); if (u.searchParams.get("nostat") === "1") { localStorage.setItem("skipgc", "t"); u.searchParams.delete("nostat"); history.replaceState(null, "", u.pathname + (u.search.length > 1 ? u.search : "") + u.hash); } return localStorage.getItem("skipgc") === "t"; } catch (e) { return /[?&]nostat=1/.test(location.search); } })();
 if (onWeb && GC_CODE && !NOSTAT) { const sc = document.createElement("script"); sc.async = true; sc.src = "https://gc.zgo.at/count.js"; sc.dataset.goatcounter = `https://${GC_CODE}.goatcounter.com/count`; document.head.appendChild(sc); }
 function stat(name) { if (NOSTAT) return; try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "evt-" + name, title: name, event: true }); else if (onWeb) setTimeout(() => window.goatcounter && window.goatcounter.count && window.goatcounter.count({ path: "evt-" + name, title: name, event: true }), 3000); } catch (e) {} }
@@ -7880,8 +7957,21 @@ function createAvatar() {
   createAvatar._gen = setTimeout(mk, 120);
   createAvatar._spin = setInterval(() => { if (!img || !img.isConnected) { clearInterval(createAvatar._spin); return; } if (frames.length < 2) return; fi = (fi + 1) % frames.length; if (fi === 0 && frames.length < NF) return; img.src = frames[fi]; if (refl) refl.src = frames[fi]; }, 160);
   const sc = screen.querySelector(".avscroll"); if (sc && createAvatar._st) sc.scrollTop = createAvatar._st; if (sc) sc.addEventListener("scroll", () => createAvatar._st = sc.scrollTop);
-  on("ok", () => { createAvatar._st = 0; clearInterval(createAvatar._spin); clearTimeout(createAvatar._gen); chooseObjective(); });
+  on("ok", () => { createAvatar._st = 0; clearInterval(createAvatar._spin); clearTimeout(createAvatar._gen); stat("perso-cree"); xFlash(afterAvatar); });
 }
+function xFlash(then) { // flash blanc-rose + souffle et impact, comme à l'arrivée sur le menu
+  const f = document.createElement("div"); f.className = "xflash"; document.body.appendChild(f); try { flashback(); } catch (e) {} requestAnimationFrame(() => requestAnimationFrame(() => f.classList.add("on")));
+  setTimeout(() => { then(); setTimeout(() => { f.classList.add("off"); setTimeout(() => f.remove(), 1000); }, 160); }, 300); }
+const ACC_KEYS = ["email", "pseudo", "pwH", "kitV", "emailOk", "emailBonus", "emailAsks", "cash"];
+function afterAvatar() { // le compte d'avant (s'il existe) reste lié à la nouvelle partie
+  const acc = {}; if (P && P.email) ACC_KEYS.forEach(k => { if (P[k] != null) acc[k] = P[k]; });
+  pickMus = look.gender === "femme" ? "fessiers" : "bras"; P = freshSave("muscle", pickMus); P.look = Object.assign({}, look); Object.assign(P, acc); saveNow();
+  if (!P.email && !navigator.webdriver && !CREATOR) openEmailGate(firstObjective, 2); else if (emailBlocked()) openConfirmWait(firstObjective); else firstObjective(); }
+function firstObjective() {
+  show(`<div class="panel"><div class="kicker avk"><i></i>Étape 3 sur 3</div><h2>Ton objectif principal ?</h2><p class="lead" style="margin:-4px 0 4px">Choisis ce que tu veux construire. Chaque jour où tu reviens te rapproche du but.</p>
+    <div class="choices">${Object.entries(OBJ).map(([k, o]) => `<button class="choice" data-k="${k}" type="button"><b>${o.label}</b><span>${o.sub}</span></button>`).join("")}</div></div>`);
+  screen.querySelectorAll(".choice").forEach(b => b.addEventListener("click", () => { const k = b.dataset.k; stat("objectif-" + k); const keep = {}; ACC_KEYS.forEach(x => { if (P && P[x] != null) keep[x] = P[x]; });
+    pickObj = k; pickTier = 0; P = freshSave(k, pickMus); P.look = Object.assign({}, look); Object.assign(P, keep); P.goal = { type: k, tier: 0, base: k === "muscle" ? MUSCLES[pickMus].base : 0 }; saveNow(); startPlayHome(); })); }
 // démarrage rapide : un seul écran, l'objectif principal est obligatoire (perso par défaut, premier palier ; tout reste modifiable)
 function quickObjective() {
   show(`<div class="panel"><div class="kicker">Avant de commencer</div><h2>Ton objectif principal ?</h2><p class="lead" style="margin:-4px 0 4px">Choisis ce que tu veux construire. Le jeu s'adapte, et chaque jour où tu reviens te rapproche du but.</p>
@@ -7950,7 +8040,8 @@ function welcomeBack() {
 setTimeout(kitFlush, 4000); window.addEventListener("online", kitFlush);
 function startPlayHome() { G.homeStart = true; startPlay(); setTimeout(refreshReferrals, 8000); }
 function startPlay() {
-  if (P && !P.email && !G.emailGate && !startPlay._go && !navigator.webdriver) { openEmailGate(() => { startPlay._go = true; try { startPlay(); } finally { startPlay._go = false; } }); return; } // sauvegarde obligatoire avant de jouer
+  if (P && emailBlocked() && !G.emailGate && !startPlay._go) { openConfirmWait(() => { startPlay._go = true; try { startPlay(); } finally { startPlay._go = false; } }); return; } // adresse non confirmée : pas de jeu
+  if (P && !P.email && !G.emailGate && !startPlay._go && !navigator.webdriver && !CREATOR) { openEmailGate(() => { startPlay._go = true; try { startPlay(); } finally { startPlay._go = false; } }); return; } // sauvegarde obligatoire avant de jouer
   window.__showcase = false; FW.party = 0; G.playT0 = performance.now(); if (!CREATOR) G.wxForce = null;
   if (TCAM.fade) { TCAM.fade.remove(); TCAM.fade = null; } if (TCAM.car) { scene.remove(TCAM.car); TCAM.car = null; }
   if (!G.statDay || G.statDay !== P.day) { G.statDay = P.day; stat(P.day === 1 ? "partie-lancee" : "retour-jour-" + Math.min(P.day, 30)); }
@@ -8430,6 +8521,7 @@ function renderFrame() {
   const sk = SHAKE.k; if (sk > 0.002 && camera) { const T = performance.now() / 1000; SHAKE.o.set(Math.sin(T * 61) * 0.09, Math.sin(T * 47 + 1) * 0.13, Math.sin(T * 53 + 2) * 0.07).multiplyScalar(sk); camera.position.add(SHAKE.o); SHAKE.k *= 0.86; } else SHAKE.o.set(0, 0, 0);
   try { renderFrame0(); } finally { if (camera) camera.position.sub(SHAKE.o); } }
 function renderFrame0() {
+  if (window.__hideMe && meMesh) meMesh.visible = false;
   if (FXR.on && FXR.comp) { const nk = typeof nightK === "number" ? nightK : 0; FXR.bloom.strength = 0.22 + nk * 0.52; FXR.bloom.threshold = 0.86 - nk * 0.22; FXR.bloom.radius = 0.35 + nk * 0.2;
     try { FXR.comp.render(); return; } catch (e) { FXR.on = false; FXR.fail = true; } }
   renderer.render(scene, camera); }
@@ -8452,7 +8544,7 @@ function envAdd(m, refl = 0.32) { if (!m || ENVR.mats.has(m) || !(m.isMeshPhongM
 function envCar(mesh) { mesh.traverse(o => { if (!o.isMesh || !o.material) return; (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { const n = (m.name || "").toLowerCase(); if (n === "paint" || /paint|body|carpaint/.test(n)) envAdd(m, 0.34); else if (/glass|window|vitre/.test(n) || (m.transparent && m.opacity < 0.75)) envAdd(m, 0.55); }); }); }
 function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "number" && nightK > 0.5) ? ENVR.night : ENVR.day; if (ENVR.cur === want) return; ENVR.cur = want;
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
-window.__W = () => ({ BIGS, HELI, openMap3D, M3, spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
+window.__W = () => ({ BIGS, HELI, openMap3D, M3, NSKY, CTRAIL, spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
 window.__X = () => ({ planes, callUfo, SND, sfx, updateMusic, screech, traffic, SH3, CS_BOX, pushCsBoxes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 window.__simFrame = dt => { if (G.onFoot) updateMe(dt); else updateCar(dt); updateWorldLife(dt); if (!G.onFoot) planeGuard(); };
 function loop(now) {
@@ -8602,7 +8694,7 @@ setInterval(() => { if (GPAD.on || (navigator.getGamepads && Array.from(navigato
 window.addEventListener("blur", () => { keys.clear(); G.joy = null; joyId = null; joyEl.classList.add("hidden"); if (G.mode === "play") saveNow(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden && G.mode === "play") { saveNow(); openMenu(); } });
 $("menuBtn").addEventListener("click", () => { if (G.mode === "play") openMenu(); });
-document.addEventListener("click", e => { if (e.target && e.target.id === "saveM") { P.emailLater = 0; G.emailGate = false; openEmailGate(); } });
+document.addEventListener("click", e => { if (e.target && e.target.id === "saveM") { P.emailLater = 0; G.emailGate = false; if (emailBlocked()) openConfirmWait(); else openEmailGate(); } });
 $("mainGoal").addEventListener("click", () => { if (G.mode === "play") help(nextHint(), 6); });
 function resize() { if (!renderer) return; const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w < h ? 74 : 62; camera.updateProjectionMatrix(); fxSize(); }
 window.addEventListener("resize", resize);

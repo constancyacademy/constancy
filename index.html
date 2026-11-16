@@ -176,6 +176,8 @@ body.m3on #hud,body.m3on #help,body.m3on #tip,body.m3on #actions,body.m3on #joy,
 .ttl .kicker{justify-self:start;display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 10px;border-radius:999px;background:rgba(22,8,30,.6);border:1px solid rgba(255,79,163,.32);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 24px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#ff7cc0;font-size:10px;letter-spacing:.22em;margin-bottom:4px!important}
 .ttl .kicker i{width:6px;height:6px;border-radius:50%;background:#ff4fa3;box-shadow:0 0 8px #ff4fa3,0 0 16px #ff4fa3;animation:vcDot 1.8s ease-in-out infinite}
 @keyframes vcDot{50%{opacity:.35;box-shadow:0 0 4px #ff4fa3}}
+#screen.titled .ttl .logo{position:relative}
+#screen.titled .ttl .logo::after{content:"Constancy";position:absolute;left:0;top:0;right:0;bottom:0;background:linear-gradient(180deg,rgba(255,255,255,0) 48%,rgba(255,150,210,.55) 74%,rgba(255,79,163,.95) 90%,rgba(150,245,255,.9));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;pointer-events:none;filter:drop-shadow(0 3px 6px rgba(255,45,149,.55))}
 #screen.titled .ttl .logo{margin-left:calc(-1 * var(--ci))!important;color:#f7f2f8;transform:perspective(700px) rotateX(12deg);transform-origin:0 100%;
   text-shadow:0 1px 0 #d9cfe3,0 2px 0 #a998bd,0 3px 0 #74608f,0 4px 1px rgba(0,0,0,.45),0 10px 16px rgba(0,0,0,.55),0 20px 42px rgba(255,45,149,.3)}
 #screen.titled .ttl .btn:focus-visible{outline:2px solid rgba(255,190,225,.55);outline-offset:3px}

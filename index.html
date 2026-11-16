@@ -89,6 +89,9 @@ body{font-family:var(--font-ui);-webkit-user-select:none;user-select:none;touch-
 .sub b{font-weight:800}
 
 .bl{position:absolute;left:max(12px,env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:5px}
+#screen .pcInfo{display:flex;align-items:center;gap:8px;margin:2px auto 0;background:none;border:0;color:rgba(242,240,236,.62);font:500 12.5px Inter,sans-serif;cursor:pointer;text-align:left;line-height:1.35;max-width:100%}
+#screen .pcInfo b{flex:0 0 18px;height:18px;border-radius:50%;border:1px solid rgba(255,111,191,.7);color:#ff6fbf;font:700 11px Georgia,serif;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(255,79,163,.35)}
+#screen .pcInfo u{color:#fff;text-decoration-color:rgba(255,111,191,.6)}
 #minimap{pointer-events:auto;cursor:pointer;width:clamp(120px,30vw,160px);height:clamp(120px,30vw,160px);border-radius:50%;border:3px solid rgba(0,0,0,.85);box-shadow:0 0 0 2px rgba(255,255,255,.25),0 6px 18px rgba(0,0,0,.5);background:#1b1a20;display:block}
 #energy{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(200px + env(safe-area-inset-bottom,0px));width:250px;pointer-events:none}
 #energy .gauge{height:10px!important}
@@ -6789,7 +6792,7 @@ const TSHOTS = [
   k => ({ p: [-140 + k * 120, 170, -1000 + k * 60], t: [0, 60, 0] }),
 ];
 function titleCam(dt) {
-  if (!TOWER.x && !PIER.x0) return false; if (!window.__showcase && window.__showcaseOn) window.__showcaseOn(); TCAM.t += dt; const D = 7, i = Math.floor(TCAM.t / D) % TSHOTS.length, k = (TCAM.t % D) / D, sh = TSHOTS[i](k * k * (3 - 2 * k) * 0.6 + k * 0.4);
+  if (!TOWER.x && !PIER.x0) return false; if (!window.__showcase && window.__showcaseOn) window.__showcaseOn(); TCAM.t = (TCAM.t + dt) % 3500; const D = 7, i = Math.floor(TCAM.t / D) % TSHOTS.length, k = (TCAM.t % D) / D, sh = TSHOTS[i](k * k * (3 - 2 * k) * 0.6 + k * 0.4);
   camera.position.set(sh.p[0], sh.p[1], sh.p[2]); camera.lookAt(sh.t[0], sh.t[1], sh.t[2]); const fv = window.innerWidth < window.innerHeight ? 70 : 55; if (camera.fov !== fv) { camera.fov = fv; camera.updateProjectionMatrix(); }
   sky.position.copy(camera.position); sun.position.set(sh.t[0] - 160, 220, sh.t[2] + 100); sun.target.position.set(sh.t[0], 0, sh.t[2]);
   if (!TCAM.fade) { TCAM.fade = document.createElement("div"); TCAM.fade.style.cssText = "position:fixed;inset:0;background:#05030a;pointer-events:none;z-index:1;opacity:0;transition:none"; document.body.appendChild(TCAM.fade); }
@@ -7480,7 +7483,9 @@ const screen = $("screen");
 function show(html, cls = "") { screen.className = cls; screen.innerHTML = html; screen.classList.remove("hidden"); const outOk = /class="phone"|data-out/.test(html); screen.onclick = outOk ? e => { if (e.target.closest && e.target.closest("#phBack")) { openPhone(); return; } if (!e.target.closest || !e.target.closest(".phone,.panel")) resume(); } : null; const f = screen.querySelector("[data-focus]"); if (f) f.focus({ preventScroll: true }); }
 function hideScreen() { screen.classList.add("hidden"); screen.innerHTML = ""; }
 /* ---------- e-mail des joueurs → Kit (formulaire « Constancy · Joueurs ») ---------- */
-const KIT_FORM = ""; // identifiant du formulaire Kit (vide = on garde l'adresse en attente sur le téléphone)
+const EM_FIX = { "gmial.com": "gmail.com", "gmal.com": "gmail.com", "gmai.com": "gmail.com", "gamil.com": "gmail.com", "gmail.co": "gmail.com", "gmail.fr": "gmail.com", "gnail.com": "gmail.com", "gmaill.com": "gmail.com", "hotmial.com": "hotmail.com", "hotmal.com": "hotmail.com", "hotmail.co": "hotmail.com", "hotmai.fr": "hotmail.fr", "hotmial.fr": "hotmail.fr", "yaho.fr": "yahoo.fr", "yahooo.fr": "yahoo.fr", "yaoo.fr": "yahoo.fr", "yahoo.co": "yahoo.com", "outlok.fr": "outlook.fr", "outlook.co": "outlook.com", "outllok.com": "outlook.com", "icould.com": "icloud.com", "iclod.com": "icloud.com", "icloud.fr": "icloud.com", "orange.com": "orange.fr", "oranje.fr": "orange.fr", "wanadoo.com": "wanadoo.fr", "free.com": "free.fr", "sfr.com": "sfr.fr", "laposte.com": "laposte.net", "lapost.net": "laposte.net" };
+const EM_JUNK = /(^|\.)(yopmail|mailinator|guerrillamail|10minutemail|tempmail|temp-mail|trashmail|jetable|throwawaymail|getnada|maildrop|sharklasers|dispostable|fakeinbox|mohmal|emailondeck|mintemail|spamgourmet|tempr|discard)\./i;
+const KIT_FORM = "10198155"; // formulaire Kit « Constancy - Jeu » (double opt-in : e-mail « Confirme ton adresse »)
 const EMAIL_GATE_S = 120;
 const GFORM = "https://docs.google.com/forms/d/e/1FAIpQLSfgcY6KTadD9c1LdzIL3WmtBz8ZlVWjpta8SI4ibkqrQ_5P-g/formResponse"; // Google Form de secours (réponses → Google Sheet)
 const GFORM_ENTRY = "entry.705392280"; // secondes de jeu avant de demander l'e-mail
@@ -7526,6 +7531,10 @@ async function openBoard() {
   } catch (e) { const el = $("bdList"); if (el) el.innerHTML = `<p class="note">Classement indisponible pour l'instant. Réessaie dans un moment.</p>`; }
 }
 function kitSend(email) {
+  const ps = []; if (KIT_FORM) { const fd = new FormData(); fd.append("email_address", email); ps.push(fetch("https://app.kit.com/forms/" + KIT_FORM + "/subscriptions", { method: "POST", body: fd, mode: "no-cors" })); }
+  if (GFORM) ps.push(kitSendG(email)); return ps.length ? Promise.all(ps) : Promise.reject(new Error("no-form"));
+}
+function kitSendG(email) {
   if (GFORM) { const b = new URLSearchParams(); b.append(GFORM_ENTRY, email); const ref = refCode(); if (ref) b.append(GF_E.parrain, ref); b.append(GF_E.pseudo, pseudo()); b.append(GF_E.joueur, pid()); b.append(GF_E.score, String(Math.round((P && P.xp) || 0)));
     return fetch(GFORM, { method: "POST", body: b, mode: "no-cors" }); }
   if (!KIT_FORM) return Promise.reject(new Error("no-form"));
@@ -7556,15 +7565,16 @@ function openEmailGate(after) {
   const perk = (ic, b, t) => `<div style="display:flex;gap:12px;align-items:flex-start"><span style="flex:0 0 34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:rgba(255,63,164,.16);border:1px solid rgba(255,63,164,.4);font-size:17px">${ic}</span><span style="font-size:14px;line-height:1.4;color:#dcd8e2"><b style="color:#fff">${b}</b><br>${t}</span></div>`;
   show(`<div class="panel" style="gap:16px"><div class="kicker" style="color:#ff6fbf">Sauvegarde · Accès anticipé</div>
     <h2>Pour continuer, crée ta sauvegarde.</h2>
-    <p class="lead" style="margin:-4px 0 0">Ta ville, ton perso, ton cash, ta série : Tout est lié à ton adresse. Un e-mail, et tu reprends là où tu en es.</p>
+    <p class="lead" style="margin:-4px 0 0">Ta ville, ton perso, ton cash, ta série : tout est lié à ton adresse. Un e-mail, et tu reprends là où tu en es.</p>
     <div class="card" style="gap:14px;background:linear-gradient(160deg,rgba(255,63,164,.10),rgba(120,70,255,.08) 60%,rgba(14,13,18,.92));border-color:rgba(255,63,164,.35)">
-      ${perk("🎮", "Les nouvelles bêtas en avant-première", "Nouveaux quartiers, véhicules et missions : Tu les testes avant leur sortie.")}
+      ${perk("🎮", "Les nouvelles bêtas en avant-première", "Nouveaux quartiers, véhicules et missions : tu les testes avant leur sortie.")}
       ${perk("💾", "Ta progression gardée", "Ton perso, ton cash et ta série restent liés à ton adresse.")}
       ${perk("🎁", "+$" + fmt(EMAIL_BONUS) + " offerts tout de suite", "Un bonus de bienvenue, versé dans ton compte en jeu.")}
     </div>
     <input id="em" class="linkbox" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="ton@email.com" data-focus style="-webkit-user-select:text;user-select:text;text-align:left;margin:0;font-size:16px;padding:14px">
     <div id="emChk" class="note" style="min-height:16px;margin:-8px 0 0;display:flex;align-items:center;gap:8px;color:rgba(242,240,236,.6)"></div>
-    <div style="position:relative;margin:-6px 0 0"><input id="emPw" class="linkbox" type="password" autocomplete="new-password" placeholder="Choisis un mot de passe (6 caractères min.)" style="-webkit-user-select:text;user-select:text;text-align:left;margin:0;font-size:16px;padding:14px 60px 14px 14px;width:100%"><button id="emEye" type="button" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;color:rgba(242,240,236,.6);font:600 12px Inter,sans-serif;cursor:pointer">Voir</button></div>
+    <div style="position:relative;margin:-6px 0 0"><input id="emPw" class="linkbox" type="password" autocomplete="new-password" placeholder="Choisis un mot de passe" style="-webkit-user-select:text;user-select:text;text-align:left;margin:0;font-size:16px;padding:14px 60px 14px 14px;width:100%"><button id="emEye" type="button" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;color:rgba(242,240,236,.6);font:600 12px Inter,sans-serif;cursor:pointer">Voir</button></div>
+    <div id="pwMeter" style="margin:-8px 0 0;display:none"><div style="height:4px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden"><i id="pwBar" style="display:block;height:100%;width:0;background:#ff6b8a;transition:width .25s,background .25s"></i></div><div id="pwRules" class="note" style="margin:6px 0 0;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px"></div></div>
     <input id="emPs" class="linkbox" type="text" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="Ton pseudo (classement)" style="-webkit-user-select:text;user-select:text;text-align:left;margin:-6px 0 0;font-size:16px;padding:14px">
     <div id="emErr" class="note" style="color:#ff6b8a;min-height:16px;margin-top:-8px"></div>
     <button class="btn pink" id="emGo" type="button" style="margin-top:-6px">Sauvegarder et continuer</button>
@@ -7573,18 +7583,28 @@ function openEmailGate(after) {
     <button id="emLater" type="button" style="background:none;border:0;color:rgba(242,240,236,.45);font:500 13px Inter,sans-serif;padding:4px;margin:-6px auto 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px">${P.acct ? "Jouer sans sauvegarder" : "Plus tard"}</button></div>`, "mail");
   // vérification de l'adresse en direct : format, puis domaine qui reçoit vraiment des e-mails
   const chk = $("emChk"), spin = '<i style="width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:#ff6fbf;display:inline-block;animation:emSpin .7s linear infinite"></i>';
-  let okMail = false, chkN = 0; const verify = async () => { const v = ($("em").value || "").trim().toLowerCase(), n = ++chkN; okMail = false;
+  let okMail = false, okJunk = false, chkN = 0; const verify = async () => { const v = ($("em").value || "").trim().toLowerCase(), n = ++chkN; okMail = false;
     if (!v) { chk.innerHTML = ""; return; } if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(v)) { chk.innerHTML = '<span style="color:#ff6b8a">Format d\'adresse incomplet</span>'; return; }
-    chk.innerHTML = spin + "Vérification de l'adresse…"; let mx = true;
+    { const dom = v.split("@")[1], fix = EM_FIX[dom] || (() => { const tld = dom.replace(/\.(con|cmo|cm|ocm|fe|fr\.)$/, m => ({ ".con": ".com", ".cmo": ".com", ".cm": ".com", ".ocm": ".com", ".fe": ".fr" })[m] || m); return tld !== dom ? tld : null; })();
+      if (fix) { chk.innerHTML = '<span style="color:#ffc94a">Tu voulais dire <button type="button" id="emFix" style="background:none;border:0;padding:0;color:#ffc94a;font:700 inherit;text-decoration:underline;cursor:pointer">' + v.split("@")[0] + "@" + fix + "</button> ?</span>"; const b = $("emFix"); if (b) b.onclick = () => { $("em").value = v.split("@")[0] + "@" + fix; verify(); }; return; }
+      if (EM_JUNK.test(dom)) { chk.innerHTML = '<span style="color:#ff6b8a">Adresse jetable refusée · Mets ta vraie adresse</span>'; okJunk = true; return; } }
+    okJunk = false; chk.innerHTML = spin + "Vérification de l'adresse…"; let mx = true;
     try { const r = await fetch("https://dns.google/resolve?name=" + encodeURIComponent(v.split("@")[1]) + "&type=MX", { cache: "no-store" }), j = await r.json(); mx = j.Status === 0 && Array.isArray(j.Answer) && j.Answer.length > 0; } catch (e) { mx = true; }
     if (n !== chkN) return; okMail = mx; chk.innerHTML = mx ? '<span style="color:#5ef0a0">✓ Adresse vérifiée</span>' : '<span style="color:#ff6b8a">Ce domaine ne reçoit pas d\'e-mails · Vérifie l\'orthographe</span>'; };
   let vt = 0; $("em").addEventListener("input", () => { clearTimeout(vt); chk.innerHTML = ""; vt = setTimeout(verify, 650); }); $("em").addEventListener("blur", verify);
+  const PW_R = [[p => p.length >= 8, "8 caractères"], [p => /[A-Z]/.test(p), "1 majuscule"], [p => /[0-9]/.test(p), "1 chiffre"], [p => /[^A-Za-z0-9]/.test(p), "1 caractère spécial (!?@#…)"]];
+  const pwScore = p => PW_R.filter(([f]) => f(p)).length, pwDraw = () => { const p = $("emPw").value || "", sc = pwScore(p), m = $("pwMeter"); if (!m) return; m.style.display = p ? "block" : "none";
+    $("pwBar").style.width = (sc / 4 * 100) + "%"; $("pwBar").style.background = sc >= 4 ? "#5ef0a0" : sc >= 3 ? "#ffc94a" : "#ff6b8a";
+    $("pwRules").innerHTML = PW_R.map(([f, t]) => `<span style="color:${f(p) ? "#5ef0a0" : "rgba(242,240,236,.5)"}">${f(p) ? "✓" : "○"} ${t}</span>`).join(""); };
+  $("emPw").addEventListener("input", pwDraw);
   on("emEye", () => { const p = $("emPw"); p.type = p.type === "password" ? "text" : "password"; $("emEye").textContent = p.type === "password" ? "Voir" : "Cacher"; });
-  on("emForgot", () => { $("emErr").style.color = "rgba(242,240,236,.75)"; $("emErr").textContent = "Ta sauvegarde est liée à ton adresse sur ce téléphone. La récupération du mot de passe par e-mail arrive avec les comptes en ligne : Tu recevras un lien sur ton adresse."; });
+  on("emForgot", () => { $("emErr").style.color = "rgba(242,240,236,.75)"; $("emErr").textContent = "Ta sauvegarde est liée à ton adresse sur ce téléphone. La récupération du mot de passe par e-mail arrive avec les comptes en ligne : tu recevras un lien sur ton adresse."; });
   const inp = $("em"), go = () => { const v = (inp.value || "").trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(v)) { $("emErr").textContent = "Vérifie ton adresse e-mail."; return; }
+    if (okJunk || /Adresse jetable/.test(chk.textContent)) { $("emErr").textContent = "Les adresses jetables ne sont pas acceptées."; return; }
+    if (/Tu voulais dire/.test(chk.textContent)) { $("emErr").textContent = "Vérifie l'orthographe de ton adresse (suggestion juste au-dessus)."; return; }
     if (!okMail && /Ce domaine/.test(chk.textContent)) { $("emErr").textContent = "Cette adresse ne peut pas recevoir d'e-mails."; return; }
-    const pw = ($("emPw") && $("emPw").value) || ""; if (pw.length < 6) { $("emErr").style.color = "#ff6b8a"; $("emErr").textContent = "Choisis un mot de passe d'au moins 6 caractères."; return; }
+    const pw = ($("emPw") && $("emPw").value) || ""; if (pwScore(pw) < 4) { $("emErr").style.color = "#ff6b8a"; $("emErr").textContent = "Mot de passe trop faible : 8 caractères, 1 majuscule, 1 chiffre et 1 caractère spécial."; pwDraw(); return; }
     try { crypto.subtle.digest("SHA-256", new TextEncoder().encode(v + "|" + pw)).then(h => { P.pwH = [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join(""); saveNow(); }); } catch (e) {}
     { const ps = ($("emPs") && $("emPs").value || "").replace(/[<>"&]/g, "").trim().slice(0, 16); if (ps) P.pseudo = ps; } pid(); P.email = v; addCash(EMAIL_BONUS); saveNow(); stat("email-ok"); if (refCode()) stat("inscription-parrainee"); const q = kitQueue(); q.push(v); kitSave(q); kitFlush();
     G.emailGate = false; if (after) after(); else resume(); celebrate(4); notify("gold", "<b>Tu es sur la liste.</b> Tu recevras la prochaine bêta avant tout le monde. <b style=\"color:var(--cash)\">+$" + fmt(EMAIL_BONUS) + "</b> versés.", 6); };
@@ -7679,6 +7699,17 @@ function copyLink(btn) {
 function selectLink() { const i = document.getElementById("lnk"); if (i) { i.focus(); i.select(); try { document.execCommand("copy"); } catch (e) {} } }
 function guidePtr(pos) { return pos ? `<div class="ptr ${pos}">${pos === "tr" ? "⬈" : "⬇"}</div>` : ""; }
 // le guide : un écran par cas, avec la flèche qui pointe le bon bouton
+function installDesktopGuide() {
+  const ua = navigator.userAgent || "", saf = /Safari\//.test(ua) && !/Chrome|Chromium|Edg\//.test(ua), edge = /Edg\//.test(ua), ff = /Firefox\//.test(ua); stat("guide-installation-ordi");
+  const steps = saf ? [`Dans la barre de menus en haut, clique sur <b>Fichier</b>.`, `Clique sur <b>« Ajouter au Dock… »</b>.`, `Clique sur <b>Ajouter</b> : l'icône Constancy apparaît dans ton Dock.`]
+    : ff ? [`Firefox n'installe pas les applis web.`, `Ouvre ce lien dans <b>Chrome</b> ou <b>Edge</b>, puis clique sur <b>« Installer l'appli sur mon ordinateur »</b>.`]
+    : [`Clique sur l'icône d'installation <span class="kbd">⊕</span> à droite de la barre d'adresse${edge ? " (ou menu <span class=\"kbd\">…</span> › Applications › Installer)" : " (ou menu <span class=\"kbd\">⋮</span> › Caster, enregistrer et partager › Installer la page en tant qu'application)"}.`, `Clique sur <b>Installer</b>.`, `Constancy s'ouvre dans sa propre fenêtre et reste dans tes applications.`];
+  show(`<div class="panel"><div class="kicker">Installer Constancy · gratuit</div><div class="tag">Sur ton ordinateur,<br><em>comme une vraie appli.</em></div>
+    <ol class="steps">${steps.map(t => `<li>${t}</li>`).join("")}</ol>${ff ? `<input id="lnk" class="linkbox" readonly value="${SITE_URL()}"><button class="btn alt" id="copyL" type="button">Copier le lien</button>` : ""}
+    <p class="note">Au clavier (flèches ou ZQSD) ou à la manette. Ta progression reste sur cet ordinateur.</p>
+    <button class="btn" id="back" data-focus type="button">Retour</button></div>`);
+  on("back", titleScreen); on("copyL", () => copyLink($("copyL")));
+}
 function installGuide(back) {
   const E = envInfo(); back = back || titleScreen; stat("guide-installation-" + (E.app || E.browser));
   const url = SITE_URL(), linkBox = `<input id="lnk" class="linkbox" readonly value="${url}">`;
@@ -7725,7 +7756,11 @@ function installGuide(back) {
   on("openChrome", () => { stat("ouvrir-chrome"); location.href = "intent://" + location.host + location.pathname + "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" + encodeURIComponent(url) + ";end"; });
 }
 function addInstallButton() {
-  const E = envInfo(), panel = screen.querySelector(".panel"); if (!panel || E.framed || E.standalone) return;
+  const E = envInfo(), panel = screen.querySelector(".panel"); if (!panel || E.framed) return;
+  if (E.mobile && panel.querySelector(".ttl, .logo") !== null || (E.mobile && panel.classList.contains("ttl"))) {
+    { const n = panel.querySelector(".note"); if (n && !panel.querySelector(".pcInfo")) { const i = document.createElement("button"); i.type = "button"; i.className = "pcInfo"; i.innerHTML = '<b>i</b>Aussi sur ordinateur · clavier ou manette'; panel.insertBefore(i, n); i.addEventListener("click", () => { i.classList.toggle("open"); i.innerHTML = i.classList.contains("open") ? '<b>i</b>Ouvre <u>' + SITE_URL().replace(/^https?:\/\//, "") + '</u> sur ton ordinateur : le jeu s\'installe aussi comme une appli.' : '<b>i</b>Aussi sur ordinateur · clavier ou manette'; }); } }
+  }
+  if (E.standalone) return;
   if (!addInstallButton.seen) { addInstallButton.seen = true; if (E.app) stat("vient-de-" + E.app.toLowerCase()); }
   // dans Instagram / TikTok : bandeau bien visible en haut, avec la flèche vers les •••
   if (E.app) {
@@ -7734,7 +7769,11 @@ function addInstallButton() {
     panel.insertBefore(ban, panel.firstChild); ban.addEventListener("click", () => installGuide());
     const pt = document.createElement("div"); pt.className = "ptr tr"; pt.textContent = "⬈"; screen.appendChild(pt);
   }
-  if (!E.mobile && !installEvt) { const b0 = document.createElement("button"); b0.className = "btn alt sm"; b0.type = "button"; b0.textContent = "Jouer sur mon téléphone"; panel.insertBefore(b0, panel.querySelector(".note")); b0.addEventListener("click", () => installGuide()); return; }
+  if (!E.mobile) { // ordinateur : installer l'appli sur l'ordinateur (comme sur téléphone) + jouer sur téléphone
+    const bd = document.createElement("button"); bd.className = "btn"; bd.type = "button"; bd.textContent = "💻 Installer l'appli sur mon ordinateur"; bd.style.cssText = "background:linear-gradient(135deg,#ff2d55,#ff4fc8);color:#fff;border:0;box-shadow:0 0 24px rgba(255,79,200,.45)";
+    { const first = panel.querySelector(".btn"); panel.insertBefore(bd, first || panel.querySelector(".note")); }
+    bd.addEventListener("click", async () => { if (installEvt) { stat("installation-ordi"); installEvt.prompt(); try { await installEvt.userChoice; } catch (e) {} installEvt = null; return; } installDesktopGuide(); });
+    const b0 = document.createElement("button"); b0.className = "btn alt sm"; b0.type = "button"; b0.textContent = "📱 Jouer sur mon téléphone"; panel.insertBefore(b0, panel.querySelector(".note")); b0.addEventListener("click", () => installGuide()); return; }
   const b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = E.app ? `Ouvrir dans ${E.ios ? "Safari" : "Chrome"}` : "📲 Installer l'appli gratuite"; b.style.cssText = "background:linear-gradient(135deg,#ff2d55,#ff4fc8);color:#fff;border:0;box-shadow:0 0 24px rgba(255,79,200,.45)";
   { const first = panel.querySelector(".btn"); panel.insertBefore(b, first || panel.querySelector(".note")); }
   b.addEventListener("click", async () => {
@@ -8367,11 +8406,11 @@ window.__W = () => ({ BIGS, HELI, spinWheels, get carMesh() { return carMesh; },
 window.__X = () => ({ planes, callUfo, SND, sfx, updateMusic, screech, traffic, SH3, CS_BOX, pushCsBoxes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 window.__simFrame = dt => { if (G.onFoot) updateMe(dt); else updateCar(dt); updateWorldLife(dt); if (!G.onFoot) planeGuard(); };
 function loop(now) {
-  requestAnimationFrame(loop);
+  requestAnimationFrame(loop); loop.beat = performance.now();
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   if (!renderer) return;
   // résolution adaptative : si le téléphone peine (< 28 i/s), on baisse un peu la définition
-  if (G.mode === "play" && !window.__virtOn) { const PF = loop.pf || (loop.pf = { t: 0, n: 0, pr: renderer.getPixelRatio() }); PF.t += (now - (PF.last || now)) / 1000; PF.last = now; PF.n++;
+  if ((G.mode === "play" || G.mode === "title") && !window.__virtOn) { const PF = loop.pf || (loop.pf = { t: 0, n: 0, pr: renderer.getPixelRatio() }); PF.t += (now - (PF.last || now)) / 1000; PF.last = now; PF.n++;
     if (PF.t > 2) { const fps = PF.n / PF.t, lo = PR_MIN(), hi = PR_MAX(); PF.good = fps > 58.5 ? (PF.good || 0) + 1 : 0;
       PF.bad = fps < 52 ? (PF.bad || 0) + 1 : 0;
       if (PF.bad >= 2) { PF.bad = 0; // trop lent deux fois de suite : on garde la netteté le plus longtemps possible (halo d'abord, puis définition par petits pas)
@@ -8480,6 +8519,11 @@ $("viewBtn").addEventListener("click", () => { G.camView = ((G.camView || 0) + 1
   help(["Vue <b>proche</b>", "Vue <b>moyenne</b>", "Vue <b>lointaine</b>", "Vue <b>intérieure</b>"][G.camView] + (matchMedia("(pointer:coarse)").matches && !P.pinchTip ? " · Astuce : pince l'écran avec deux doigts pour zoomer" : ""), 2.6); if (P) P.pinchTip = true; });
 $("minimap").addEventListener("click", () => { if (G.mode === "play") openMap(); });
 $("soundBtn").addEventListener("click", () => { audioInit(); SND.on = !SND.on; $("soundBtn").textContent = SND.on ? "SON" : "MUET"; if (SND.on) sfx.ping(); });
+// l'écran d'accueil tourne sans fin : retour d'arrière-plan, contexte 3D perdu ou image figée → on repart proprement
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { last = performance.now(); if (SND.ctx && SND.ctx.state !== "running") SND.ctx.resume().catch(() => {}); } });
+if (cv) { cv.addEventListener("webglcontextlost", e => { e.preventDefault(); stat("contexte-3d-perdu"); try { if (G.started && P) saveNow(); } catch (er) {} }, false); cv.addEventListener("webglcontextrestored", () => location.reload(), false); }
+setInterval(() => { if (document.visibilityState !== "visible" || window.__virtOn || G.mode !== "title" || !(TCAM.t > 20)) { loop.miss = 0; return; } const n = performance.now(); loop.miss = n - (loop.beat || n) > 4000 ? (loop.miss || 0) + 1 : 0;
+  if (loop.miss >= 3) { let done = false; try { done = sessionStorage.getItem("cst-relance") === "1"; sessionStorage.setItem("cst-relance", "1"); } catch (e) {} if (!done) { stat("accueil-relance"); location.reload(); } } }, 2000);
 // petit son doux sur chaque bouton, choix et menu
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest("button, .choice, .sw, .menu-btn, #minimap")) playBuf("ui", 0.18, 1.05); }, true);
 // iPhone / Safari : le son reste bloqué tant qu'on ne le « réveille » pas à chaque contact

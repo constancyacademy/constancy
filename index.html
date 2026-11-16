@@ -237,6 +237,11 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 .swatches{display:flex;gap:10px;flex-wrap:wrap}
 .sw{width:58px;height:58px;border-radius:10px;border:2px solid rgba(255,255,255,.18);cursor:pointer;display:flex;align-items:flex-end;justify-content:center;padding:4px;font-size:10px;font-weight:800;color:#fff;text-shadow:0 1px 2px #000}
 .sw.sel{border-color:#fff;box-shadow:0 0 0 2px #fff}
+.avtop{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center}.avprev{width:120px;height:150px;object-fit:contain;background:radial-gradient(circle at 50% 70%,#2a2a33,#0e0d12);border-radius:10px}
+.avscroll{max-height:42vh;overflow-y:auto;margin:6px -4px 10px;padding:0 4px;-webkit-overflow-scrolling:touch}.avrow{display:flex;gap:8px;flex-wrap:wrap}
+.avc{display:inline-flex;align-items:center;gap:6px;padding:8px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:rgba(20,18,26,.85);color:var(--fg);font-size:13px;cursor:pointer}
+.avc i{width:16px;height:16px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}.avc:empty,.avc:has(i:only-child){padding:7px}
+.avc.sel{background:#fff;color:var(--ink);border-color:#fff}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .seg button{font-family:var(--font-display);font-size:20px;letter-spacing:.06em;padding:14px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(20,18,26,.85);color:var(--fg);cursor:pointer}
 .seg button.sel{background:#fff;color:var(--ink)}
@@ -356,6 +361,27 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
 }
 .rotHint{display:none;align-items:center;gap:8px;justify-content:center;font:600 10px Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,214,236,.8);margin-top:2px}.rotHint i{display:inline-block;width:14px;height:22px;border:1.5px solid currentColor;border-radius:4px;animation:rotPh 2.4s ease-in-out infinite}@keyframes rotPh{0%,30%{transform:rotate(0)}50%,80%{transform:rotate(90deg)}100%{transform:rotate(0)}}
 @media (orientation:portrait) and (pointer:coarse){.rotHint{display:flex}}
+/* paysage : tout tient dans l'écran avec de vraies marges, rien ne touche les bords */
+#screen{align-items:safe center}
+@media (orientation:landscape) and (max-height:540px){
+  #screen{padding:calc(22px + env(safe-area-inset-top,0px)) max(40px,calc(16px + env(safe-area-inset-right,0px))) calc(22px + env(safe-area-inset-bottom,0px)) max(40px,calc(16px + env(safe-area-inset-left,0px)))}
+  #screen .panel{max-width:min(860px,100%)}
+  #screen .panel h2{font-size:26px}
+  #screen.titled .ttl{max-width:min(860px,100%);grid-template-columns:1.15fr .85fr .85fr;column-gap:16px;row-gap:10px;grid-auto-flow:row dense;align-items:center}
+  #screen.titled .ttl>*{grid-column:2/4}
+  #screen.titled .ttl>.kicker,#screen.titled .ttl>.logo,#screen.titled .ttl>.vc,#screen.titled .ttl>.tag{grid-column:1;padding-right:18px}
+  #screen.titled .ttl>.kicker{grid-row:1}#screen.titled .ttl>.logo{grid-row:2/4}#screen.titled .ttl>.vc{grid-row:4}#screen.titled .ttl>.tag{grid-row:5/7}
+  #screen.titled .ttl>.sm{grid-column:auto}
+  #screen.titled .ttl .lead,#screen.titled .ttl .note,#screen.titled .ttl .rotHint{display:none}
+  #screen.titled .ttl .logo{font-size:clamp(46px,9vh,74px)!important}
+  .avpanel{display:grid;grid-template-columns:200px 1fr;column-gap:26px;align-items:start}
+  .avpanel>.kicker,.avpanel>h2,.avpanel>.avtop,.avpanel>#ok{grid-column:1}
+  .avpanel>.avscroll{grid-column:2;grid-row:1/6;max-height:calc(100vh - 60px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));margin:0}
+  .avpanel .avtop{grid-template-columns:1fr;gap:10px}.avpanel .avprev{width:100%;height:min(130px,30vh)}
+  .avpanel .seg button{padding:9px;font-size:16px}
+  #screen .panel .choices{grid-template-columns:repeat(4,1fr)}
+  .tl .help{bottom:calc(98px + env(safe-area-inset-bottom,0px))!important;max-width:min(440px,52vw)!important;font-size:12px}
+}
 </style>
 
 <canvas id="game" aria-label="Ville de Constancy en 3D"></canvas><div id="cockpitTop" style="position:fixed;left:0;top:0;width:100%;display:none;pointer-events:none;z-index:0;background:linear-gradient(180deg,rgba(8,6,16,.72) 0%,rgba(10,8,20,.5) 60%,rgba(14,10,24,.62) 100%);box-shadow:inset 0 -3px 0 rgba(20,18,26,.95),inset 0 -5px 6px rgba(255,63,180,.35)"></div><img id="cockpitOv" alt="" src="assets/cockpit_nacre.webp" style="position:fixed;left:0;bottom:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;pointer-events:none;z-index:0;display:none;transform-origin:50% 100%">
@@ -578,7 +604,25 @@ const OUTFITS = {
   homme: [{ n: "Street", shirt: 0xffffff, pants: 0x1d1d24, hair: 0x1a1a1a, shoes: 0x111111, print: 0x111111 }, { n: "Sport", shirt: 0x111114, pants: 0x3a3a44, hair: 0x3b2314, shoes: 0xff2d55, print: 0xff2d55 }, { n: "Miami", shirt: 0xff6b9a, pants: 0xe8e2d0, hair: 0x1a1a1a, shoes: 0xffffff, print: 0x34e0ff }],
   femme: [{ n: "Street", shirt: 0xffffff, pants: 0x1d1d24, hair: 0x2b1a10, shoes: 0x111111, print: 0x111111 }, { n: "Sport", shirt: 0x111114, pants: 0x9b5cff, hair: 0xd9b77a, shoes: 0xffffff, print: 0x9b5cff }, { n: "Miami", shirt: 0x3fd16b, pants: 0xf2e6d0, hair: 0x111111, shoes: 0xffffff, print: 0xffffff }]
 };
-const SKIN_TONES = [0xf2cfb3, 0xc68a5e, 0x6e4a33];
+const SKIN_TONES = [0xf2cfb3, 0xc68a5e, 0x6e4a33, 0xe0b48f, 0xa86e45, 0x4a3022];
+// créateur de perso : coupe, couleur des cheveux, barbe, haut, bas, chaussures (le torse nu n'existe pas)
+const AV = {
+  skinOrder: [0, 3, 1, 4, 2, 5],
+  hs: [{ k: "buzzed", n: "Rasés" }, { k: "parted", n: "Courts" }, { k: "long", n: "Longs" }],
+  hc: [0x15110e, 0x3b2314, 0x6b4423, 0xd9b77a, 0xa8471f, 0xe8e2d6, 0xff6fb5],
+  hcN: ["Noir", "Brun", "Châtain", "Blond", "Roux", "Platine", "Rose"],
+  tops: [{ n: "T-shirt", sleeve: 0.43 }, { n: "Sweat", sleeve: 0.95, hood: 1 }, { n: "Chemise", sleeve: 0.95, collar: 1 }, { n: "Costume", sleeve: 0.95, suit: 1 }, { n: "Col roulé", sleeve: 0.95 }, { n: "Débardeur", sleeve: 0.12 }],
+  tc: [0xffffff, 0x111114, 0xff6fb5, 0x6fb8ff, 0xf6c945, 0x8a8f99, 0x22324f, 0x3fd16b, 0xe8dcc8],
+  bots: [{ n: "Jean", c: 0x2c4a7a }, { n: "Jean noir", c: 0x1d1d24 }, { n: "Jogging", c: 0x6d6f78 }, { n: "Chino", c: 0xcbb89a }, { n: "Short", c: 0xe8e2d0, shorts: 1 }, { n: "Short noir", c: 0x1d1d24, shorts: 1 }],
+  shoes: [{ n: "Baskets blanches", c: 0xf4f4f4 }, { n: "Style Converse", c: 0x111111 }, { n: "Minimalistes", c: 0xcbb89a }, { n: "Baskets roses", c: 0xff6fb5 }, { n: "Baskets dorées", c: 0xd4af37 }]
+};
+function lookOf(lk) {
+  lk = lk || { gender: "homme", outfit: 0, skin: 1 };
+  if (lk.top == null) return OUTFITS[lk.gender] && OUTFITS[lk.gender][lk.outfit] || OUTFITS.homme[0];
+  const t = AV.tops[lk.top] || AV.tops[0], b = AV.bots[lk.bot] || AV.bots[0], tc = AV.tc[lk.tc] != null ? AV.tc[lk.tc] : 0xffffff;
+  return { n: "Perso", shirt: tc, pants: b.c, shoes: (AV.shoes[lk.sh] || AV.shoes[0]).c, print: t.suit ? 0x111114 : t.collar ? 0xffffff : tc, hair: AV.hc[lk.hc] != null ? AV.hc[lk.hc] : 0x1a1a1a,
+    hairStyle: (AV.hs[lk.hs] || AV.hs[1]).k, beard: lk.gender === "homme" && !!lk.beard, sleeve: t.sleeve, shorts: !!b.shorts, suit: !!t.suit };
+}
 const GOALS = { livraison: { label: "Livraisons", color: COL.business }, salle: { label: "Séances", color: COL.physique }, mentor: { label: "Mentor", color: COL.mental }, mamie: { label: "Mamie", color: COL.env } };
 const CARS = [
   { id: "citadine", name: "Citadine rafistolée", price: 0,     max: 40, color: 0xcfc6b4, statut: 0 },
@@ -1488,8 +1532,8 @@ function glowStage(k = glowK()) { return k < 0.3 ? 0 : k < 0.7 ? 1 : 2; }
 const SHABBY = { homme: { shirt: 0x9a907c, pants: 0x55555d, shoes: 0x6d6a66, print: 0x9a907c }, femme: { shirt: 0x9a8f86, pants: 0x55555d, shoes: 0x6d6a66, print: 0x9a8f86 } };
 function applyGlowOutfit(h, gk) {
   const u = h && h.userData; if (!u || !u.model || !P) return;
-  const lk = P.look || { gender: "homme", outfit: 0 }, of = OUTFITS[lk.gender][lk.outfit] || OUTFITS.homme[0], st = glowStage(gk);
-  const c = st === 0 ? SHABBY[lk.gender] || SHABBY.homme : of;
+  const lk = P.look || { gender: "homme", outfit: 0 }, of = lookOf(lk), st = glowStage(gk);
+  const c = st === 0 && lk.top == null ? SHABBY[lk.gender] || SHABBY.homme : of;
   const fat = clamp(1 - gk / 0.65, 0, 1);
   if (u.fatParts) { u.fatParts.forEach(m => { m.visible = fat > 0.02; m.scale.copy(m.userData.s0).multiplyScalar(0.55 + 0.45 * fat); }); u.fatMat.color.setHex(c.shirt).multiplyScalar(0.8); }
   u.model.traverse(m => { const U = m.isMesh && m.material && m.material.userData && m.material.userData.u; if (!U) return; if (m.userData.nm === undefined) m.userData.nm = m.material.normalMap; const nm = st === 0 ? null : m.userData.nm; if (m.material.normalMap !== nm) { m.material.normalMap = nm; m.material.needsUpdate = true; } U.cShirt.value = lin(c.shirt); U.cPants.value = lin(c.pants); U.cShoes.value = lin(c.shoes || 0xeeeeee); U.cPrint.value = lin(c.print || c.shirt); });
@@ -1519,7 +1563,7 @@ const HQ_SCALE = 1.27;
 const HQ_FILES = { anims: "assets/anims.json", m: "assets/hm.json", f: "assets/hf.json", buzzed: "assets/hair_buzzed.json", parted: "assets/hair_simpleparted.json", beard: "assets/hair_beard.json", long: "assets/hair_long.json" };
 function hqLateSwap() {
   if (!G || !G.started || !meMesh || meMesh.userData.q || !P) return;
-  const lk = P.look || { gender: "homme", outfit: 0, skin: 1 }, of = OUTFITS[lk.gender][lk.outfit] || OUTFITS.homme[0];
+  const lk = P.look || { gender: "homme", outfit: 0, skin: 1 }, of = lookOf(lk);
   const old = meMesh, nm = makeHuman(Object.assign({}, of, { player: true, skin: SKIN_TONES[lk.skin] || SKIN_TONES[1], female: lk.gender === "femme" }));
   nm.position.copy(old.position); nm.rotation.copy(old.rotation); nm.visible = old.visible; if (old.parent) old.parent.add(nm); else scene.add(nm); old.parent && old.parent.remove(old); meMesh = nm; applyMuscle(meMesh);
 }
@@ -1877,7 +1921,7 @@ function loadMedia() {
   const L = new THREE.ImageLoader();
   const imgs = Object.entries(IMG_FILES).map(([k, u]) => new Promise(ok => L.load(u, im => { IMG[k] = im; ok(); }, undefined, () => ok())));
   const snds = Object.entries(SND_FILES).map(([k, u]) => fetch(u).then(r => r.ok ? r.arrayBuffer() : null).then(b => { if (b) { SNDRAW[k] = b; if (SND.ctx) decodeSnd(k); } }).catch(() => {}));
-  return Promise.race([Promise.all(imgs.concat(snds, [loadModels()])), new Promise(ok => setTimeout(ok, 15000))]);
+  MODELS_P = loadModels(); return Promise.race([Promise.all(imgs.concat(snds, [MODELS_P])), new Promise(ok => setTimeout(ok, 15000))]);
 }
 function imgTex(k, rep) {
   const im = IMG[k]; if (!im) return null;
@@ -1974,6 +2018,13 @@ function updateHomeView(dt) {
   CHUNKS.forEach(m => { m.visible = true; }); if (cullChunks.big) cullChunks.big.forEach(m => { m.visible = true; });
   const sp = sky.position.clone(); sky.position.copy(c.position); renderer.setRenderTarget(HOMEVIEW.rt); renderer.render(scene, c); renderer.setRenderTarget(null); sky.position.copy(sp); cullChunks();
   scene.fog.near = fogN; scene.fog.far = fogF; if (meMesh) meMesh.visible = vis;
+}
+let MODELS_P = Promise.resolve();
+// l'appartement attend ses meubles 3D : s'ils arrivent après la construction (réseau lent), on le reconstruit avec les vrais meubles
+function buildHomeSafe() {
+  const n0 = scene.children.length; HOME.win = []; HOME.cur = []; buildHomeInterior(); HOME.objs = scene.children.slice(n0);
+  const miss = ["sofa", "bed", "kitchen", "tvunit", "monstera", "wardrobe", "ctable", "armchair"].some(k => MODEL_DEFS[k] && !MODELS[k]);
+  if (miss && !HOME.retry) { HOME.retry = true; MODELS_P.then(() => { if (!["sofa", "bed", "kitchen", "tvunit"].some(k => MODELS[k])) return; HOME.objs.forEach(o => scene.remove(o)); buildHomeSafe(); }); }
 }
 function buildHomeInterior() {
   const parquet = (() => { const c = document.createElement("canvas"); c.width = 512; c.height = 512; const g = c.getContext("2d"); for (let r = 0; r < 16; r++) { let x = -((r * 97) % 256); while (x < 512) { const w = 160 + Math.random() * 140, l = 120 + Math.random() * 40; g.fillStyle = `rgb(${l + 40},${l + 6},${l - 30})`; g.fillRect(x, r * 32, w, 32); g.fillStyle = "rgba(0,0,0,.18)"; g.fillRect(x, r * 32, 2, 32); for (let q = 0; q < 6; q++) { g.fillStyle = `rgba(60,35,15,${0.05 + Math.random() * 0.08})`; g.fillRect(x, r * 32 + Math.random() * 30, w, 1); } x += w; } g.fillStyle = "rgba(0,0,0,.22)"; g.fillRect(0, r * 32, 512, 1); }
@@ -4683,7 +4734,7 @@ function buildWorld() {
   const mentor = makeHuman({ shirt: 0x1d2a44, pants: 0x1d2a44, skin: 0xc68a5e, hair: 0x111111 }); mentor.position.set(HALF + 34, 0.6, bC(5)); mentor.rotation.y = -Math.PI / 2; scene.add(mentor); if (mentor.userData.q) { mentor.position.y = 0.6; setClip(mentor, "Idle_Talking_Loop"); }
 
   buildTrafficLights(); buildTraffic(); buildPeds(); buildLife(); buildRentals(); buildRoofNeons();
-  PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeInterior(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildGuinguettes(); buildStuntPark(); buildCampfires(); buildFair(); buildBeachLife(); buildShopFolks(); buildGarage(); buildBanner(); buildRadioTower(); buildCountryLife(); buildUfo(); flushBatches(); // les décors construits après le premier regroupement (guinguettes, Stunt Park) sont regroupés à leur tour
+  PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeSafe(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildGuinguettes(); buildStuntPark(); buildCampfires(); buildFair(); buildBeachLife(); buildShopFolks(); buildGarage(); buildBanner(); buildRadioTower(); buildCountryLife(); buildUfo(); flushBatches(); // les décors construits après le premier regroupement (guinguettes, Stunt Park) sont regroupés à leur tour
   ownMark = makeBeacon(new THREE.Color(0xffffff)); ownMark.userData.col.scale.set(0.5, 0.35, 0.5); ownMark.userData.col.position.y = 12; ownMark.userData.marker.visible = false; ownMark.userData.spk.visible = false; ownMark.children[1].visible = false;
   const ol = label("Ta voiture", "#ffffff"); ol.scale.set(5.2, 1.3, 1); ol.position.y = 4.6; ownMark.add(ol); ownMark.visible = false; scene.add(ownMark);
   const mlab = label("Mamie", LM.mamie.color); mlab.scale.set(8, 2, 1); mlab.position.set(LM.mamie.x - 4, 4, bMax(0) - 2); scene.add(mlab);
@@ -6160,14 +6211,14 @@ function updatePlane(dt) {
     else c.v *= Math.pow(0.7, dt);
     c.ps = (c.ps || 0) + (inp.side - (c.ps || 0)) * Math.min(1, dt * 4); // roulage : la direction s'oriente progressivement, comme un volant
     c.h -= c.ps * (G.ride.kind === "airbus" ? 0.78 : 1.15) * dt * clamp(c.v / 2.5, -1, 1) * (Math.abs(c.v) < 0.3 && thr > 0 ? 0 : 1); if (Math.abs(c.v) < 4 && Math.abs(inp.side) > 0.2 && thr > 0.05) c.v = Math.max(c.v, 3);
-    c.alt = gh; c.pitch += (0 - c.pitch) * Math.min(1, dt * 5); c.roll += (0 - c.roll) * Math.min(1, dt * 5);
+    const vR = (JET ? 58 : G.ride.kind === "airbus" ? 52 : 40) * 0.82; c.alt = gh; c.pitch += ((c.v > vR && thr > 0.55 ? 0.07 : 0) - c.pitch) * Math.min(1, dt * 2.5); c.roll += (0 - c.roll) * Math.min(1, dt * 5);
     if (thr > 0.3 && Math.abs(c.v) < 4) c.gst = (c.gst || 0) + dt; else c.gst = 0;
-    const vTo = JET ? 47 : G.ride.kind === "airbus" ? 40 : 36, solid = !isWater(c.x, c.z) || onHighway(c.x, c.z) || onPier(c.x, c.z);
-    if ((c.v > vTo && thr > 0.55 && solid) || c.gst > 1.4) { if (c.gst > 1.4) { c.v = Math.max(c.v, 30); c.gst = 0; } c.alt = gh + 0.8; c.pitch = 0.16; if (!G.flyHint) { G.flyHint = true; help("<b>Décollage !</b> Haut = monter · bas = descendre · côtés = virer. Pour atterrir : descends doucement au-dessus d'une piste, ou touche SORTIR pour sauter en parachute.", 7); } sfx.door && 0; }
+    const vTo = JET ? 58 : G.ride.kind === "airbus" ? 52 : 40, solid = !isWater(c.x, c.z) || onHighway(c.x, c.z) || onPier(c.x, c.z);
+    if ((c.v > vTo && thr > 0.55 && solid) || c.gst > 1.4) { if (c.gst > 1.4) { c.v = Math.max(c.v, 30); c.gst = 0; } c.alt = gh + 0.6; c.pitch = Math.max(c.pitch, 0.08); c.toT = 0; if (!G.flyHint) { G.flyHint = true; help("<b>Décollage !</b> Haut = monter · bas = descendre · côtés = virer. Pour atterrir : descends doucement au-dessus d'une piste, ou touche SORTIR pour sauter en parachute.", 7); } sfx.door && 0; }
   } else {
     const JET = G.ride.kind === "chasse", cruise = (JET ? 82 : 46) * (tb ? 1.6 : 1);
     c.v += (cruise - c.v) * Math.min(1, dt * 0.7);
-    c.pitch += (clamp(inp.fwd, -1, 1) * 0.42 - c.pitch) * Math.min(1, dt * 2.2);
+    c.toT = (c.toT ?? 99) + dt; const tk = Math.min(1, c.toT / 6), lim = 0.42 * (0.3 + 0.7 * tk * tk); c.pitch += (clamp(inp.fwd, -1, 1) * lim - c.pitch) * Math.min(1, dt * (0.9 + 1.3 * tk));
     c.roll += (inp.side * 0.75 - c.roll) * Math.min(1, dt * 2.6);
     c.h -= c.roll * (JET ? 1.15 : 0.85) * dt;
     c.alt = Math.min(c.alt + Math.sin(c.pitch) * c.v * dt, 520);
@@ -6518,7 +6569,7 @@ let FPH = null;
 function fpHands(on, dt) {
   if (FPH) FPH.visible = false; return;
   if (!FPH) {
-    const lk = (P && P.look) || { gender: "homme", outfit: 0, skin: 1 }, of = OUTFITS[lk.gender][lk.outfit] || OUTFITS.homme[0];
+    const lk = (P && P.look) || { gender: "homme", outfit: 0, skin: 1 }, of = lookOf(lk);
     const skinM = new THREE.MeshLambertMaterial({ color: SKIN_TONES[lk.skin] || SKIN_TONES[1] }), slM = new THREE.MeshLambertMaterial({ color: of.shirt != null ? of.shirt : 0x222222 });
     FPH = new THREE.Group(); FPH.userData.ph = 0; FPH.userData.k = 0;
     FPH.userData.hands = [-1, 1].map(sd => {
@@ -7634,24 +7685,34 @@ function snapshot(key, build, w = 220, h = 160, dist = 1) {
   } catch (e) { return ""; }
 }
 const humanLook = (g, o, s) => Object.assign({}, OUTFITS[g][o], { skin: SKIN_TONES[s], female: g === "femme" });
+const lookHuman = lk => Object.assign({}, lookOf(lk), { skin: SKIN_TONES[lk.skin], female: lk.gender === "femme", lite: false });
 let pickObj = null, pickMus = null, pickTier = 0;
-const look = { gender: "homme", outfit: 0, skin: 1 };
+const look = { gender: "homme", outfit: 0, skin: 1, hs: 1, hc: 0, beard: 0, top: 0, tc: 0, bot: 0, sh: 0 };
 const hex = n => "#" + n.toString(16).padStart(6, "0");
 function createAvatar() {
-  const o = OUTFITS[look.gender], sk = ["Clair", "Mat", "Foncé"];
-  const big = snapshot(`h-${look.gender}-${look.outfit}-${look.skin}-big`, () => makeHuman(humanLook(look.gender, look.outfit, look.skin)), 240, 300, 0.9);
-  show(`<div class="panel"><div class="kicker">Étape 1 sur 3</div><h2>Crée ton perso</h2>
-    <div style="display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center">
-      <img src="${big}" alt="Aperçu de ton perso" style="width:120px;height:150px;object-fit:contain;background:radial-gradient(circle at 50% 70%,#2a2a33,#0e0d12);border-radius:10px">
-      <div class="seg"><button type="button" data-g="homme" class="${look.gender === "homme" ? "sel" : ""}">Homme</button><button type="button" data-g="femme" class="${look.gender === "femme" ? "sel" : ""}">Femme</button></div>
+  const L = look, key = "av-" + JSON.stringify(L), big = snapshot(key, () => makeHuman(lookHuman(L)), 240, 300, 0.9);
+  const chip = (attr, i, sel, label, bg) => `<button type="button" class="avc ${sel ? "sel" : ""}" data-${attr}="${i}"${bg != null ? ` style="--c:${hex(bg)}"` : ""}>${bg != null ? `<i></i>` : ""}${label}</button>`;
+  const row = (title, html) => `<div class="lbl">${title}</div><div class="avrow">${html}</div>`;
+  show(`<div class="panel avpanel"><div class="kicker">Étape 1 sur 3</div><h2>Crée ton perso</h2>
+    <div class="avtop"><img src="${big}" alt="Aperçu de ton perso" class="avprev">
+      <div class="seg"><button type="button" data-g="homme" class="${L.gender === "homme" ? "sel" : ""}">Homme</button><button type="button" data-g="femme" class="${L.gender === "femme" ? "sel" : ""}">Femme</button></div></div>
+    <div class="avscroll">
+    ${row("Peau", AV.skinOrder.map(i => chip("s", i, L.skin === i, "", SKIN_TONES[i])).join(""))}
+    ${row("Coupe", AV.hs.map((h, i) => chip("hs", i, L.hs === i, h.n)).join(""))}
+    ${row("Couleur des cheveux et des sourcils", AV.hc.map((c, i) => chip("hc", i, L.hc === i, AV.hcN[i], c)).join(""))}
+    ${L.gender === "homme" ? row("Barbe", chip("b", 0, !L.beard, "Sans barbe") + chip("b", 1, !!L.beard, "Barbe")) : ""}
+    ${row("Haut", AV.tops.map((t, i) => chip("t", i, L.top === i, t.n)).join(""))}
+    ${row("Couleur du haut", AV.tc.map((c, i) => chip("tc", i, L.tc === i, "", c)).join(""))}
+    ${row("Bas", AV.bots.map((t, i) => chip("bt", i, L.bot === i, t.n, t.c)).join(""))}
+    ${row("Chaussures", AV.shoes.map((t, i) => chip("sh", i, L.sh === i, t.n, t.c)).join(""))}
     </div>
-    <div class="lbl">Tenue</div><div class="swatches">${o.map((t, i) => `<button type="button" class="sw ${look.outfit === i ? "sel" : ""}" data-o="${i}" style="width:84px;height:104px;background:#15141a url('${snapshot(`h-${look.gender}-${i}-${look.skin}`, () => makeHuman(humanLook(look.gender, i, look.skin)), 160, 200, 0.9)}') center/contain no-repeat">${t.n}</button>`).join("")}</div>
-    <div class="lbl">Couleur de peau</div><div class="swatches">${SKIN_TONES.map((s, i) => `<button type="button" class="sw ${look.skin === i ? "sel" : ""}" data-s="${i}" style="width:84px;height:44px;background:${hex(s)};color:#111;text-shadow:none">${sk[i]}</button>`).join("")}</div>
     <button class="btn" id="ok" data-focus type="button">C'est moi</button></div>`);
-  screen.querySelectorAll("[data-g]").forEach(b => b.addEventListener("click", () => { look.gender = b.dataset.g; look.outfit = 0; createAvatar(); }));
-  screen.querySelectorAll("[data-o]").forEach(b => b.addEventListener("click", () => { look.outfit = +b.dataset.o; createAvatar(); }));
-  screen.querySelectorAll("[data-s]").forEach(b => b.addEventListener("click", () => { look.skin = +b.dataset.s; createAvatar(); }));
-  on("ok", chooseObjective);
+  const bind = (attr, fn) => screen.querySelectorAll(`[data-${attr}]`).forEach(b => b.addEventListener("click", () => { fn(b.dataset[attr]); sfx.ui && sfx.ui(); createAvatar(); }));
+  bind("g", v => { L.gender = v; L.outfit = 0; L.hs = v === "femme" ? 2 : 1; L.beard = 0; });
+  bind("s", v => L.skin = +v); bind("hs", v => L.hs = +v); bind("hc", v => L.hc = +v); bind("b", v => L.beard = +v);
+  bind("t", v => L.top = +v); bind("tc", v => L.tc = +v); bind("bt", v => L.bot = +v); bind("sh", v => L.sh = +v);
+  const sc = screen.querySelector(".avscroll"); if (sc && createAvatar._st) sc.scrollTop = createAvatar._st; if (sc) sc.addEventListener("scroll", () => createAvatar._st = sc.scrollTop);
+  on("ok", () => { createAvatar._st = 0; chooseObjective(); });
 }
 // démarrage rapide : un seul écran, l'objectif principal est obligatoire (perso par défaut, premier palier ; tout reste modifiable)
 function quickObjective() {
@@ -7730,7 +7791,7 @@ function startPlay() {
   G.started = true; hideScreen(); normalizeRide(); G.energy = 100; G.inside = false; G.snapCam = true; if (gymLight) gymLight.intensity = 0; if (homeLight) homeLight.intensity = 0;
   if (P.carPos) { G.car.x = P.carPos.x; G.car.z = P.carPos.z; G.car.h = P.carPos.h; } else { G.car.x = LM.home.x; G.car.z = LM.home.z; G.car.h = Math.PI / 2; }
   setCar(P.car);
-  const lk = P.look || { gender: "homme", outfit: 0, skin: 1 }, of = OUTFITS[lk.gender][lk.outfit] || OUTFITS.homme[0];
+  const lk = P.look || { gender: "homme", outfit: 0, skin: 1 }, of = lookOf(lk);
   if (meMesh) scene.remove(meMesh);
   meMesh = makeHuman(Object.assign({}, of, { player: true, skin: SKIN_TONES[lk.skin] || SKIN_TONES[1], female: lk.gender === "femme" })); scene.add(meMesh);
   applyMuscle(meMesh); meMesh.visible = false; G.onFoot = false;

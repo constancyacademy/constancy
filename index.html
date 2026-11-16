@@ -178,7 +178,7 @@ body.m3on #hud,body.m3on #help,body.m3on #tip,body.m3on #actions,body.m3on #joy,
 @keyframes emSpin{to{transform:rotate(360deg)}}
 @keyframes vcDot{50%{opacity:.35;box-shadow:0 0 4px #ff4fa3}}
 #screen.titled .ttl .logo{position:relative}
-#screen.titled .ttl .logo::after{content:"Constancy";position:absolute;left:0;top:0;right:0;bottom:0;background:linear-gradient(180deg,rgba(255,255,255,0) 66%,rgba(255,170,220,.22) 82%,rgba(255,90,175,.42) 92%,rgba(120,240,255,.38));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;pointer-events:none;mix-blend-mode:screen;animation:vcFlash 3.2s ease-in-out infinite}
+#screen.titled .ttl .logo::after{content:"Constancy";position:absolute;left:0;top:0;right:0;bottom:0;background:linear-gradient(180deg,rgba(255,255,255,0) 50%,rgba(255,150,210,.4) 62%,rgba(255,70,165,.85) 74%,rgba(150,240,255,.8) 88%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;pointer-events:none;animation:vcFlash 3.2s ease-in-out infinite}
 #screen.titled .ttl .logo{margin-left:calc(-1 * var(--ci))!important;color:#f7f2f8;transform:perspective(700px) rotateX(12deg);transform-origin:0 100%;
   text-shadow:0 1px 0 #d9cfe3,0 2px 0 #a998bd,0 3px 0 #74608f,0 4px 1px rgba(0,0,0,.45),0 10px 16px rgba(0,0,0,.55),0 20px 42px rgba(255,45,149,.3)}
 #screen.titled .ttl .btn:focus-visible{outline:2px solid rgba(255,190,225,.55);outline-offset:3px}
@@ -2024,6 +2024,27 @@ function updateHomeView(dt) {
 }
 let MODELS_P = Promise.resolve();
 // l'appartement attend ses meubles 3D : s'ils arrivent après la construction (réseau lent), on le reconstruit avec les vrais meubles
+// écrans géants façon Times Square : des phrases de constance sur les grandes tours, qui changent toutes les 9 secondes
+const BIGS = { list: [], t: 0, i: 0, lines: ["Les jours sans, baisse le volume. Pas l'action.", "Mets tes œillères. Avance.", "Personne ne viendra te lever.", "Un jour de plus. Puis un autre.", "Tu n'as pas besoin de motivation. Tu as besoin d'une heure fixe.", "Ta partie n'a pas de date de sortie.", "Le résultat est invisible. Jusqu'au jour où il ne l'est plus.", "Fais-le. Même mal. Même lentement.", "Pas de raccourci. Juste le chemin.", "Ceux qui reviennent chaque jour finissent par gagner."] };
+function bigScreenDraw(S, line) { const c = S.cv, g = c.getContext("2d"), W = c.width, H = c.height; g.fillStyle = "#050308"; g.fillRect(0, 0, W, H);
+  const gr = g.createLinearGradient(0, 0, W, H); gr.addColorStop(0, "rgba(255,45,149,.20)"); gr.addColorStop(1, "rgba(63,240,255,.12)"); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#ff4fa3"; g.font = "600 30px Inter, sans-serif"; g.textAlign = "center"; g.fillText("C O N S T A N C Y", W / 2, 70);
+  g.fillStyle = "#fff"; let fs = 76; g.font = `500 ${fs}px 'EB Garamond', Georgia, serif`; const words = line.split(" "), rows = []; let cur = "";
+  words.forEach(w => { const t = cur ? cur + " " + w : w; if (g.measureText(t).width > W - 80 && cur) { rows.push(cur); cur = w; } else cur = t; }); rows.push(cur);
+  const y0 = H / 2 - (rows.length - 1) * fs * 0.6; rows.forEach((r, k) => { g.shadowColor = "rgba(255,120,200,.8)"; g.shadowBlur = 18; g.fillText(r, W / 2, y0 + k * fs * 1.2); }); g.shadowBlur = 0;
+  g.fillStyle = "rgba(0,0,0,.18)"; for (let y = 0; y < H; y += 4) g.fillRect(0, y, W, 1); // trame LED
+  g.strokeStyle = "#ff4fa3"; g.lineWidth = 6; g.strokeRect(3, 3, W - 6, H - 6); S.tex.needsUpdate = true; }
+function buildBigScreens() {
+  const cand = []; BLOCK_BOXES.forEach(L => L.forEach(b => { const h = b[4] || 12, cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2, w = Math.min(b[3] - b[1], b[2] - b[0]); if (h > 70 && w > 16 && Math.abs(cx) < HALF * 0.75 && Math.abs(cz) < HALF * 0.75) cand.push({ b, h, cx, cz }); }));
+  cand.sort((p, q) => q.h - p.h); const used = [];
+  for (const C of cand) { if (BIGS.list.length >= 6) break; if (used.some(u => Math.hypot(u.cx - C.cx, u.cz - C.cz) < 120)) continue; if (TOWER.F && Math.hypot(C.cx - TOWER.x, C.cz - TOWER.z) < 40) continue; used.push(C);
+    const b = C.b, alongZ = Math.abs(C.cx) > Math.abs(C.cz), sw = Math.min(26, (alongZ ? b[3] - b[1] : b[2] - b[0]) - 4), sh = sw * 1.25, y = Math.min(C.h - sh / 2 - 6, C.h * 0.55 + sh / 2);
+    const cv = document.createElement("canvas"); cv.width = 512; cv.height = 640; const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(sw, sh), new THREE.MeshBasicMaterial({ map: tex, fog: false, color: 0xbfbfbf }));
+    if (alongZ) { const fx = C.cx > 0 ? b[0] - 0.4 : b[2] + 0.4; m.position.set(fx, y, C.cz); m.rotation.y = C.cx > 0 ? -Math.PI / 2 : Math.PI / 2; }
+    else { const fz = C.cz > 0 ? b[1] - 0.4 : b[3] + 0.4; m.position.set(C.cx, y, fz); m.rotation.y = C.cz > 0 ? Math.PI : 0; }
+    scene.add(m); const S = { cv, tex, m, k: BIGS.list.length }; BIGS.list.push(S); bigScreenDraw(S, BIGS.lines[S.k % BIGS.lines.length]); } }
+function updateBigScreens(dt) { if (!BIGS.list.length) return; BIGS.t += dt; if (BIGS.t < 9) return; BIGS.t = 0; BIGS.i++; BIGS.list.forEach(S => bigScreenDraw(S, BIGS.lines[(S.k + BIGS.i) % BIGS.lines.length])); }
 function buildHomeSafe() {
   const n0 = scene.children.length; HOME.win = []; HOME.cur = []; buildHomeInterior(); HOME.objs = scene.children.slice(n0);
   const miss = ["sofa", "bed", "kitchen", "tvunit", "monstera", "wardrobe", "ctable", "armchair"].some(k => MODEL_DEFS[k] && !MODELS[k]);
@@ -3897,7 +3918,7 @@ function trailPuff(x, y, z) {
   const i = CTRAIL.i = (CTRAIL.i + 1) % CTRAIL.n; if (!CTRAIL.hue) CTRAIL.hue = new Float32Array(CTRAIL.n); { const T = performance.now() / 1000; CTRAIL.hue[i] = (i % 2) ? 0.5 + 0.5 * Math.sin(T * 0.3) : 0.5 - 0.5 * Math.sin(T * 0.3); } CTRAIL.pos[i * 3] = x; CTRAIL.pos[i * 3 + 1] = y; CTRAIL.pos[i * 3 + 2] = z; CTRAIL.age[i] = 0;
 }
 function updateTrails(dt) {
-  if (TRAIL_MAT) { const nk = nightK, T = performance.now() / 1000; TRAIL_MAT.color.setRGB(0.78 + nk * 0.22, 0.8 - nk * 0.12 + 0.05 * Math.sin(T * 0.7), 0.86 - nk * 0.22); TRAIL_MAT.opacity = 0.55 + nk * 0.4; }
+  if (TRAIL_MAT) { const nk = nightK, T = performance.now() / 1000; const gp = 0.5 + 0.5 * Math.sin(T * 0.22); TRAIL_MAT.color.setRGB(0.8 + nk * 0.2, 0.82 + nk * (0.78 - 0.3 * gp - 0.82), 0.86 + nk * (0.4 + 0.36 * gp - 0.86)); TRAIL_MAT.opacity = 0.55 + nk * 0.4; }
   if (!CTRAIL.pts) return; const k = 0.75 + nightK * 0.2, nk2 = nightK;
   for (let i = 0; i < CTRAIL.n; i++) { const a = CTRAIL.age[i] += dt; const v = a > 4.5 ? 0 : (1 - a / 4.5) * k; const hu = CTRAIL.hue ? CTRAIL.hue[i] : 0, w = hu * hu * (3 - 2 * hu), cr = 1, cg = 0.16 + w * 0.68, cb = 0.62 - w * 0.42; CTRAIL.col[i * 3] = v * (1 + (cr - 1) * nk2); CTRAIL.col[i * 3 + 1] = v * (1 + (cg - 1) * nk2); CTRAIL.col[i * 3 + 2] = v * (1 + (cb - 1) * nk2); }
   CTRAIL.pts.geometry.attributes.color.needsUpdate = true; CTRAIL.pts.geometry.attributes.position.needsUpdate = true;
@@ -4744,7 +4765,7 @@ function buildWorld() {
   const mentor = makeHuman({ shirt: 0x1d2a44, pants: 0x1d2a44, skin: 0xc68a5e, hair: 0x111111 }); mentor.position.set(HALF + 34, 0.6, bC(5)); mentor.rotation.y = -Math.PI / 2; scene.add(mentor); if (mentor.userData.q) { mentor.position.y = 0.6; setClip(mentor, "Idle_Talking_Loop"); }
 
   buildTrafficLights(); buildTraffic(); buildPeds(); buildLife(); buildRentals(); buildRoofNeons();
-  PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeSafe(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildGuinguettes(); buildStuntPark(); buildCampfires(); buildFair(); buildBeachLife(); buildShopFolks(); buildGarage(); buildBanner(); buildRadioTower(); buildCountryLife(); buildUfo(); flushBatches(); // les décors construits après le premier regroupement (guinguettes, Stunt Park) sont regroupés à leur tour
+  PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeSafe(); buildBigScreens(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildGuinguettes(); buildStuntPark(); buildCampfires(); buildFair(); buildBeachLife(); buildShopFolks(); buildGarage(); buildBanner(); buildRadioTower(); buildCountryLife(); buildUfo(); flushBatches(); // les décors construits après le premier regroupement (guinguettes, Stunt Park) sont regroupés à leur tour
   ownMark = makeBeacon(new THREE.Color(0xffffff)); ownMark.userData.col.scale.set(0.5, 0.35, 0.5); ownMark.userData.col.position.y = 12; ownMark.userData.marker.visible = false; ownMark.userData.spk.visible = false; ownMark.children[1].visible = false;
   const ol = label("Ta voiture", "#ffffff"); ol.scale.set(5.2, 1.3, 1); ol.position.y = 4.6; ownMark.add(ol); ownMark.visible = false; scene.add(ownMark);
   const mlab = label("Mamie", LM.mamie.color); mlab.scale.set(8, 2, 1); mlab.position.set(LM.mamie.x - 4, 4, bMax(0) - 2); scene.add(mlab);
@@ -4894,7 +4915,7 @@ function updateLamps(dt) {
     L.oy = 0.16 * Math.sin(L.th); lampMatrix(i); });
 }
 function updatePosts(dt) {
-  if (SHOREW.u) { SHOREW.u.uT.value += dt; SHOREW.u.nk.value = nightK; } updateAura(dt); updateBreath(dt); updateHeliAmb(dt); updateCrocs(dt); updateCrew(dt); updateGrassField(dt); updateLamps(dt); updateER(dt); updateAmbulance(dt); updateMarket(dt); updateShops3D(dt); updateCranes(dt); updateWorkers(dt); if (!POSTS.moving) return; let any = 0;
+  if (SHOREW.u) { SHOREW.u.uT.value += dt; SHOREW.u.nk.value = nightK; } updateAura(dt); updateBreath(dt); updateHeliAmb(dt); updateCrocs(dt); updateCrew(dt); updateBigScreens(dt); updateGrassField(dt); updateLamps(dt); updateER(dt); updateAmbulance(dt); updateMarket(dt); updateShops3D(dt); updateCranes(dt); updateWorkers(dt); if (!POSTS.moving) return; let any = 0;
   POSTS.list.forEach((q, i) => { if (q.hit !== 1) return; any = 1; q.vy -= 22 * dt; q.x += q.vx * dt; q.z += q.vz * dt; q.oy += q.vy * dt; q.rx += q.ax * dt; q.rz += q.ax * 0.7 * dt;
     const gy = GH(q.x, q.z) - q.y; if (q.oy <= gy + 0.2 && q.vy < 0) { q.oy = gy + 0.2; q.vy *= -0.25; q.vx *= 0.55; q.vz *= 0.55; q.ax *= 0.5; if (Math.hypot(q.vx, q.vz) < 0.6) { q.hit = 2; q.rx = Math.PI / 2 * Math.sign(q.rx || 1); POSTS.moving--; } }
     postMatrix(i); });
@@ -5941,7 +5962,31 @@ function drawMapExtras(g) {
   // marquage central des routes de la ville
   g.strokeStyle = "rgba(242,201,76,.55)"; g.lineWidth = 0.9; g.setLineDash([6, 6]); for (let k = 0; k <= NB; k++) { const c = rc(k); g.beginPath(); g.moveTo(MO + c, MO - HALF); g.lineTo(MO + c, MO + HALF); g.moveTo(MO - HALF, MO + c); g.lineTo(MO + HALF, MO + c); g.stroke(); } g.setLineDash([]);
 }
+// plan de l'appartement : quand on est chez soi, la minimap montre les pièces au lieu de la ville
+function drawHomePlan() {
+  const W = mm.width, me = G.me, s = W * 0.9 / Math.hypot(HRW * 2, HD * 2), X = x => W / 2 + (x - HX) * s, Z = z => W / 2 + (z - HZ) * s;
+  mctx.save(); mctx.clearRect(0, 0, W, W);
+  mctx.beginPath(); mctx.arc(W / 2, W / 2, W / 2, 0, Math.PI * 2); mctx.clip();
+  const bg = mctx.createRadialGradient(W / 2, W / 2, 10, W / 2, W / 2, W / 2); bg.addColorStop(0, "#2a1d33"); bg.addColorStop(1, "#120c18"); mctx.fillStyle = bg; mctx.fillRect(0, 0, W, W);
+  mctx.fillStyle = "#3a2b40"; mctx.fillRect(X(HX - HRW), Z(HZ - HD), HRW * 2 * s, HD * 2 * s);
+  mctx.strokeStyle = "rgba(255,79,163,.85)"; mctx.lineWidth = 4; mctx.strokeRect(X(HX - HRW), Z(HZ - HD), HRW * 2 * s, HD * 2 * s);
+  mctx.fillStyle = "rgba(150,230,255,.9)"; mctx.fillRect(X(HX - 4.5), Z(HZ - HD) - 3, 6 * s, 6);
+  const room = (x0, z0, x1, z1, c, t) => { mctx.fillStyle = c; mctx.beginPath(); mctx.roundRect ? mctx.roundRect(X(x0), Z(z0), (x1 - x0) * s, (z1 - z0) * s, 5) : mctx.rect(X(x0), Z(z0), (x1 - x0) * s, (z1 - z0) * s); mctx.fill();
+    mctx.fillStyle = "rgba(255,255,255,.95)"; mctx.font = "700 19px Inter, sans-serif"; mctx.textAlign = "center"; mctx.textBaseline = "middle"; mctx.fillText(t, X((x0 + x1) / 2), Z((z0 + z1) / 2)); };
+  room(HX - 10.5, HZ - 7.6, HX - 4, HZ - 1.6, "rgba(255,255,255,.14)", "Lit");
+  room(HX - 1.5, HZ - 1.2, HX + 5.5, HZ + 0.6, "rgba(255,255,255,.12)", "Salon");
+  room(HX + 6.5, HZ - 7.6, HX + 10.6, HZ - 5.6, "rgba(255,200,120,.22)", "Cuisine");
+  room(HX - 0.4, HZ - 7.9, HX + 4.4, HZ - 7.0, "rgba(120,200,255,.35)", "");
+  mctx.fillStyle = "rgba(255,255,255,.8)"; mctx.font = "700 16px Inter, sans-serif"; mctx.fillText("TV", X(HX + 2), Z(HZ - 6.2));
+  const pulse = (Math.sin(performance.now() / 160) + 1) / 2, dot = (x, z, c, t) => { mctx.beginPath(); mctx.arc(X(x), Z(z), 12 + pulse * 2, 0, Math.PI * 2); mctx.fillStyle = "#000"; mctx.fill(); mctx.beginPath(); mctx.arc(X(x), Z(z), 9 + pulse * 2, 0, Math.PI * 2); mctx.fillStyle = c; mctx.fill(); if (t) { mctx.fillStyle = "#fff"; mctx.font = "700 18px Inter, sans-serif"; mctx.fillText(t, X(x), Z(z) - 26); } };
+  dot(HZN.bed.x + 3.6, HZN.bed.z + 3.4, "#ffffff", ""); dot(HZN.exit.x, HZN.exit.z, "#ff2d55", "Sortie");
+  mctx.translate(X(me.x), Z(me.z)); mctx.rotate(-me.h + Math.PI);
+  mctx.beginPath(); mctx.moveTo(0, -14); mctx.lineTo(10, 11); mctx.lineTo(0, 6); mctx.lineTo(-10, 11); mctx.closePath();
+  mctx.fillStyle = "#fff"; mctx.strokeStyle = "#000"; mctx.lineWidth = 3; mctx.stroke(); mctx.fill();
+  mctx.restore();
+}
 function drawMinimap() {
+  if (G.inside === "home") return drawHomePlan();
   const W = mm.width, R = 130, s = W / (R * 2), me = target(), cx = me.x, cz = me.z;
   mctx.save(); mctx.clearRect(0, 0, W, W);
   mctx.beginPath(); mctx.arc(W / 2, W / 2, W / 2, 0, Math.PI * 2); mctx.clip();
@@ -7170,23 +7215,23 @@ function updateNightSky(dt) {
     NSKY.pool = []; const glow = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.25, "rgba(255,220,240,.85)"); g.addColorStop(0.6, "rgba(255,120,200,.25)"); g.addColorStop(1, "rgba(255,120,200,0)"); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
     for (let q = 0; q < 4; q++) { const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(12), 3)); geo.setAttribute("a", new THREE.BufferAttribute(new Float32Array([0, 0, 1, 1]), 1)); geo.setIndex([0, 1, 2, 2, 1, 3]);
       const mat = new THREE.ShaderMaterial({ uniforms: { op: { value: 0 } }, vertexShader: "attribute float a; varying float va; void main(){ va = a; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
-        fragmentShader: "uniform float op; varying float va; void main(){ vec3 c = mix(vec3(1.0,0.45,0.75), vec3(1.0,0.97,0.93), va); gl_FragColor = vec4(c * op * pow(va, 1.6) * 1.6, 1.0); }", transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false });
+        fragmentShader: "uniform float op; varying float va; void main(){ vec3 c = mix(vec3(1.0,0.45,0.75), vec3(1.0,0.97,0.93), va); gl_FragColor = vec4(c * op * pow(va, 1.6) * 1.6, 1.0); }", transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true, fog: false });
       const m = new THREE.Mesh(geo, mat); m.frustumCulled = false; m.visible = false; m.renderOrder = 5; scene.add(m);
-      const h = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false })); h.visible = false; h.renderOrder = 6; scene.add(h);
+      const h = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true, fog: false })); h.visible = false; h.renderOrder = 6; scene.add(h);
       NSKY.pool.push({ m, h, on: false }); } }
   const cp = camera.position, o = target(), inCity = Math.abs(o.x) < HALF + 40 && Math.abs(o.z) < HALF + 40, clear = 1 - clamp(WX.rain * 1.6, 0, 1), k = Math.pow(clamp((nightK - 0.35) / 0.55, 0, 1), 1.5) * clear * (G.inside ? 0 : 1);
   NSKY.stars.position.copy(cp); NSKY.stars.material.opacity = k * (inCity ? 0.8 : 1); NSKY.stars.material.size = 2.2; NSKY.stars.visible = k > 0.01;
   const sd = sea.material.uniforms.sunDir.value, mx = -sd.x * 0.8 + 0.3, my = Math.max(0.12, -sd.y * 0.9 + 0.25), mz = -sd.z * 0.8 - 0.3, ml = Math.hypot(mx, my, mz);
   NSKY.moon.position.set(cp.x + mx / ml * 1150, cp.y + my / ml * 1150, cp.z + mz / ml * 1150); NSKY.moon.material.opacity = clamp((nightK - 0.3) / 0.5, 0, 1) * (0.25 + 0.75 * clear) * (G.inside ? 0 : 1); NSKY.moon.visible = NSKY.moon.material.opacity > 0.01;
   // étoiles filantes : dans le champ de vision, une longue traînée rose et blanche (parfois une petite pluie de 2 ou 3)
-  if (k > 0.45) { NSKY.next -= dt; if (NSKY.next <= 0) { NSKY.next = window.__showcase ? 0.9 + Math.random() * 1.6 : 6 + Math.random() * 9; const fw = new THREE.Vector3(); camera.getWorldDirection(fw); const yaw = Math.atan2(fw.z, fw.x), n = Math.random() < 0.25 ? 3 : 1;
-      for (let q = 0; q < n; q++) { const S = NSKY.pool.find(o => !o.on); if (!S) break; const az = yaw + (Math.random() - 0.5) * 1.1, el = 0.32 + Math.random() * 0.38, d = new THREE.Vector3(Math.cos(az) * Math.cos(el), Math.sin(el), Math.sin(az) * Math.cos(el)), sgn = Math.random() < 0.5 ? -1 : 1, side = new THREE.Vector3(-Math.sin(az) * sgn, -0.42, Math.cos(az) * sgn).normalize();
-        Object.assign(S, { on: true, p: d.multiplyScalar(720), v: side.multiplyScalar(430 + Math.random() * 120), t: -q * 0.22, life: 1.25 + Math.random() * 0.4 }); }
-      if (G.mode === "play" && !P.shootSeen) { P.shootSeen = true; help("Une étoile filante. Pas besoin de faire un vœu : Tu as un plan. ✨", 5); stat("etoile-filante"); } } }
+  if (k > 0.45) { NSKY.next -= dt; if (NSKY.next <= 0) { NSKY.next = window.__showcase ? 2.5 + Math.random() * 2.5 : 10 + Math.random() * 12; const fw = new THREE.Vector3(); camera.getWorldDirection(fw); const yaw = Math.atan2(fw.z, fw.x), n = Math.random() < 0.1 ? 2 : 1;
+      for (let q = 0; q < n; q++) { const S = NSKY.pool.find(o => !o.on); if (!S) break; const az = yaw + (Math.random() - 0.5) * 1.1, el = 0.5 + Math.random() * 0.32, d = new THREE.Vector3(Math.cos(az) * Math.cos(el), Math.sin(el), Math.sin(az) * Math.cos(el)), sgn = Math.random() < 0.5 ? -1 : 1, side = new THREE.Vector3(-Math.sin(az) * sgn, -0.16, Math.cos(az) * sgn).normalize();
+        Object.assign(S, { on: true, p: d.multiplyScalar(1500), v: side.multiplyScalar(820 + Math.random() * 200), t: -q * 0.22, life: 1.0 + Math.random() * 0.3 }); }
+      if (G.mode === "play" && !P.shootSeen) { P.shootSeen = true; help("Une étoile filante. Pas besoin de faire un vœu : tu as un plan. ✨", 5); stat("etoile-filante"); } } }
   if (NSKY.pool) for (const S of NSKY.pool) { if (!S.on) continue; S.t += dt; if (S.t < 0) continue; if (S.t > S.life || k <= 0.05) { S.on = false; S.m.visible = S.h.visible = false; continue; }
-    const head = S.p.clone().addScaledVector(S.v, S.t).add(cp), tail = S.p.clone().addScaledVector(S.v, Math.max(0, S.t - 0.5)).add(cp), dir = head.clone().sub(tail), vw = head.clone().sub(cp), sd2 = dir.clone().cross(vw).normalize(), w = 6.5, A = S.m.geometry.attributes.position;
+    const head = S.p.clone().addScaledVector(S.v, S.t).add(cp), tail = S.p.clone().addScaledVector(S.v, Math.max(0, S.t - 0.5)).add(cp), dir = head.clone().sub(tail), vw = head.clone().sub(cp), sd2 = dir.clone().cross(vw).normalize(), w = 12, A = S.m.geometry.attributes.position;
     A.setXYZ(0, tail.x + sd2.x * w * 0.2, tail.y + sd2.y * w * 0.2, tail.z + sd2.z * w * 0.2); A.setXYZ(1, tail.x - sd2.x * w * 0.2, tail.y - sd2.y * w * 0.2, tail.z - sd2.z * w * 0.2); A.setXYZ(2, head.x + sd2.x * w, head.y + sd2.y * w, head.z + sd2.z * w); A.setXYZ(3, head.x - sd2.x * w, head.y - sd2.y * w, head.z - sd2.z * w); A.needsUpdate = true;
-    const op = Math.sin(Math.min(1, S.t / S.life) * Math.PI) * k; S.m.material.uniforms.op.value = op; S.m.visible = true; S.h.position.copy(head); S.h.scale.setScalar(44); S.h.material.opacity = op; S.h.visible = true; }
+    const op = Math.sin(Math.min(1, S.t / S.life) * Math.PI) * k; S.m.material.uniforms.op.value = op; S.m.visible = true; S.h.position.copy(head); S.h.scale.setScalar(80); S.h.material.opacity = op; S.h.visible = true; }
 }
 // ---------- radio de la voiture : deux stations (chargées seulement à la première écoute), qui « tournent » même quand tu ne les écoutes pas
 const RADIO = { i: 0, list: [null, { k: "lofi", name: "Lo-fi Constancy", url: "assets/radio_lofi.mp3", len: 48 }, { k: "drive", name: "Drive FM", url: "assets/radio_drive.mp3", len: 16 * 4 * 60 / 112 }], buf: {}, src: null, g: null, f: null };
@@ -8318,7 +8363,7 @@ function envAdd(m, refl = 0.32) { if (!m || ENVR.mats.has(m) || !(m.isMeshPhongM
 function envCar(mesh) { mesh.traverse(o => { if (!o.isMesh || !o.material) return; (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { const n = (m.name || "").toLowerCase(); if (n === "paint" || /paint|body|carpaint/.test(n)) envAdd(m, 0.34); else if (/glass|window|vitre/.test(n) || (m.transparent && m.opacity < 0.75)) envAdd(m, 0.55); }); }); }
 function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "number" && nightK > 0.5) ? ENVR.night : ENVR.day; if (ENVR.cur === want) return; ENVR.cur = want;
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
-window.__W = () => ({ HELI, spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
+window.__W = () => ({ BIGS, HELI, spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
 window.__X = () => ({ planes, callUfo, SND, sfx, updateMusic, screech, traffic, SH3, CS_BOX, pushCsBoxes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 window.__simFrame = dt => { if (G.onFoot) updateMe(dt); else updateCar(dt); updateWorldLife(dt); if (!G.onFoot) planeGuard(); };
 function loop(now) {

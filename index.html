@@ -4989,7 +4989,8 @@ function updateNavLights() { if (!NAVL.length) return; const T = performance.now
     L.red.material.opacity = base; L.green.material.opacity = base; L.red.material.color.setHex(0xff3fb4); L.green.material.color.setHex(0xff5fc8); L.strobe.material.opacity = (t < 0.06 || (t > 0.16 && t < 0.22) ? 1 : 0) * base; L.beacon.material.opacity = (T + L.ph) % 1 < 0.5 ? base : 0;
     const own = carMesh === L.g && G.car.alt < 220; L.land.forEach(sp => { sp.material.opacity = own ? nk * 0.9 : nk * 0.25; }); } }
 // avion d'ambiance : train rentré, pas de brume sur la carlingue (il reste net et lisible, bien à l'horizontale)
-function skyPlane(p, kind) { p.traverse(o => { if (kind === "plane_liner" && /^Wheel|gear/i.test(o.name || "")) o.visible = false; if (o.isMesh && o.material && !o.material.transparent) { o.material = o.material.clone(); o.material.fog = false; } }); }
+function skyPlane(p, kind) { p.traverse(o => { if (kind === "plane_liner" && /^Wheel|gear/i.test(o.name || "")) o.visible = false; if (o.isMesh && o.material && !o.material.transparent) { o.material = o.material.clone(); o.material.fog = false; if (o.material.color) SKYMATS.push([o.material, o.material.color.clone()]); } }); }
+const SKYMATS = []; let skyNK = -1;
 function makePlane(kind) {
   const key = kind || (Math.random() < 0.6 ? "plane_liner" : "plane_small");
   if (MODELS[key]) {
@@ -5173,6 +5174,7 @@ function updateBirds(dt) {
 function updateLife(dt) {
   if (G.mode === "play") { updatePigeons(dt); updateBirds(dt); }
   updateGuing(dt); updateBell(dt);
+  if (Math.abs(nightK - skyNK) > 0.02) { skyNK = nightK; const f = 1 - 0.62 * nightK; for (const [m, c] of SKYMATS) m.color.copy(c).multiplyScalar(f); }
   planes.forEach(p => { p.a += p.s * dt; p.mesh.position.set(Math.cos(p.a) * p.r, p.y, Math.sin(p.a) * p.r); p.mesh.rotation.set(0, -p.a + (p.s < 0 ? Math.PI : 0), p.s < 0 ? 0.06 : -0.06, "YXZ"); });
   updateFlyby();
   const T = performance.now() / 1000;

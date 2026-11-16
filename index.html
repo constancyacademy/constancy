@@ -261,6 +261,8 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 .eg .egbtn{background:linear-gradient(135deg,#ff2d55,#ff4fc8);color:#fff;border:0;box-shadow:0 0 24px rgba(255,79,200,.45),0 6px 0 #8a1846,0 14px 24px rgba(0,0,0,.45)}
 .eg .egfoot{opacity:.7;margin:0;text-align:center;font-size:12px}
 .egalt{display:block;width:100%;margin:2px 0 0;padding:13px 16px;border-radius:14px;background:rgba(255,63,164,.08);border:1px solid rgba(255,111,191,.55);color:#fff;font:600 15px Inter,sans-serif;cursor:pointer;box-shadow:0 0 16px rgba(255,79,163,.18)}.egalt b{color:#ff8fd0}
+@keyframes egShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}.eg.shk{animation:egShake .38s ease}
+.okbig{font:500 13px Inter,sans-serif;letter-spacing:.32em;color:#5ef0a0;text-transform:uppercase;margin:0 0 4px}
 .eglink{background:none;border:0;color:rgba(242,240,236,.55);font:500 13px Inter,sans-serif;padding:2px;margin:0 auto;cursor:pointer}
 .avk{justify-self:center;align-self:center;display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 11px;border-radius:999px;background:rgba(22,8,30,.6);border:1px solid rgba(255,79,163,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 24px rgba(0,0,0,.45);color:#ff7cc0!important;font-size:10px;letter-spacing:.22em;width:max-content;margin:0 auto}
 .avk i{width:6px;height:6px;border-radius:50%;background:#ff4fa3;box-shadow:0 0 8px #ff4fa3,0 0 16px #ff4fa3;animation:vcDot 1.8s ease-in-out infinite}
@@ -3887,14 +3889,22 @@ function updateLift(dt) {
   if (G.mode !== "play" || !G.onFoot || G.inside || G.mission || LIFT.on) return; const d = liftDoor(), dd = Math.hypot(G.me.x - d.x, G.me.z - d.z);
   if (dd > 7) LIFT.cool = false; else if (dd < 3.2 && !LIFT.cool) { LIFT.cool = true; liftOffer(); }
 }
+function quitToTitle(msg) { // ta partie est sauvegardée (sur l'appareil + en ligne), retour au menu
+  saveNow(); cloudPush(true); G.started = false; removePolice(); if (G.mission && G.mission.agent) scene.remove(G.mission.agent.mesh); G.mission = null; destBeacon.visible = false; if (meMesh) meMesh.visible = false; titleScreen();
+  setTimeout(() => notify("gold", msg || "<b>Partie sauvegardée ✓</b> Tu reprends exactement là où tu t'es arrêté.", 5), 400); }
+function logout() { // déconnexion : sauvegarde en ligne d'abord, puis l'appareil oublie le compte
+  saveNow(); const done = () => { try { store.clear(); } catch (e) {} location.reload(); };
+  if (!(VERIFY_URL && P && P.email && P.pwH)) { done(); return; }
+  try { fetch(VERIFY_URL, { method: "POST", mode: "no-cors", keepalive: true, body: JSON.stringify({ email: P.email, h: P.pwH, data: localStorage.getItem(SAVE_KEY) || "" }) }).then(() => setTimeout(done, 300), () => setTimeout(done, 300)); } catch (e) { done(); } setTimeout(done, 4000); }
 // arrêter la partie : changer d'objectif (on garde tout) ou recommencer de zéro
 function stopMenu() {
   show(`<div class="panel"><div class="kicker">Arrêter la partie</div><h2>Que veux-tu faire ?</h2>
     <div class="choices"><button class="choice" id="chObj" type="button"><b>Changer d'objectif</b><span>Tu gardes ton argent, ton perso et ta progression. Nouvel objectif, nouvelles missions.</span></button>
     <button class="choice" id="reset" type="button"><b>Recommencer de zéro</b><span>Ta partie actuelle est effacée de cet appareil.</span></button>
-    <button class="choice" id="toTitle" type="button"><b>Revenir à l'écran titre</b><span>Ta partie est sauvegardée, tu reprends quand tu veux.</span></button></div>
+    <button class="choice" id="toTitle" type="button"><b>Revenir à l'écran titre</b><span>Ta partie est sauvegardée, tu reprends quand tu veux.</span></button>
+    ${P && P.email && !CREATOR ? `<button class="choice" id="logoutB" type="button"><b>Se déconnecter</b><span>Ta partie est gardée en ligne. Tu la retrouves avec « J'ai déjà un compte », sur n'importe quel appareil.</span></button>` : ""}</div>
     <button class="btn" id="back" data-focus type="button">Retour</button></div>`);
-  on("back", openMenu); on("toTitle", () => { const q = $("quitHidden"); if (q) q.click(); });
+  on("back", openMenu); on("toTitle", () => quitToTitle()); on("logoutB", () => { show(`<div class="panel"><div class="kicker">Se déconnecter</div><h2>Partie sauvegardée en ligne…</h2><p class="lead">À tout de suite.</p></div>`); logout(); });
   on("chObj", () => { setMode("menu"); show(`<div class="panel"><div class="kicker">Changer d'objectif</div><h2>Ton nouvel objectif ?</h2><div class="choices">${Object.entries(OBJ).map(([k, o]) => `<button class="choice" data-k="${k}" type="button" ${k === P.objective ? "disabled" : ""}><b>${o.label}</b><span>${k === P.objective ? "Objectif actuel" : o.sub}</span></button>`).join("")}</div><button class="btn alt" id="back2" type="button">Retour</button></div>`);
     on("back2", stopMenu);
     screen.querySelectorAll(".choice[data-k]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.k, mus = k === "muscle" ? (P.muscle || "bras") : P.muscle;
@@ -7540,9 +7550,11 @@ async function checkConfirmed() {
     if (j && j.state === "active") { P.emailOk = 1; saveNow(); stat("email-confirme"); return true; } return false;
   } catch (e) { G.cwFails = (G.cwFails || 0) + 1; return null; } }
 function pwHashOf(v, pw) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(v + "|" + pw)).then(h => [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("")); }
+addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && P && G.started) { try { saveNow(); } catch (e) {} cloudPush(true); } });
+addEventListener("pagehide", () => { if (P && G.started) { try { saveNow(); } catch (e) {} cloudPush(true); } });
 function cloudPush(force) { // sauvegarde en ligne : au plus une fois par minute
   if (!VERIFY_URL || !P || !P.email || !P.pwH || navigator.webdriver) return; const now = Date.now(); if (!force && now - (G.cloudAt || 0) < 60000) return; G.cloudAt = now;
-  try { const data = localStorage.getItem(SAVE_KEY) || ""; if (data.length > 48000) return; fetch(VERIFY_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ email: P.email, h: P.pwH, data }) }).catch(() => {}); } catch (e) {} }
+  try { const data = localStorage.getItem(SAVE_KEY) || ""; if (data.length > 48000) return; fetch(VERIFY_URL, { method: "POST", mode: "no-cors", keepalive: true, body: JSON.stringify({ email: P.email, h: P.pwH, data }) }).catch(() => {}); } catch (e) {} }
 function gateMode() { if (G.started) setMode("email"); } // avant la partie : on reste sur la musique et la ville du menu
 function openLogin(after) {
   G.emailGate = true; gateMode(); stat("ecran-connexion");
@@ -7578,6 +7590,12 @@ function openLogin(after) {
     busy = false; b.textContent = "Me connecter"; };
   on("lgGo", go); $("lgP").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
 }
+function confirmedScreen(after) { // effet waouh : flash, impact, « adresse validée », puis on continue là où on était
+  stat("ecran-adresse-validee"); xFlash(() => { celebrate(4); try { sfx.win(); } catch (e) {}
+    show(`<div class="panel eg"><div class="kicker avk"><i></i>Sauvegarde sécurisée</div><p class="okbig">✓ Adresse validée</p>
+      <h2 class="egh">C'est bon, tu peux <em>jouer</em></h2><p class="egl">Ta partie est liée à ton adresse et sauvegardée en ligne. Bienvenue à Constancy City.</p>
+      <button class="btn egbtn" id="cfGo" type="button" data-focus>Jouer</button></div>`, "mail");
+    let gone = false; const go = () => { if (gone) return; gone = true; if (after) after(); else resume(); }; on("cfGo", go); setTimeout(go, 3800); }); }
 function openConfirmWait(after) {
   G.emailGate = true; gateMode(); stat("ecran-confirmation"); clearInterval(G.cwIv);
   const v = P.email, dom = v.split("@")[1] || "", safe = v.replace(/[<>"&]/g, "");
@@ -7593,8 +7611,8 @@ function openConfirmWait(after) {
     <p class="note egfoot">Rien reçu ? Regarde dans Promotions ou Spam.</p>
     <div style="display:flex;justify-content:center;gap:22px"><button id="cwRe" type="button" class="eglink" style="margin:0">Renvoyer l'e-mail</button><button id="cwCh" type="button" class="eglink" style="margin:0">Changer d'adresse</button></div></div>`, "mail");
   const st = (h, c) => { const e = $("cwSt"); if (e) { e.style.color = c || ""; e.innerHTML = h; } };
-  const done = () => { clearInterval(G.cwIv); document.removeEventListener("visibilitychange", vis); G.emailGate = false; if (after) after(); else resume(); celebrate(4);
-    notify("gold", "<b>Adresse confirmée ✓</b> Ta sauvegarde est sécurisée. Bienvenue à Constancy City.", 6); };
+  screen.onclick = e => { if (!G.emailGate || (e.target.closest && e.target.closest(".panel"))) return; try { sfx.fail(); } catch (x) {} const pn = screen.querySelector(".eg"); if (pn) { pn.classList.remove("shk"); void pn.offsetWidth; pn.classList.add("shk"); } st("Confirme ton adresse pour jouer · ouvre l'e-mail et touche le bouton rose", "#ff6b8a"); };
+  const done = () => { clearInterval(G.cwIv); document.removeEventListener("visibilitychange", vis); screen.onclick = null; G.emailGate = false; confirmedScreen(after); };
   let busy = false; const tick = async manual => { if (busy || !G.emailGate) return; busy = true; if (manual) st(spin + "Vérification…"); const r = await checkConfirmed(); busy = false;
     if (r === true) { st("✓ Adresse confirmée", "#5ef0a0"); setTimeout(done, 700); return; }
     if (r === null && G.cwFails >= 3) { G.cwGrace = true; st("Vérification indisponible pour l'instant · on revérifiera au prochain lancement", "#ffc94a"); setTimeout(done, 1600); return; } // serveur injoignable : on ne bloque jamais le joueur par erreur
@@ -7753,7 +7771,7 @@ function titleScreen() {
   setMode("title"); setTimeout(() => { if (G.mode === "title") screen.classList.add("titled"); }, 0);
   const saved = store.load();
   show(`<div class="panel ttl"><div class="kicker"><i></i>${CREATOR ? "Mode créateur · tout débloqué" : "Bêta · accès anticipé"}</div><div class="logo" id="logoTap">Constancy</div><div class="vc"></div>
-    <div class="tag">Le jeu où ta régularité<br><em>fait le score.</em></div><div class="rotHint"><i></i>Meilleur à l'horizontale</div>
+    <div class="tag">Le jeu où ta régularité<br><em>fait le score.</em></div>${BONUS_DM && !(saved && saved.bonusDM) ? `<div class="note" style="color:#ffc94a;margin:6px 0 0">🎁 Ton bonus de $5 000 t’attend : il est versé dès le début de ta partie.</div>` : ""}<div class="rotHint"><i></i>Meilleur à l'horizontale</div>
     <p class="lead">Tu pars de zéro. Fauché, une voiture qui tient avec du scotch, pas un muscle. Mission après mission, jour après jour, tu fais de ton perso une légende.</p>
     ${saved ? `<button class="btn" id="cont" data-focus type="button">Continuer · jour ${saved.day} · $${fmt(saved.cash)}</button><button class="btn alt" id="newg" type="button">Nouvelle partie</button>` : `<button class="btn" id="quick" data-focus type="button">Jouer maintenant</button>`}
     ${saved ? "" : `<button class="btn alt sm" id="tlogin" type="button">J'ai déjà un compte</button>`}
@@ -7778,7 +7796,22 @@ const GC_CODE = "constancy"; // compte goatcounter.com : constancy.goatcounter.c
 const onWeb = /^https?:$/.test(location.protocol) && !/claude\.ai|claudeusercontent|anthropic/.test(location.hostname);
 // mode sans statistiques : ?nostat=1 coupe GoatCounter sur cet appareil pour toujours (localStorage « skipgc », reconnu aussi par count.js), puis le paramètre disparaît de l'adresse
 const CONFIRMED = (() => { try { const u = new URL(location.href); if (u.searchParams.get("confirme") === "1") { u.searchParams.delete("confirme"); history.replaceState(null, "", u.pathname + (u.search.length > 1 ? u.search : "") + u.hash); return true; } } catch (e) {} return false; })();
-if (CONFIRMED) { setTimeout(() => { try { stat("retour-lien-confirmation"); if (!P || !P.email) notify("gold", "<b>Adresse confirmée ✓</b> Retourne dans l'appli Constancy : ton jeu est débloqué.", 9); else if (!VERIFY_URL) { P.emailOk = 1; saveNow(); notify("gold", "<b>Adresse confirmée ✓</b> Ta sauvegarde est sécurisée.", 7); } } catch (e) {} }, 2500); }
+if (CONFIRMED) { const wait = () => { if (G.mode !== "title" || !screen.querySelector(".ttl")) { setTimeout(wait, 400); return; } // retour par le lien de l'e-mail : on vérifie, puis effet waouh
+    stat("retour-lien-confirmation"); const saved = store.load(), resumeGame = () => { titleScreen(); const c = $("cont"); if (c) c.click(); };
+    if (saved && saved.email && VERIFY_URL) {
+      if (saved.emailOk) { confirmedScreen(resumeGame); return; }
+      fetch(VERIFY_URL + "?email=" + encodeURIComponent(saved.email) + "&t=" + Date.now(), { cache: "no-store" }).then(r => r.json()).then(j => { if (j && j.state === "active") { saved.emailOk = 1; store.save(saved); confirmedScreen(resumeGame); } else notify("gold", "Confirmation en cours de prise en compte… Relance le jeu dans un instant.", 6); }).catch(() => {});
+      return; }
+    // l'e-mail s'est ouvert dans un autre navigateur que celui du jeu : on félicite, et on renvoie vers le jeu
+    xFlash(() => { celebrate(4); try { sfx.win(); } catch (e) {} show(`<div class="panel eg"><div class="kicker avk"><i></i>Sauvegarde sécurisée</div><p class="okbig">✓ Adresse validée</p>
+      <h2 class="egh">C'est bon, tu peux <em>jouer</em></h2><p class="egl">Retourne sur le jeu (l'onglet ou l'appli où tu as créé ta sauvegarde) : il s'est débloqué tout seul.</p>
+      <button class="btn egbtn" id="cfHere" type="button" data-focus>Jouer ici</button></div>`, "mail"); on("cfHere", () => { audioInit(); openLogin(null); }); }); };
+  setTimeout(wait, 600); }
+const BONUS_DM = (() => { try { const u = new URL(location.href), b = (u.searchParams.get("b") || "").toLowerCase(); if (b === "jeu5000") { localStorage.setItem("constancy-bonus", "5000"); u.searchParams.delete("b"); history.replaceState(null, "", u.pathname + (u.search.length > 1 ? u.search : "") + u.hash); return true; } return localStorage.getItem("constancy-bonus") === "5000"; } catch (e) { return false; } })();
+function giveBonusDM() { // versé dès que la partie démarre, une seule fois par partie
+  if (!P || P.bonusDM) return; let pend = false; try { pend = localStorage.getItem("constancy-bonus") === "5000"; } catch (e) {} if (!pend) return;
+  P.bonusDM = 1; addCash(5000); saveNow(); try { localStorage.removeItem("constancy-bonus"); } catch (e) {} stat("bonus-dm-verse");
+  setTimeout(() => { celebrate(3); try { sfx.cash(); } catch (e) {} notify("gold", "🎁 <b>+$5 000 offerts</b> · Merci d'avoir commenté JEU. Ton bonus est sur ton compte.", 8); }, 1800); }
 const NOSTAT = (() => { try { const u = new URL(location.href); if (u.searchParams.get("nostat") === "1") { localStorage.setItem("skipgc", "t"); u.searchParams.delete("nostat"); history.replaceState(null, "", u.pathname + (u.search.length > 1 ? u.search : "") + u.hash); } return localStorage.getItem("skipgc") === "t"; } catch (e) { return /[?&]nostat=1/.test(location.search); } })();
 if (onWeb && GC_CODE && !NOSTAT) { const sc = document.createElement("script"); sc.async = true; sc.src = "https://gc.zgo.at/count.js"; sc.dataset.goatcounter = `https://${GC_CODE}.goatcounter.com/count`; document.head.appendChild(sc); }
 function stat(name) { if (NOSTAT) return; try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "evt-" + name, title: name, event: true }); else if (onWeb) setTimeout(() => window.goatcounter && window.goatcounter.count && window.goatcounter.count({ path: "evt-" + name, title: name, event: true }), 3000); } catch (e) {} }
@@ -8042,7 +8075,7 @@ function startPlayHome() { G.homeStart = true; startPlay(); setTimeout(refreshRe
 function startPlay() {
   if (P && emailBlocked() && !G.emailGate && !startPlay._go) { openConfirmWait(() => { startPlay._go = true; try { startPlay(); } finally { startPlay._go = false; } }); return; } // adresse non confirmée : pas de jeu
   if (P && !P.email && !G.emailGate && !startPlay._go && !navigator.webdriver && !CREATOR) { openEmailGate(() => { startPlay._go = true; try { startPlay(); } finally { startPlay._go = false; } }); return; } // sauvegarde obligatoire avant de jouer
-  window.__showcase = false; FW.party = 0; G.playT0 = performance.now(); if (!CREATOR) G.wxForce = null;
+  window.__showcase = false; FW.party = 0; G.playT0 = performance.now(); if (!CREATOR) G.wxForce = null; setTimeout(giveBonusDM, 2500);
   if (TCAM.fade) { TCAM.fade.remove(); TCAM.fade = null; } if (TCAM.car) { scene.remove(TCAM.car); TCAM.car = null; }
   if (!G.statDay || G.statDay !== P.day) { G.statDay = P.day; stat(P.day === 1 ? "partie-lancee" : "retour-jour-" + Math.min(P.day, 30)); }
   if (CREATOR) creatorBoost(); setTimeout(updateLevelBadge, 0);
@@ -8432,7 +8465,7 @@ function openMenu() {
     Ambulance, bus, avions, hélicoptère, voilier, mouette, chat : Poly by Google (CC-BY 3.0) · Camion de pompiers : Ivan Klus (CC-BY 3.0) · Petit avion : Vojtěch Balák (CC-BY 3.0) · Yacht : Alex Safayan (CC-BY 3.0) · Flamant rose : Хмара Сергей (CC-BY 3.0) · modèles via Poly Pizza.<br>
     Ciel et textures : Poly Haven (CC0) · Sons : Freesound (CC0) · Moteur 3D : three.js.</p>
     <button class="btn" id="back" data-focus type="button">Retour</button></div>`) || on("back", openMenu));
-  on("quitHidden", () => { saveNow(); G.started = false; removePolice(); if (G.mission && G.mission.agent) scene.remove(G.mission.agent.mesh); G.mission = null; destBeacon.visible = false; if (meMesh) meMesh.visible = false; titleScreen(); });
+  on("quitHidden", () => quitToTitle());
 }
 function openPersoDetails() {
   const m = MUSCLES[P.muscle];

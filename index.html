@@ -1127,22 +1127,29 @@ function cullChunks() { // au-delà du brouillard, on ne dessine plus rien : plu
 }
 /* V304 : mémoire · une fois envoyées à la carte graphique, les grandes géométries fixes (ville, terrains, routes, décors) ne gardent plus de copie en mémoire vive.
    Safari sur iPhone fermait la page (« un problème récurrent est survenu ») : plus de 450 Mo de géométries étaient gardés deux fois */
-const FREE_E = { f: new Float32Array(0), u16: new Uint16Array(0), u32: new Uint32Array(0) }, FREED = new WeakSet();
+const FREE_E = { fr: function () { this.array = new this.array.constructor(0); } }, FREED = new WeakSet();
 function freeOnUpload(g) { if (!g || FREED.has(g) || !g.attributes || !g.attributes.position) return false; FREED.add(g); if (!g.boundingSphere) g.computeBoundingSphere(); if (!g.boundingBox) g.computeBoundingBox();
-  const fr = function () { this.array = this.array instanceof Uint32Array ? FREE_E.u32 : this.array instanceof Uint16Array ? FREE_E.u16 : this.array instanceof Float32Array ? FREE_E.f : this.array; };
+  const fr = FREE_E.fr;
   Object.values(g.attributes).forEach(a => { if (a.isInterleavedBufferAttribute) return; a.onUpload(fr); }); if (g.index) g.index.onUpload(fr); return true; }
 function freeStatic() { if (typeof scene === "undefined" || !scene) return 0; const keep = new Set(); try { Object.values(MODELS).forEach(M => M && M.proto && M.proto.traverse(o => { if (o.geometry) keep.add(o.geometry); })); } catch (e) {}
   try { (SHOWROOM || []).forEach(o => o && o.traverse && o.traverse(c => { if (c.geometry) keep.add(c.geometry); })); } catch (e) {}
   let n = 0; scene.traverse(o => { if (!o.isMesh || o.isSkinnedMesh || o.userData.dyn) return; const g = o.geometry; if (!g || keep.has(g) || FREED.has(g)) return; const P = g.attributes.position; if (!P || P.count < 2500 || P.isInterleavedBufferAttribute) return; if (freeOnUpload(g)) n++; }); return n; }
 // normales des décors fixes sur 1 octet par axe au lieu de 4 (même rendu, 9 octets de moins par sommet)
-function packNormals(g) { const N = g && g.attributes && g.attributes.normal; if (!N || !(N.array instanceof Float32Array) || N.isInterleavedBufferAttribute || N.array.length === 0) return; const a = N.array, b = new Int8Array(a.length); for (let i = 0; i < a.length; i++) b[i] = Math.max(-127, Math.min(127, Math.round(a[i] * 127))); g.setAttribute("normal", new THREE.BufferAttribute(b, 3, true)); }
+function packNormals(g) { const N = g && g.attributes && g.attributes.normal; if (!N || !(N.array instanceof Float32Array) || N.isInterleavedBufferAttribute || N.array.length === 0) return; const a = N.array, b = new Int8Array(a.length); for (let i = 0; i < a.length; i++) b[i] = Math.max(-127, Math.min(127, Math.round(a[i] * 127))); g.setAttribute("normal", new THREE.BufferAttribute(b, 3, true)); if (FREED.has(g)) g.attributes.normal.onUpload(FREE_E.fr); }
+// les normales compactées (1 octet) sont remises en flottants avant toute transformation ou recalcul (sinon les décors copiés deviennent noirs)
+function unpackNormals(g) { const N = g && g.attributes && g.attributes.normal; if (!N || N.array instanceof Float32Array || N.isInterleavedBufferAttribute) return; const a = N.array, f = new Float32Array(a.length), k = N.normalized ? 1 / 127 : 1; for (let i = 0; i < a.length; i++) f[i] = Math.max(-1, a[i] * k); g.setAttribute("normal", new THREE.BufferAttribute(f, 3)); }
+{ const am = THREE.BufferGeometry.prototype.applyMatrix4, cn = THREE.BufferGeometry.prototype.computeVertexNormals;
+  THREE.BufferGeometry.prototype.applyMatrix4 = function (m) { unpackNormals(this); return am.call(this, m); };
+  THREE.BufferGeometry.prototype.computeVertexNormals = function () { const N = this.attributes.normal; if (N && !(N.array instanceof Float32Array)) this.deleteAttribute("normal"); return cn.call(this); }; }
+function unifyGeos(list, mat) { const L = list.filter(Boolean); if (!L.length) return; if (L.some(g => g.attributes.normal && !(g.attributes.normal.array instanceof Float32Array))) L.forEach(packNormals);
+  const withUV = L.filter(g => g.attributes.uv).length; if (withUV && withUV < L.length) { if (mat && mat.map) L.forEach(g => { if (!g.attributes.uv) g.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2)); }); else L.forEach(g => { if (g.attributes.uv) g.deleteAttribute("uv"); }); } }
 function prepStatic() { const keep = new Set(); try { Object.values(MODELS).forEach(M => M && M.proto && M.proto.traverse(o => { if (o.geometry) keep.add(o.geometry); })); } catch (e) {}
   scene.traverse(o => { if (!o.isMesh || o.isSkinnedMesh || o.userData.dyn || o.morphTargetInfluences) return; const g = o.geometry; if (!g || keep.has(g) || FREED.has(g) || !g.attributes.position || g.morphAttributes && Object.keys(g.morphAttributes).length) return; if (g.attributes.position.count >= 300) packNormals(g); }); return freeStatic(); }
 setInterval(() => { try { freeStatic(); } catch (e) {} }, 3000);
 function flushBatches() {
   batches.forEach(({ mat, list }) => {
     for (let i = 0; i < list.length; i += 400) {
-      const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(list.slice(i, i + 400)); for (let k = i; k < Math.min(list.length, i + 400); k++) list[k] = null; // les morceaux fusionnés sont rendus tout de suite (pic de mémoire au démarrage divisé par deux)
+      unifyGeos(list.slice(i, i + 400), mat); const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(list.slice(i, i + 400)); for (let k = i; k < Math.min(list.length, i + 400); k++) list[k] = null; // les morceaux fusionnés sont rendus tout de suite (pic de mémoire au démarrage divisé par deux)
       if (merged) { merged.computeBoundingSphere(); packNormals(merged); freeOnUpload(merged); const me = new THREE.Mesh(merged, mat); scene.add(me); CHUNKS.push(me); }
     }
     list.length = 0;
@@ -1561,7 +1568,7 @@ function mergeByMaterial(g) {
   const by = new Map(), kids = g.children.filter(m => m.isMesh && !m.isSkinnedMesh);
   g.updateMatrixWorld(true);
   kids.forEach(m => { const geo = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone(); ['uv2', 'color'].forEach(a => geo.deleteAttribute(a)); if (!geo.attributes.uv) return; geo.applyMatrix4(m.matrix); if (!by.has(m.material)) by.set(m.material, []); by.get(m.material).push(geo); g.remove(m); });
-  by.forEach((list, mat) => { const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(list); if (merged) g.add(new THREE.Mesh(merged, mat)); });
+  by.forEach((list, mat) => { unifyGeos(list, mat); const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(list); if (merged) g.add(new THREE.Mesh(merged, mat)); });
 }
 function makeScooter() {
   const g = new THREE.Group();
@@ -2026,6 +2033,8 @@ function prepModel(key, gltf) {
           for (let k2 = 0; k2 < 5; k2++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(tw * 1.12, r * 0.13, r * 1.2), hub); sp.rotation.x = k2 / 5 * Math.PI; w.add(sp); } inner.add(pv); wr = Math.max(wr, r); });
         wrap.userData.wr = wr; } } catch (e) {}
   }
+  // V304 : mémoire des modèles 3D · normales sur 1 octet, uv retirés quand le modèle n'a aucune texture (Tripo : couleurs des sommets)
+  if (!skinned && key !== "bus") { const ms = []; wrap.traverse(o => { if (o.isMesh && o.geometry) ms.push(o); }); ms.forEach(o => packNormals(o.geometry)); if (ms.length && ms.every(o => ![].concat(o.material).some(m => m && m.map))) ms.forEach(o => { if (o.geometry.attributes.uv) o.geometry.deleteAttribute("uv"); }); }
   wrap.updateMatrixWorld(true);
   const skinBox = () => { const b = new THREE.Box3(), v = new THREE.Vector3(); wrap.updateMatrixWorld(true); wrap.traverse(o => { if (!o.isSkinnedMesh) return; o.skeleton.update(); const n = o.geometry.attributes.position.count, st = Math.max(1, Math.floor(n / 600)); for (let i = 0; i < n; i += st) { o.boneTransform(i, v); v.applyMatrix4(o.matrixWorld); b.expandByPoint(v); } }); return b; };
   const useBones = skinned && /^w_/.test(key);

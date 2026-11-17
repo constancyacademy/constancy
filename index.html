@@ -567,7 +567,20 @@ function dirtRibbon(P, w) {
 }
 function nearPoly(P, x, z) { let best = 1e9, bi = 0; for (let i = 0; i < P.length - 1; i++) { const ax = P[i][0], az = P[i][1], bx = P[i + 1][0], bz = P[i + 1][1], vx = bx - ax, vz = bz - az, L = vx * vx + vz * vz || 1, t = Math.max(0, Math.min(1, ((x - ax) * vx + (z - az) * vz) / L)), dx = ax + vx * t - x, dz = az + vz * t - z, d = dx * dx + dz * dz; if (d < best) { best = d; bi = i + t; } } return [Math.sqrt(best), bi]; }
 const nearNat = (x, z) => nearPoly(NAT, x, z)[0];
-const nearPath = (x, z) => Math.min(...PATHS.map(P => nearPoly(P, x, z)[0]));
+/* V291 : terrain de motocross au pied du Mont Constancy (ligne droite avec double, virages relevés, whoops, grand saut) */
+const MXC = { cx: 190, cz: -1405, a: 0.32 };
+const MXP = (() => { const P = [], L = 40, R = 18, c = Math.cos(MXC.a), s = Math.sin(MXC.a), put = (u, v) => P.push([MXC.cx + u * c + v * s, MXC.cz - u * s + v * c]);
+  for (let k = 0; k < 40; k++) put(-L + k * 2, -R);
+  for (let k = 0; k < 18; k++) { const t = -Math.PI / 2 + k / 18 * Math.PI; put(L + Math.cos(t) * R, Math.sin(t) * R); }
+  for (let k = 0; k < 40; k++) put(L - k * 2, R + Math.sin(k / 40 * Math.PI * 2) * 4);
+  for (let k = 0; k < 18; k++) { const t = Math.PI / 2 + k / 18 * Math.PI; put(-L + Math.cos(t) * R, Math.sin(t) * R); }
+  P.push(P[0].slice()); return P; })();
+const nearMX = (x, z) => (Math.abs(x - MXC.cx) > 95 || Math.abs(z - MXC.cz) > 95) ? 1e9 : nearPoly(MXP, x, z)[0];
+/* V292 : golf « Constancy Golf Club » dans la campagne (fairway tondu en bandes, green, bunkers, voiturettes, golfeurs) */
+const GOLF = { cx: -250, cz: -752, a: 0.18, W: 170, D: 74, balls: [], t: 4 };
+const golfUV = (x, z) => { const c = Math.cos(GOLF.a), s = Math.sin(GOLF.a), dx = x - GOLF.cx, dz = z - GOLF.cz; return [(dx * c - dz * s) / GOLF.W + 0.5, (dx * s + dz * c) / GOLF.D + 0.5]; };
+const inGolf = (x, z) => { const [u, v] = golfUV(x, z); return u > -0.02 && u < 1.02 && v > -0.04 && v < 1.04; };
+const nearPath = (x, z) => Math.min(...PATHS.map(P => nearPoly(P, x, z)[0]), nearMX(x, z) - 6, inGolf(x, z) ? 4 : 1e9);
 function csH0(x, z) {
   const m = csMask(x, z); if (m > 1.14) return -4;
   let h = csBase(x, z);
@@ -2587,6 +2600,106 @@ function updateClubInside(dt) { if (G.inside !== "club" || !CLUBI.g) return; CLU
   CLUBI.ball.rotation.y += dt * 0.8; CLUBI.beams.forEach((b, k) => { b.rotation.z = Math.sin(T * 0.9 + k * 1.7) * 0.5; b.rotation.x = Math.cos(T * 0.7 + k) * 0.4; });
   const cx = SND.ctx; if (!cx || !SND.on) return; CLUBI.beatT -= dt; if (CLUBI.beatT > 0) return; CLUBI.beatT = 60 / 126; const t = cx.currentTime, o = cx.createOscillator(), gg = cx.createGain(); o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.2); gg.gain.setValueAtTime(0.32, t); gg.gain.exponentialRampToValueAtTime(0.0001, t + 0.3); o.connect(gg); gg.connect(cx.destination); o.start(t); o.stop(t + 0.32);
   if (beat % 2) { const s2 = cx.createBufferSource(); s2.buffer = SND.hatB || (SND.hatB = noiseBuf(0.08, q => Math.exp(-q * 12))); const hp = cx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 7000; const g2 = cx.createGain(); g2.gain.value = 0.06; s2.connect(hp); hp.connect(g2); g2.connect(cx.destination); s2.start(t + 30 / 126); } }
+const MX = { ok: false, riders: [], lips: [], S: null, L: 0, t: 0, dustT: 0, snd: null };
+function mxProfile(s) { // hauteur de la piste au-dessus du sol selon l'abscisse curviligne (m)
+  let h = 0; const ramp = (a, b, top) => s >= a && s < b ? top * Math.pow((s - a) / (b - a), 1.25) : 0, land = (a, b, top) => s >= a && s < b ? top * (1 - (s - a) / (b - a)) : 0;
+  h = Math.max(ramp(13, 21, 2.4), land(33, 44, 2.1), ramp(140, 148.5, 3.0), land(163, 176, 2.6));
+  if (s > 182 && s < 206) h = Math.max(h, 0.6 * Math.abs(Math.sin((s - 182) * Math.PI / 3)));
+  return h; }
+function mxAt(s) { const S = MX.S, n = S.n, f = ((s % MX.L) + MX.L) % MX.L / MX.step, i = Math.floor(f) % n, j = (i + 1) % n, u = f - Math.floor(f), L = (a) => a[i] + (a[j] - a[i]) * u;
+  let dh = S.h[j] - S.h[i]; if (dh > Math.PI) dh -= 2 * Math.PI; if (dh < -Math.PI) dh += 2 * Math.PI;
+  return { x: L(S.x), z: L(S.z), y: L(S.y), h: S.h[i] + dh * u, nx: S.nx[i], nz: S.nz[i], k: S.k[i], sl: S.sl[i] }; }
+function golfLocal(u, v) { const c = Math.cos(GOLF.a), s = Math.sin(GOLF.a), lx = (u - 0.5) * GOLF.W, lz = (v - 0.5) * GOLF.D; return [GOLF.cx + lx * c + lz * s, GOLF.cz - lx * s + lz * c]; }
+function buildGolf() {
+  if (GOLF.ok) return; GOLF.ok = true; const cv = document.createElement("canvas"); cv.width = 1024; cv.height = 448; const g = cv.getContext("2d"), W = cv.width, H = cv.height;
+  // fairway : forme organique, bandes de tonte claires/foncées, avant-green et green bien ras, bunkers de sable, départ
+  const blob = (cx, cy, rx, ry, wob, ph) => { g.beginPath(); for (let k = 0; k <= 64; k++) { const a = k / 64 * 6.2832, r = 1 + wob * Math.sin(a * 3 + ph) + wob * 0.6 * Math.sin(a * 5 + ph * 2); g.lineTo(cx + Math.cos(a) * rx * r, cy + Math.sin(a) * ry * r); } g.closePath(); };
+  g.fillStyle = "#5f9a3c"; blob(W * 0.5, H * 0.5, W * 0.47, H * 0.42, 0.05, 1); g.fill();
+  g.save(); blob(W * 0.5, H * 0.52, W * 0.42, H * 0.25, 0.08, 2.2); g.clip(); for (let x = 0; x < W; x += 34) { g.fillStyle = (x / 34) % 2 ? "#7cc24e" : "#6db343"; g.fillRect(x, 0, 34, H); } g.restore();
+  g.fillStyle = "#8fd35c"; blob(W * 0.86, H * 0.5, W * 0.085, H * 0.2, 0.06, 0.5); g.fill(); g.fillStyle = "#9be066"; blob(W * 0.865, H * 0.5, W * 0.06, H * 0.15, 0.04, 1.4); g.fill();
+  g.fillStyle = "#e9dcb3"; [[0.78, 0.26, 0.035, 0.06], [0.93, 0.72, 0.03, 0.07], [0.55, 0.74, 0.05, 0.06]].forEach(([u, v, rx, ry], k) => { blob(W * u, H * v, W * rx, H * ry, 0.12, k); g.fill(); });
+  g.fillStyle = "#86c955"; g.fillRect(W * 0.07, H * 0.44, W * 0.05, H * 0.12);
+  const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
+  const pg = new THREE.PlaneGeometry(GOLF.W, GOLF.D, 72, 32); pg.rotateX(-Math.PI / 2); pg.rotateY(GOLF.a); const P = pg.attributes.position;
+  for (let i = 0; i < P.count; i++) { const x = P.getX(i) + GOLF.cx, z = P.getZ(i) + GOLF.cz; P.setY(i, GH(x, z) + 0.1); } pg.translate(GOLF.cx, 0, GOLF.cz); pg.computeVertexNormals();
+  const m = new THREE.Mesh(pg, new THREE.MeshLambertMaterial({ map: tex, transparent: false, alphaTest: 0.5, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+  // le contour hors fairway est transparent
+  g.globalCompositeOperation = "destination-in"; g.fillStyle = "#000"; blob(W * 0.5, H * 0.5, W * 0.47, H * 0.42, 0.05, 1); g.fill(); g.globalCompositeOperation = "source-over"; tex.needsUpdate = true;
+  m.receiveShadow = true; scene.add(m);
+  // drapeau sur le green + trou
+  const [hx, hz] = golfLocal(0.87, 0.48), hy = GH(hx, hz) + 0.1; GOLF.hole = [hx, hy, hz];
+  addGeo(new THREE.MeshLambertMaterial({ color: 0xf4f4f0 }), new THREE.CylinderGeometry(0.035, 0.035, 2.4, 6), hx, hy + 1.2, hz);
+  addGeo(new THREE.MeshBasicMaterial({ color: 0x0c0c0c }), new THREE.CircleGeometry(0.16, 16), hx + 0.12, hy + 0.02, hz, 0, 1, 1, 1, -Math.PI / 2);
+  const fg = new THREE.PlaneGeometry(0.9, 0.55, 8, 2); fg.translate(0.45, 0, 0); const flag = new THREE.Mesh(fg, new THREE.MeshLambertMaterial({ color: 0xff2d95, emissive: 0x401028, side: THREE.DoubleSide })); flag.position.set(hx + 0.03, hy + 2.1, hz); scene.add(flag); FLAGW.list.push({ m: flag, base: fg.attributes.position.array.slice() });
+  // départ, panneau, voiturettes
+  const [tx, tz] = golfLocal(0.095, 0.5); GOLF.tee = [tx, GH(tx, tz) + 0.15, tz];
+  { const l = label("Constancy Golf Club", "#7cc24e"), [lx, lz] = golfLocal(0.05, 0.12); l.position.set(lx, GH(lx, lz) + 4, lz); l.scale.set(13, 3.25, 1); scene.add(l); }
+  const white = new THREE.MeshLambertMaterial({ color: 0xf2f2ee }), black = new THREE.MeshLambertMaterial({ color: 0x18181a }), seat = new THREE.MeshLambertMaterial({ color: 0xc9a46a }), roof = new THREE.MeshLambertMaterial({ color: 0xff3f9e, emissive: 0x2a0616 });
+  [[0.13, 0.2, 0.2], [0.16, 0.22, 0.3], [0.8, 0.84, -0.4]].forEach(([u, v, r]) => { const [x, z] = golfLocal(u, v), y = GH(x, z), cg = new THREE.Group(); cg.position.set(x, y, z); cg.rotation.y = GOLF.a + Math.PI / 2 + r;
+    const add = (mat, geo, px, py, pz, rx = 0, rz = 0) => { const o = new THREE.Mesh(geo, mat); o.position.set(px, py, pz); o.rotation.set(rx, 0, rz); cg.add(o); };
+    add(white, new THREE.BoxGeometry(1.2, 0.5, 2.4), 0, 0.55, 0); add(seat, new THREE.BoxGeometry(1.1, 0.25, 0.6), 0, 0.92, -0.2); add(seat, new THREE.BoxGeometry(1.1, 0.6, 0.15), 0, 1.2, -0.52); add(roof, new THREE.BoxGeometry(1.3, 0.08, 1.9), 0, 2.0, -0.1);
+    [[-0.55, 0.6], [0.55, 0.6], [-0.55, -0.85], [0.55, -0.85]].forEach(([px, pz]) => add(white, new THREE.CylinderGeometry(0.03, 0.03, 1.2, 5), px, 1.45, pz)); [[-0.62, 0.8], [0.62, 0.8], [-0.62, -0.8], [0.62, -0.8]].forEach(([px, pz]) => add(black, new THREE.CylinderGeometry(0.24, 0.24, 0.18, 12), px, 0.24, pz, 0, Math.PI / 2));
+    add(black, new THREE.BoxGeometry(0.35, 0.8, 0.35), 0.35, 1.0, -0.95); scene.add(cg); });
+  // golfeurs (polo clair, pantalon beige) au départ et sur le green
+  if (HQ.clips && HQ.clips.m) [[0.085, 0.42, "Idle_Loop"], [0.11, 0.58, "Idle_Talking_Loop"], [0.84, 0.44, "Idle_Talking_Loop"], [0.9, 0.56, "Idle_Loop"]].forEach(([u, v, clip], k) => { const [x, z] = golfLocal(u, v), h = bodyVar(makeHuman({ shirt: [0xffffff, 0xff8fc8, 0x9fd8ff, 0xfff1b8][k], pants: [0xd9c9a3, 0x1d2738, 0xd9c9a3, 0xeeeeea][k], skin: pick(SKINS), hair: pick(HAIRS), lite: true, sleeve: 0.3 }));
+    h.position.set(x, GH(x, z), z); h.rotation.y = Math.atan2(hx - x, hz - z) + (k % 2 ? 1.2 : 0); h.userData.manual = true; scene.add(h); setClip(h, clip, 0.95); });
+  // palmiers autour
+  for (let k = 0; k < 10; k++) { const u = k < 5 ? 0.12 + k * 0.17 : 0.12 + (k - 5) * 0.17, v = k < 5 ? -0.08 : 1.08, [x, z] = golfLocal(u, v); if (typeof palm === "function") try { palm(x, z, Math.random, GH(x, z) - 0.1); } catch (e) {} }
+  const ballM = new THREE.MeshBasicMaterial({ color: 0xffffff }); for (let k = 0; k < 2; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), ballM); b.visible = false; scene.add(b); GOLF.balls.push({ b, t: -1 }); } }
+function updateGolf(dt) { if (!GOLF.ok) return; const cam = camera.position, d = Math.hypot(cam.x - GOLF.cx, cam.z - GOLF.cz); if (d > 420) { GOLF.balls.forEach(B => B.b.visible = false); return; }
+  GOLF.t -= dt; if (GOLF.t <= 0) { GOLF.t = 7 + Math.random() * 5; const B = GOLF.balls.find(q => q.t < 0); if (B) { B.t = 0; B.dur = 3.4 + Math.random() * 0.6; B.to = [GOLF.hole[0] + (Math.random() - 0.5) * 9, GOLF.hole[1], GOLF.hole[2] + (Math.random() - 0.5) * 7];
+      const c = SND.ctx; if (c && SND.on && d < 140) { const t = c.currentTime, s = c.createBufferSource(), f = c.createBiquadFilter(), gg = c.createGain(); s.buffer = SND.tockB || (SND.tockB = noiseBuf(0.05, q => Math.exp(-q * 30))); f.type = "bandpass"; f.frequency.value = 2400; f.Q.value = 3; gg.gain.value = 0.5 * (1 - d / 140); s.connect(f); f.connect(gg); gg.connect(c.destination); s.start(t); } } }
+  GOLF.balls.forEach(B => { if (B.t < 0) { B.b.visible = false; return; } B.t += dt; const k = Math.min(1, B.t / B.dur), T0 = GOLF.tee, T1 = B.to; B.b.visible = true;
+    if (k < 1) B.b.position.set(T0[0] + (T1[0] - T0[0]) * k, T0[1] + (T1[1] - T0[1]) * k + Math.sin(k * Math.PI) * 32, T0[2] + (T1[2] - T0[2]) * k); else { const r = Math.min(1, (B.t - B.dur) / 1.5), e = 1 - (1 - r) * (1 - r); B.b.position.set(T1[0] + (GOLF.hole[0] - T1[0]) * e * 0.7, T1[1] + 0.12, T1[2] + (GOLF.hole[2] - T1[2]) * e * 0.7); if (B.t > B.dur + 4) B.t = -1; } }); }
+function buildMotocross() {
+  if (MX.ok) return; const pts = []; for (let i = 0; i < MXP.length - 1; i++) { const [ax, az] = MXP[i], [bx, bz] = MXP[i + 1], L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(L / 0.5)); for (let k = 0; k < n; k++) pts.push([ax + (bx - ax) * k / n, az + (bz - az) * k / n]); }
+  const n = pts.length; let Ltot = 0; const sArr = [0]; for (let i = 1; i <= n; i++) { const a = pts[i - 1], b = pts[i % n]; Ltot += Math.hypot(b[0] - a[0], b[1] - a[1]); if (i < n) sArr.push(Ltot); }
+  MX.L = Ltot; MX.step = Ltot / n; const S = MX.S = { n, x: [], z: [], y: [], g: [], hp: [], h: [], nx: [], nz: [], k: [], sl: [] };
+  for (let i = 0; i < n; i++) { const [x, z] = pts[i], a = pts[(i - 1 + n) % n], b = pts[(i + 1) % n], tx = b[0] - a[0], tz = b[1] - a[1], tl = Math.hypot(tx, tz) || 1, g = GH(x, z), hp = mxProfile(sArr[i]);
+    S.x.push(x); S.z.push(z); S.g.push(g); S.hp.push(hp); S.y.push(g + hp + 0.12); S.h.push(Math.atan2(tx, tz)); S.nx.push(-tz / tl); S.nz.push(tx / tl); }
+  for (let i = 0; i < n; i++) { const j = (i + 2) % n, a = (i - 2 + n) % n; let dh = S.h[j] - S.h[a]; if (dh > Math.PI) dh -= 2 * Math.PI; if (dh < -Math.PI) dh += 2 * Math.PI; S.k.push(dh / (4 * MX.step)); S.sl.push((S.y[(i + 1) % n] - S.y[(i - 1 + n) % n]) / (2 * MX.step)); }
+  // bords des tremplins : on décolle ici
+  [[21, 2.4 / 8 * 1.25], [148.5, 3.0 / 8.5 * 1.25]].forEach(([ls, sl]) => { const i = Math.round((ls - 0.6) / MX.step) % n; MX.lips.push({ s: ls - 0.3, slope: Math.min(0.62, sl * 0.95), y: S.y[i] }); });
+  // piste : ruban de terre (virages relevés côté extérieur) + flancs jusqu'au sol
+  const W = 8, side = (i, sd) => { const out = Math.sign(S.k[i]) === sd ? 1 : 0, bank = Math.min(1.5, Math.abs(S.k[i]) * 26) * out; return [S.x[i] + S.nx[i] * W / 2 * sd, S.y[i] + bank, S.z[i] + S.nz[i] * W / 2 * sd]; };
+  const pos = [], uv = [], idx = [], sk = [], skuv = [], skidx = [];
+  for (let i = 0; i <= n; i++) { const ii = i % n, d = i * MX.step;
+    [-1, 1].forEach(sd => { const p = side(ii, sd); pos.push(p[0], p[1], p[2]); uv.push(sd < 0 ? 0 : 1, d / W); });
+    [-1, 1].forEach(sd => { const p = side(ii, sd), gy = GH(p[0], p[2]) - 0.3; sk.push(p[0], p[1], p[2], p[0], gy, p[2]); skuv.push(d / 4, (p[1] - gy) / 4, d / 4, 0); }); }
+  for (let i = 0; i < n; i++) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); for (let q = 0; q < 2; q++) { const b = i * 4 + q * 2, c = b + 4; skidx.push(b, b + 1, c, c, b + 1, c + 1); } }
+  const mk = (P, U, I) => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2)); g.setIndex(I); g.computeVertexNormals(); return g; };
+  let dm = DIRT_M ? DIRT_M.clone() : new THREE.MeshLambertMaterial({ color: 0x8a6a48 }); dm.color = new THREE.Color(0xb8946c); dm.side = THREE.DoubleSide;
+  const track = new THREE.Mesh(mk(pos, uv, idx), dm); track.receiveShadow = true; scene.add(track);
+  const skm = dm.clone(); skm.color = new THREE.Color(0x8c6a4a); skm.polygonOffset = false; scene.add(new THREE.Mesh(mk(sk, skuv, skidx), skm));
+  // décor : arche de départ, bottes de paille dans les virages, barnum rose, spectateurs
+  const poleM = new THREE.MeshLambertMaterial({ color: 0x1b1b20 }), hayM = new THREE.MeshLambertMaterial({ color: 0xd9b45a }), pinkM = new THREE.MeshLambertMaterial({ color: 0xff3f9e, emissive: 0x3a0820, side: THREE.DoubleSide });
+  { const i = Math.round(4 / MX.step); [-1, 1].forEach(sd => { const x = S.x[i] + S.nx[i] * 5.2 * sd, z = S.z[i] + S.nz[i] * 5.2 * sd; addGeo(poleM, new THREE.CylinderGeometry(0.22, 0.22, 7, 8), x, S.y[i] + 3.5, z); });
+    const l = label("Constancy Motocross", "#ff3f9e"); l.position.set(S.x[i], S.y[i] + 7.2, S.z[i]); l.scale.set(13, 3.25, 1); scene.add(l); MX.arch = [S.x[i], S.z[i]]; }
+  for (let i = 0; i < n; i += Math.round(3.2 / MX.step)) { if (Math.abs(S.k[i]) < 0.02) continue; [-1, 1].forEach(sd => { const x = S.x[i] + S.nx[i] * 5.6 * sd, z = S.z[i] + S.nz[i] * 5.6 * sd; if (Math.hypot(x - MXC.cx, z - MXC.cz) < Math.hypot(S.x[i] - MXC.cx, S.z[i] - MXC.cz)) return; addGeo(hayM, new THREE.BoxGeometry(1.2, 0.8, 2.4), x, GH(x, z) + 0.4 + Math.min(1.5, Math.abs(S.k[i]) * 26), z, S.h[i]); }); }
+  { const c = Math.cos(MXC.a), s = Math.sin(MXC.a), px = MXC.cx - 6 * c, pz = MXC.cz + 6 * s, y = GH(px, pz); [[-3, -3], [3, -3], [-3, 3], [3, 3]].forEach(([u, v]) => addGeo(poleM, new THREE.CylinderGeometry(0.08, 0.08, 3, 6), px + u, y + 1.5, pz + v)); addGeo(pinkM, new THREE.ConeGeometry(4.6, 1.4, 4), px, y + 3.7, pz, Math.PI / 4);
+    for (let k = 0; k < 2; k++) { const m = makeCross(); m.position.set(px - 1.6 + k * 3.2, y, pz + 1); m.rotation.y = MXC.a + 1.4; scene.add(m); } }
+  const jers = [0xff3f9e, 0xffd23f, 0x34e0ff, 0x111114, 0xffffff, 0x9b5cff];
+  if (HQ.clips && HQ.clips.m) for (let k = 0; k < 9; k++) { const i = Math.round((6 + k * 7.5) / MX.step), sd = (Math.hypot(S.x[i] + S.nx[i] * 9 - MXC.cx, S.z[i] + S.nz[i] * 9 - MXC.cz) > Math.hypot(S.x[i] - MXC.cx, S.z[i] - MXC.cz)) ? 1 : -1, x = S.x[i] + S.nx[i] * (8.5 + (k % 3)) * sd, z = S.z[i] + S.nz[i] * (8.5 + (k % 3)) * sd;
+    const h = bodyVar(makeHuman({ shirt: jers[k % 6], pants: pick([0x2a3a55, 0x1b1b20, 0x5a5d62]), skin: pick(SKINS), hair: pick(HAIRS), lite: true, sleeve: 0.25 })); h.position.set(x, GH(x, z), z); h.rotation.y = Math.atan2(S.x[i] - x, S.z[i] - z); h.userData.manual = true; scene.add(h); setClip(h, k % 3 ? "Idle_Talking_Loop" : "Idle_Loop", 0.9 + Math.random() * 0.2); }
+  // pilotes : 5 motos qui tournent, sautent, se penchent, soulèvent la poussière
+  for (let k = 0; k < 5; k++) { const g = makeCross(); g.rotation.order = "YXZ";
+    if (HQ.clips && HQ.clips.m) { const h = makeHuman({ shirt: jers[k], pants: 0x1b1b20, skin: pick(SKINS), hair: pick(HAIRS), lite: true, sleeve: 0.9 }); h.position.set(0, 0.4, -0.12); h.userData.manual = true; g.add(h); setClip(h, "Driving_Loop", 1); }
+    scene.add(g); MX.riders.push({ g, s: k * MX.L / 5 + 3, v: 10, vmax: 15 + k * 0.4, air: false, y: 0, vy: 0, pitch: 0, lean: 0, bnc: 0, lane: (k % 3 - 1) * 1.6, ph: k * 1.7, whip: k % 2 }); }
+  MX.ok = true; }
+function updateMotocross(dt) { if (!MX.ok) return; const cam = camera.position, near = Math.hypot(cam.x - MXC.cx, cam.z - MXC.cz) < 560; MX.riders.forEach(R => R.g.visible = near);
+  const c = SND.ctx; if (!near) { if (MX.snd) MX.snd.g.gain.value = 0; return; } dt = Math.min(dt, 0.05); MX.t += dt; MX.dustT -= dt; const dust = MX.dustT <= 0; if (dust) MX.dustT = 0.07; let best = null, bd = 1e9;
+  MX.riders.forEach(R => { const p0 = mxAt(R.s), tv = R.vmax * (1 - Math.min(0.45, Math.abs(p0.k) * 10)) + (R.air ? 0 : -Math.max(0, p0.sl) * 3); R.v += (tv - R.v) * Math.min(1, dt * (R.air ? 0 : 1.4));
+    const s0 = R.s; R.s = (R.s + R.v * dt) % MX.L; const p = mxAt(R.s), off = R.lane + Math.sin(MX.t * 0.35 + R.ph) * 1.1, x = p.x + p.nx * off, z = p.z + p.nz * off;
+    if (!R.air) { const lip = MX.lips.find(L => s0 < L.s && R.s >= L.s); if (lip && R.v > 8) { R.air = true; R.vy = R.v * lip.slope; R.y = lip.y; R.style = R.whip ? (Math.random() < 0.6 ? 1 : 0) : 0; } }
+    let pt; if (R.air) { R.vy -= 9.8 * dt; R.y += R.vy * dt; pt = -Math.atan2(R.vy, R.v) * 0.75; if (R.y <= p.y && R.vy < 0) { R.air = false; R.bnc = Math.min(0.35, -R.vy * 0.05); R.y = p.y; for (let q = 0; q < 7; q++) emitDust(x, p.y + 0.3, z, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 1.6); } }
+    else { R.y = p.y; pt = -Math.atan(p.sl); if (dust && Math.random() < 0.7) emitDust(x - Math.sin(p.h) * 1.1, p.y + 0.25, z - Math.cos(p.h) * 1.1, -Math.sin(p.h) * 3, -Math.cos(p.h) * 3, 1.15); }
+    R.bnc *= Math.exp(-dt * 7); R.pitch += (pt - R.pitch) * Math.min(1, dt * (R.air ? 3 : 10)); const ln = R.air ? 0 : Math.max(-0.6, Math.min(0.6, p.k * R.v * R.v / 9.8 * 0.9)); R.lean += (ln - R.lean) * Math.min(1, dt * 5);
+    const whip = R.air && R.style ? Math.sin(Math.min(1, Math.max(0, (R.y - p.y) / 2.5)) * Math.PI) * 0.55 : 0;
+    R.g.position.set(x, R.y - R.bnc * Math.abs(Math.sin(MX.t * 18)), z); R.g.rotation.set(R.pitch, p.h + whip * 0.6, -R.lean - whip * 0.5);
+    const d = Math.hypot(cam.x - x, cam.y - R.y, cam.z - z); if (d < bd) { bd = d; best = R; } });
+  // bruit des moteurs : le plus proche donne le régime (aigu en l'air)
+  if (c && SND.on) { if (!SND.buf.moto) decodeSnd("moto"); if (!MX.snd && SND.buf.moto) { const s = c.createBufferSource(); s.buffer = SND.buf.moto; s.loop = true; const g = c.createGain(); g.gain.value = 0; s.connect(g); g.connect(c.destination); s.start(); MX.snd = { s, g }; }
+    if (MX.snd && best) { const k = Math.max(0, 1 - bd / 150); MX.snd.g.gain.value = 0.5 * k * k; MX.snd.s.playbackRate.value = 0.75 + best.v / 28 + (best.air ? 0.3 : 0); } } else if (MX.snd) MX.snd.g.gain.value = 0; }
 function updateClub(dt) { updateClubInside(dt); if (!CLUB.g) return; CLUB.cool = Math.max(0, (CLUB.cool || 0) - dt);
   if (G.mode === "play" && G.onFoot && !G.inside && nightK > 0.3 && !CLUB.cool) { const dx = CLUB.x + Math.sin(CLUB.ry) * 1.0 - G.me.x, dz = CLUB.z + Math.cos(CLUB.ry) * 1.0 - G.me.z; if (Math.hypot(dx, dz) < 1.6) enterClub(); } const nk = nightK, cam = camera.position, d = Math.hypot(CLUB.x - cam.x, CLUB.z - cam.z); CLUB.t += dt; const open = nk > 0.3;
   CLUB.neon[0].color.setHex(open && Math.floor(CLUB.t * 2.06) % 8 !== 3 ? 0xff3fb4 : 0x3a0f2a); CLUB.neon[1].color.setHex(open ? 0x34e0ff : 0x0e2a33); CLUB.sign.material.opacity = 0.35 + 0.65 * nk; CLUB.spill.material.opacity = nk * (0.45 + 0.12 * Math.sin(CLUB.t * 13.0));
@@ -2842,7 +2955,7 @@ function grassMat(flowers) {
   return m;
 }
 const GFIELD = { im: null, cx: 1e9, cz: 1e9, t: 0, N: 6000 };
-function grassKind(x, z) { if (z > -470 || onHighway(x, z)) return 0;
+function grassKind(x, z) { if (z > -470 || onHighway(x, z) || nearMX(x, z) < 9 || inGolf(x, z)) return 0;
   if (z < -2380) { const j = jgH(x, z); if (j > 0.9 && jgMask(x, z) < 0.95 && nearJT(x, z) > 5.5) return 3; }
   const c = csH(x, z); if (c > 0.5 && csMask(x, z) < 1.02 && nearNat(x, z) > 9) return 2;
   const m = mtnH(x, z); if (m > 1.2 && m < 95 && Math.abs(m - landH(x, z)) < 0.3 && nearMRoad(x, z) > 7) return 1; return 0; }
@@ -4514,7 +4627,7 @@ function updateBusSound(dt) { const c = SND.ctx; if (!c) return; if (!BUSS.g) { 
   const k = SND.on && G.mode === "play" && !G.inside && bd < 70 ? Math.pow(1 - bd / 70, 1.6) : 0, t = c.currentTime; BUSS.g.gain.setTargetAtTime(0.09 * k, t, 0.25); BUSS.o.frequency.setTargetAtTime(34 + bv * 2.4, t, 0.3); BUSS.o2.frequency.setTargetAtTime(17 + bv * 1.2, t, 0.3); BUSS.f.frequency.setTargetAtTime(200 + bv * 22, t, 0.3); }
 // V280 : « tu es à … » · le nom du lieu apparaît en grand, façon titre de film, quand tu changes de zone
 const ZT = { cur: "", t: 0, el: null, cand: "", ct: 0 };
-function zoneName(x, z) { if (G.inside) return ""; if (CLUB.x != null && nightK > 0.3 && Math.hypot(x - CLUB.x, z - CLUB.z) < 22) return "Constancy Club · Ouvert toute la nuit"; if (onAirport(x, z)) return "Aéroport Constancy"; if (PIER.x0 && Math.abs(z - PIER.z) < 46 && x < PIER.x0 + 10 && x > PIER.x2 - 30) return "La Jetée · Fête foraine";
+function zoneName(x, z) { if (G.inside) return ""; if (CLUB.x != null && nightK > 0.3 && Math.hypot(x - CLUB.x, z - CLUB.z) < 22) return "Constancy Club · Ouvert toute la nuit"; if (onAirport(x, z)) return "Aéroport Constancy"; if (nearMX(x, z) < 26) return "Constancy Motocross"; if (inGolf(x, z)) return "Constancy Golf Club"; if (PIER.x0 && Math.abs(z - PIER.z) < 46 && x < PIER.x0 + 10 && x > PIER.x2 - 30) return "La Jetée · Fête foraine";
   if (Math.hypot((x - JG.cx) / JG.rx, (z - JG.cz) / JG.rz) < 1) return "Jungle · Constancy Park"; if (onMountain(x, z) && mtnH(x, z) > 25) return "Mont Constancy"; if (z < -470) return csMask(x, z) < 1 ? "La Campagne" : "Route du Nord";
   if (Math.abs(x) < HALF && Math.abs(z) < HALF) return Math.hypot(x - TOWER.x, z - TOWER.z) < 160 ? "Constancy City · Centre" : "Constancy City"; if (!isWater(x, z) && Math.abs(x) < HALF + 140 && Math.abs(z) < HALF + 140) return "La Plage"; return ""; }
 function updateZoneTitle(dt) { if (G.mode !== "play") return; const o = target(); if (!o) return; ZT.t -= dt;
@@ -5182,7 +5295,7 @@ function buildWorld() {
   const mentor = makeHuman({ shirt: 0x1d2a44, pants: 0x1d2a44, skin: 0xc68a5e, hair: 0x111111 }); mentor.position.set(HALF + 34, 0.6, bC(5)); mentor.rotation.y = -Math.PI / 2; scene.add(mentor); if (mentor.userData.q) { mentor.position.y = 0.6; setClip(mentor, "Idle_Talking_Loop"); }
 
   buildTrafficLights(); buildTraffic(); buildPeds(); buildLife(); buildRentals(); buildRoofNeons();
-  PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeSafe(); buildBigScreens(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildGuinguettes(); buildStuntPark(); buildCampfires(); buildFair(); buildBeachLife(); buildShopFolks(); buildGarage(); buildBanner(); buildRadioTower(); buildCountryLife(); buildUfo(); flushBatches(); // les décors construits après le premier regroupement (guinguettes, Stunt Park) sont regroupés à leur tour
+  PARKED.forEach(p => { const paint = /car_city|car_suv|car_sport/.test(p.key); const mesh = makeCar({ id: "trafic", color: pick(TRAFFIC_COLORS) }, { model: p.key, keepPaint: !paint }); mesh.position.set(p.x, p.y, p.z); mesh.rotation.y = p.h; scene.add(mesh); rentals.push({ kind: "voiture", mesh, x: p.x, z: p.z, h: p.h, parked: true }); }); buildGymInterior(); buildHomeSafe(); buildBigScreens(); initFx(); initWeather(); initFireworks(); buildExercisers(); buildGuinguettes(); buildStuntPark(); buildCampfires(); buildFair(); buildBeachLife(); buildShopFolks(); buildGarage(); buildBanner(); buildRadioTower(); buildCountryLife(); try { buildMotocross(); } catch (e) { console.warn("motocross", e); } try { buildGolf(); } catch (e) { console.warn("golf", e); } buildUfo(); flushBatches(); // les décors construits après le premier regroupement (guinguettes, Stunt Park) sont regroupés à leur tour
   ownMark = makeBeacon(new THREE.Color(0xffffff)); ownMark.userData.col.scale.set(0.5, 0.35, 0.5); ownMark.userData.col.position.y = 12; ownMark.userData.marker.visible = false; ownMark.userData.spk.visible = false; ownMark.children[1].visible = false;
   const ol = label("Ta voiture", "#ffffff"); ol.scale.set(5.2, 1.3, 1); ol.position.y = 4.6; ownMark.add(ol); ownMark.visible = false; scene.add(ownMark);
   const mlab = label("Mamie", LM.mamie.color); mlab.scale.set(8, 2, 1); mlab.position.set(LM.mamie.x - 4, 4, bMax(0) - 2); scene.add(mlab);
@@ -5351,7 +5464,7 @@ function updateLamps(dt) {
     L.oy = 0.16 * Math.sin(L.th); lampMatrix(i); });
 }
 function updatePosts(dt) {
-  if (SHOREW.u) { SHOREW.u.uT.value += dt; SHOREW.u.nk.value = nightK; } updateAura(dt); updateMurmur(dt); updateRoofParties(dt); updateBalconyPeople(dt); updateClub(dt); updateZoneTitle(dt); updateAurora(dt); updateBreath(dt); updateHeliAmb(dt); updateCrocs(dt); updateCrew(dt); updateBigScreens(dt); updateGrassField(dt); updateLamps(dt); updateER(dt); updateAmbulance(dt); updateMarket(dt); updateShops3D(dt); updateCranes(dt); updateWorkers(dt); if (!POSTS.moving) return; let any = 0;
+  if (SHOREW.u) { SHOREW.u.uT.value += dt; SHOREW.u.nk.value = nightK; } updateAura(dt); updateMurmur(dt); updateRoofParties(dt); updateBalconyPeople(dt); updateClub(dt); updateMotocross(dt); updateGolf(dt); updateZoneTitle(dt); updateAurora(dt); updateBreath(dt); updateHeliAmb(dt); updateCrocs(dt); updateCrew(dt); updateBigScreens(dt); updateGrassField(dt); updateLamps(dt); updateER(dt); updateAmbulance(dt); updateMarket(dt); updateShops3D(dt); updateCranes(dt); updateWorkers(dt); if (!POSTS.moving) return; let any = 0;
   POSTS.list.forEach((q, i) => { if (q.hit !== 1) return; any = 1; q.vy -= 22 * dt; q.x += q.vx * dt; q.z += q.vz * dt; q.oy += q.vy * dt; q.rx += q.ax * dt; q.rz += q.ax * 0.7 * dt;
     const gy = GH(q.x, q.z) - q.y; if (q.oy <= gy + 0.2 && q.vy < 0) { q.oy = gy + 0.2; q.vy *= -0.25; q.vx *= 0.55; q.vz *= 0.55; q.ax *= 0.5; if (Math.hypot(q.vx, q.vz) < 0.6) { q.hit = 2; q.rx = Math.PI / 2 * Math.sign(q.rx || 1); POSTS.moving--; } }
     postMatrix(i); });
@@ -9062,7 +9175,7 @@ function envAdd(m, refl = 0.32) { if (!m || ENVR.mats.has(m) || !(m.isMeshPhongM
 function envCar(mesh) { mesh.traverse(o => { if (!o.isMesh || !o.material) return; (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { const n = (m.name || "").toLowerCase(); if (n === "paint" || /paint|body|carpaint/.test(n)) envAdd(m, 0.34); else if (/glass|window|vitre/.test(n) || (m.transparent && m.opacity < 0.75)) envAdd(m, 0.55); }); }); }
 function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "number" && nightK > 0.5) ? ENVR.night : ENVR.day; if (ENVR.cur === want) return; ENVR.cur = want;
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
-window.__W = () => ({ CLUBI, enterClub, MODELS, ROOFP, AUR, FAIR, PIER, CLUB, BALC, BALP, WETR, WX, TOWER, RIB, BIGS, HELI, openMap3D, M3, NSKY, CTRAIL, spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
+window.__W = () => ({ GOLF, MX, MXC, mxAt, CLUBI, enterClub, MODELS, ROOFP, AUR, FAIR, PIER, CLUB, BALC, BALP, WETR, WX, TOWER, RIB, BIGS, HELI, openMap3D, M3, NSKY, CTRAIL, spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
 window.__X = () => ({ planes, callUfo, SND, sfx, updateMusic, screech, traffic, SH3, CS_BOX, pushCsBoxes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 window.__simFrame = dt => { if (G.onFoot) updateMe(dt); else updateCar(dt); updateWorldLife(dt); if (!G.onFoot) planeGuard(); };
 function loop(now) {

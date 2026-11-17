@@ -1116,7 +1116,7 @@ const TLOD = [];
 function gridLOD(land, sx, sy) { const hi = land.geometry, w = hi.parameters.width, h = hi.parameters.height, hx = sx / 2, hy = sy / 2, lo = new THREE.PlaneGeometry(w, h, hx, hy), hp = hi.attributes.position, lp = lo.attributes.position, hc = hi.attributes.color, lc = new Float32Array(lp.count * 3);
   for (let iy = 0; iy <= hy; iy++) for (let ix = 0; ix <= hx; ix++) { const li = iy * (hx + 1) + ix, k = iy * 2 * (sx + 1) + ix * 2; lp.setZ(li, hp.getZ(k)); if (hc) { lc[li * 3] = hc.getX(k); lc[li * 3 + 1] = hc.getY(k); lc[li * 3 + 2] = hc.getZ(k); } }
   if (hc) lo.setAttribute("color", new THREE.Float32BufferAttribute(lc, 3)); lo.computeVertexNormals(); hi.computeBoundingSphere();
-  const m = new THREE.Mesh(lo, land.material); m.rotation.copy(land.rotation); m.position.copy(land.position); m.visible = false; scene.add(m); TLOD.push({ hi: land, lo: m, r: hi.boundingSphere.radius }); dropDeep(hi); dropDeep(lo); }
+  const m = new THREE.Mesh(lo, land.material); m.rotation.copy(land.rotation); m.position.copy(land.position); m.visible = false; scene.add(m); TLOD.push({ hi: land, lo: m, r: hi.boundingSphere.radius }); dropDeep(hi); dropDeep(lo); freeOnUpload(hi); freeOnUpload(lo); }
 function updateTLOD() { const cp = camera.position; TLOD.forEach(t => { const d = Math.hypot(cp.x - t.hi.position.x, cp.z - t.hi.position.z) - t.r * 0.8, far = d > 380 || cp.y > 320; const base = t.hi.visible || t.lo.visible; t.lo.visible = base && far; t.hi.visible = base && !far; }); }
 function farFogAll() { winMats.forEach(m => farFog(m, 0.5)); }
 function cullChunks() { // au-delà du brouillard, on ne dessine plus rien : plus fluide sur téléphone
@@ -1125,12 +1125,27 @@ function cullChunks() { // au-delà du brouillard, on ne dessine plus rien : plu
   const test = m => { const bs = m.geometry.boundingSphere; if (!bs) return; const c = bs.center, wx = c.x + m.position.x, wz = m.rotation.x ? c.x * 0 + m.position.z - c.y : c.z + m.position.z; const d = Math.hypot(wx - cp.x, wz - cp.z) - bs.radius; m.visible = hiAlt || d < far / ((m.material && m.material.userData && m.material.userData.farK) || 1); };
   for (let i = 0; i < CHUNKS.length; i++) test(CHUNKS[i]); TLOD.forEach(t => { t.hi.visible = true; }); cullChunks.big.forEach(test); updateTLOD();
 }
+/* V304 : mémoire · une fois envoyées à la carte graphique, les grandes géométries fixes (ville, terrains, routes, décors) ne gardent plus de copie en mémoire vive.
+   Safari sur iPhone fermait la page (« un problème récurrent est survenu ») : plus de 450 Mo de géométries étaient gardés deux fois */
+const FREE_E = { f: new Float32Array(0), u16: new Uint16Array(0), u32: new Uint32Array(0) }, FREED = new WeakSet();
+function freeOnUpload(g) { if (!g || FREED.has(g) || !g.attributes || !g.attributes.position) return false; FREED.add(g); if (!g.boundingSphere) g.computeBoundingSphere(); if (!g.boundingBox) g.computeBoundingBox();
+  const fr = function () { this.array = this.array instanceof Uint32Array ? FREE_E.u32 : this.array instanceof Uint16Array ? FREE_E.u16 : this.array instanceof Float32Array ? FREE_E.f : this.array; };
+  Object.values(g.attributes).forEach(a => { if (a.isInterleavedBufferAttribute) return; a.onUpload(fr); }); if (g.index) g.index.onUpload(fr); return true; }
+function freeStatic() { if (typeof scene === "undefined" || !scene) return 0; const keep = new Set(); try { Object.values(MODELS).forEach(M => M && M.proto && M.proto.traverse(o => { if (o.geometry) keep.add(o.geometry); })); } catch (e) {}
+  try { (SHOWROOM || []).forEach(o => o && o.traverse && o.traverse(c => { if (c.geometry) keep.add(c.geometry); })); } catch (e) {}
+  let n = 0; scene.traverse(o => { if (!o.isMesh || o.isSkinnedMesh || o.userData.dyn) return; const g = o.geometry; if (!g || keep.has(g) || FREED.has(g)) return; const P = g.attributes.position; if (!P || P.count < 2500 || P.isInterleavedBufferAttribute) return; if (freeOnUpload(g)) n++; }); return n; }
+// normales des décors fixes sur 1 octet par axe au lieu de 4 (même rendu, 9 octets de moins par sommet)
+function packNormals(g) { const N = g && g.attributes && g.attributes.normal; if (!N || !(N.array instanceof Float32Array) || N.isInterleavedBufferAttribute || N.array.length === 0) return; const a = N.array, b = new Int8Array(a.length); for (let i = 0; i < a.length; i++) b[i] = Math.max(-127, Math.min(127, Math.round(a[i] * 127))); g.setAttribute("normal", new THREE.BufferAttribute(b, 3, true)); }
+function prepStatic() { const keep = new Set(); try { Object.values(MODELS).forEach(M => M && M.proto && M.proto.traverse(o => { if (o.geometry) keep.add(o.geometry); })); } catch (e) {}
+  scene.traverse(o => { if (!o.isMesh || o.isSkinnedMesh || o.userData.dyn || o.morphTargetInfluences) return; const g = o.geometry; if (!g || keep.has(g) || FREED.has(g) || !g.attributes.position || g.morphAttributes && Object.keys(g.morphAttributes).length) return; if (g.attributes.position.count >= 300) packNormals(g); }); return freeStatic(); }
+setInterval(() => { try { freeStatic(); } catch (e) {} }, 3000);
 function flushBatches() {
   batches.forEach(({ mat, list }) => {
     for (let i = 0; i < list.length; i += 400) {
-      const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(list.slice(i, i + 400));
-      if (merged) { merged.computeBoundingSphere(); const me = new THREE.Mesh(merged, mat); scene.add(me); CHUNKS.push(me); }
+      const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(list.slice(i, i + 400)); for (let k = i; k < Math.min(list.length, i + 400); k++) list[k] = null; // les morceaux fusionnés sont rendus tout de suite (pic de mémoire au démarrage divisé par deux)
+      if (merged) { merged.computeBoundingSphere(); packNormals(merged); freeOnUpload(merged); const me = new THREE.Mesh(merged, mat); scene.add(me); CHUNKS.push(me); }
     }
+    list.length = 0;
   });
   batches.clear();
 }
@@ -1960,7 +1975,7 @@ const MODEL_DEFS = {
   plane_liner: { len: 64, face: "x" }, plane_small: { len: 12, face: "-z" }, heli: { len: 15, face: "-x" },
   yacht: { len: 24, face: "x" }, sailboat: { len: 10 }, gull: { len: 1.8, face: "x" }, shark: { len: 4.5, anim: "Swim" }, dolphin: { len: 3.2, anim: "Swim" },
   dog: { len: 1.3, anim: "Walk" }, cat: { h: 0.7 }, flamingo: { h: 1.7 }, trex: { len: 13, anim: "Walk" }, stego: { len: 10, anim: "Walk" }, trice: { len: 9, anim: "Walk" },
-  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, jetski: { len: 3.3, vc: true }, icecream: { h: 2.7, vc: true }, popcorn: { h: 2.35, vc: true }, speedboat: { len: 9.6, vc: true }, sofa: { len: 5.2, vc: true }, bed: { len: 3.6, vc: true }, dino_sleep: { len: 12, vc: true }, croc: { len: 4.6, vc: true }, heli_amb: { len: 13, vc: true, face: "-x" }, kitchen: { h: 1.85, vc: true, face: "-x" }, tvunit: { len: 3.4, vc: true }, monstera: { h: 2.7, vc: true }, crewcar: { len: 5.3, vc: true }, wardrobe: { h: 3.3, vc: true }, ctable: { len: 2.2, vc: true }, armchair: { len: 1.9, vc: true }, moto_cross: { len: 2.2, vc: true, face: "x" }, trex3: { len: 13, vc: true }, house3: { len: 14, vc: true }, gasstation3: { len: 26, vc: true }, warehouse3: { len: 34, vc: true }, tree_pine3: { h: 13, vc: true }, tree_maple3: { h: 11, vc: true }, tree_trop3: { h: 14, vc: true }, tree_palm3: { h: 10, vc: true }, lakehouse3: { len: 20, vc: true }, greenhouse3: { len: 10, vc: true }, cabin3: { len: 12, vc: true }, lookout3: { h: 20, vc: true }, lighthouse3: { h: 28, vc: true }, temple3: { h: 26, vc: true }, diner3: { len: 18, vc: true }, bungalow3: { h: 7.5, vc: true }, windmill3: { h: 13, vc: true }, brachio3: { len: 23, vc: true, face: "x" }, stego3: { len: 10, vc: true, face: "-x" }, trice3: { len: 9, vc: true }, ptero3: { len: 4, vc: true },
+  hydrant: { h: 1.1 }, bench: { len: 2.6 }, tlight: { h: 7.5 }, alien: { h: 1.62, vc: true }, jetski: { len: 3.3, vc: true }, icecream: { h: 2.7, vc: true }, popcorn: { h: 2.35, vc: true }, speedboat: { len: 9.6, vc: true }, sofa: { len: 5.2, vc: true }, bed: { len: 3.6, vc: true }, dino_sleep: { len: 12, vc: true }, croc: { len: 4.6, vc: true }, heli_amb: { len: 13, vc: true, face: "-x" }, kitchen: { h: 1.85, vc: true, face: "-x" }, tvunit: { len: 3.4, vc: true }, monstera: { h: 2.7, vc: true }, crewcar: { len: 5.3, vc: true }, wardrobe: { h: 3.3, vc: true }, ctable: { len: 2.2, vc: true }, armchair: { len: 1.9, vc: true }, moto_cross: { len: 2.2, vc: true, face: "x" }, trex3: { len: 13, vc: true }, car_oldpickup3: { len: 5.3, vc: true }, car_sedan3: { len: 5.2, vc: true }, moto3: { len: 2.3, vc: true }, car_jeep4x4_3: { len: 4.3, vc: true }, house3: { len: 14, vc: true }, gasstation3: { len: 26, vc: true }, warehouse3: { len: 34, vc: true }, tree_pine3: { h: 13, vc: true }, tree_maple3: { h: 11, vc: true }, tree_trop3: { h: 14, vc: true }, tree_palm3: { h: 10, vc: true }, lakehouse3: { len: 20, vc: true }, greenhouse3: { len: 10, vc: true }, cabin3: { len: 12, vc: true }, lookout3: { h: 20, vc: true }, lighthouse3: { h: 28, vc: true }, temple3: { h: 26, vc: true }, diner3: { len: 18, vc: true }, bungalow3: { h: 7.5, vc: true }, windmill3: { h: 13, vc: true }, brachio3: { len: 23, vc: true, face: "x" }, stego3: { len: 10, vc: true, face: "-x" }, trice3: { len: 9, vc: true }, ptero3: { len: 4, vc: true },
   // montagne : faune et nature (Quaternius / Kenney, CC0)
   w_deer: { len: 1.9, anim: "Eating" }, w_stag: { len: 2.2, anim: "Idle" }, w_wolf: { len: 1.7, anim: "Idle" }, w_fox: { len: 1.05, anim: "Idle" },
   w_yeti: { h: 2.7, anim: "Idle" }, w_raptor: { len: 3.2, anim: "Velociraptor_Idle" }, w_bat: { len: 0.7, anim: "Bat_Flying" },
@@ -4117,7 +4132,7 @@ function buildBanner() {
   g.fillStyle = "#ff3fa4"; g.fillRect(0, 0, 2048, 22); g.fillRect(0, 278, 2048, 22); g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = "#14081f"; let bfs = 150; g.font = `900 ${bfs}px Georgia, serif`; if (g.letterSpacing !== undefined) g.letterSpacing = "24px"; while (g.measureText("CONSTANCY").width > 1640 && bfs > 80) { bfs -= 6; g.font = `900 ${bfs}px Georgia, serif`; } g.fillText("CONSTANCY", 1024, 152);
   const tx = new THREE.CanvasTexture(c); tx.anisotropy = 4;
   const L = 34, Hh = 5, geo = new THREE.PlaneGeometry(L, Hh, 40, 3); geo.translate(-L / 2, 0, 0); BANNER.base = geo.attributes.position.array.slice();
-  const cloth = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ map: tx, side: THREE.DoubleSide, emissive: 0xffffff, emissiveMap: tx, emissiveIntensity: 0.15 })); BANNER.cloth = cloth; cloth.material.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace("#include <map_fragment>", "vec4 texelColor = texture2D(map, gl_FrontFacing ? vUv : vec2(1.0 - vUv.x, vUv.y)); diffuseColor *= texelColor;").replace("#include <emissivemap_fragment>", "totalEmissiveRadiance *= texture2D(emissiveMap, gl_FrontFacing ? vUv : vec2(1.0 - vUv.x, vUv.y)).rgb;"); };
+  const cloth = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ map: tx, side: THREE.DoubleSide, emissive: 0xffffff, emissiveMap: tx, emissiveIntensity: 0.15 })); BANNER.cloth = cloth; cloth.userData.dyn = true; cloth.material.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace("#include <map_fragment>", "vec4 texelColor = texture2D(map, gl_FrontFacing ? vUv : vec2(1.0 - vUv.x, vUv.y)); diffuseColor *= texelColor;").replace("#include <emissivemap_fragment>", "totalEmissiveRadiance *= texture2D(emissiveMap, gl_FrontFacing ? vUv : vec2(1.0 - vUv.x, vUv.y)).rgb;"); };
   const holder = new THREE.Group(); holder.add(cloth); cloth.rotation.y = -Math.PI / 2; cloth.position.z = -16;
   const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 14, 4), new THREE.MeshBasicMaterial({ color: 0x333333 })); rope.rotation.x = Math.PI / 2; rope.position.z = -9; holder.add(rope);
   scene.add(holder); BANNER.g = holder;
@@ -4489,7 +4504,7 @@ function jetRibbons(c, mesh, dt) { // deux rubans continus accrochés aux bouts 
   if (!RIB.sides) { RIB.sides = [[1, 0.17, 0.62], [0.2, 0.92, 1]].map(col => { const n = RIB.n, g = new THREE.BufferGeometry(), pos = new Float32Array(n * 2 * 3).fill(-9999), cl = new Float32Array(n * 2 * 3), idx = [];
       for (let i = 0; i < n - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
       g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(cl, 3)); g.setIndex(idx);
-      const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); m.frustumCulled = false; scene.add(m);
+      const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); m.userData.dyn = true; m.frustumCulled = false; scene.add(m);
       return { m, pos, cl, col, hist: [], acc: 0 }; }); }
   const wing = (mesh && mesh.userData.wing) || 5.5, rx = Math.cos(c.h), rz = -Math.sin(c.h), up = Math.cos(c.roll || 0), lean = Math.sin(c.roll || 0);
   RIB.sides.forEach((S, k) => { const sd = k ? 1 : -1, x = c.x + rx * wing * sd * up, y = c.alt + 0.5 - wing * sd * lean, z = c.z + rz * wing * sd * up;
@@ -9778,7 +9793,7 @@ function gate() {
 let last = performance.now();
 // post-traitement : bloom à demi-résolution, intensité selon l'heure (fort la nuit, léger le jour)
 const FXR = { comp: null, bloom: null, on: false, fail: false, k: -1 };
-function PR_MAX() { const fine = window.matchMedia && matchMedia("(pointer:fine)").matches; return Math.min(LIGHT && !fine ? 1.25 : 2, window.devicePixelRatio || 1); }
+function PR_MAX() { const fine = window.matchMedia && matchMedia("(pointer:fine)").matches; return Math.min(fine ? 2 : LIGHT ? 1.25 : 1.5, window.devicePixelRatio || 1); }
 function PR_MIN() { const fine = window.matchMedia && matchMedia("(pointer:fine)").matches; return fine ? Math.min(1, PR_MAX()) : 0.75; }
 function fxInit() {
   if (FXR.comp || FXR.fail) return; try {
@@ -9985,7 +10000,7 @@ if (!renderer || typeof THREE === "undefined" || !THREE.BufferGeometryUtils) {
   const fontsReady = document.fonts && document.fonts.load ? Promise.race([Promise.all([document.fonts.load("86px 'EB Garamond'"), document.fonts.load("italic 24px 'EB Garamond'"), document.fonts.load("500 190px 'EB Garamond'")]), new Promise(ok => setTimeout(ok, 4000))]).catch(() => {}) : Promise.resolve();
   // la ville se construit pendant l'écran « Touchez pour entrer » : après le toucher, plus rien de lourd, l'intro reste fluide
   const introPlayed = gate.then(() => new Promise(ok => setTimeout(ok, 3100)));
-  const built = Promise.all([loadHumans(), loadMedia(), fontsReady]).then(() => new Promise(ok => requestAnimationFrame(() => setTimeout(ok, 30)))).then(() => { buildWorld(); farFogAll(); drawMapBase(); buildCockpit(); buildPlaneCockpit(); envInit(); fxInit(); resize(); try { renderer.compile(scene, camera); } catch (e) {} });
+  const built = Promise.all([loadHumans(), loadMedia(), fontsReady]).then(() => new Promise(ok => requestAnimationFrame(() => setTimeout(ok, 30)))).then(() => { buildWorld(); try { prepStatic(); } catch (e) { console.warn("mémoire", e); } farFogAll(); drawMapBase(); buildCockpit(); buildPlaneCockpit(); envInit(); fxInit(); resize(); try { renderer.compile(scene, camera); } catch (e) {} });
   Promise.all([built, introPlayed]).then(() => new Promise(ok => setTimeout(ok, 60)))
     .then(() => { const go = () => { titleScreen(); requestAnimationFrame(loop); }; if (autoGo) return go();
       const f = document.createElement("div"); f.className = "xflash"; document.body.appendChild(f); flashback(); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.add("on")));

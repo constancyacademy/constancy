@@ -295,6 +295,21 @@ h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(30px
 .avgen button.sel{color:#fff}
 .avgbar{position:absolute;left:4px;top:4px;bottom:4px;width:calc(50% - 4px);border-radius:999px;background:linear-gradient(135deg,#ff2d55,#ff4fc8);box-shadow:0 0 18px rgba(255,79,200,.45);transition:transform .25s ease}
 .av2 .avscroll{display:flex;flex-direction:column;gap:2px;border-radius:16px;background:rgba(14,12,20,.6);border:1px solid rgba(255,255,255,.08);padding:4px 12px;margin:0}
+.av3 .avframe{width:min(300px,76vw);height:min(380px,40vh)}.av3 .avframe.avface .avprev{bottom:0;height:100%}.av3 .avframe.avface .avrefl,.av3 .avframe.avface .avfloor{display:none}
+.avzoom{position:absolute;right:8px;bottom:8px;z-index:4;background:rgba(14,10,20,.72);color:#fff;border:1px solid rgba(255,111,191,.55);border-radius:999px;font:600 11px Inter,sans-serif;padding:6px 10px;cursor:pointer}
+.avtabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}.avtabs::-webkit-scrollbar{display:none}
+.avtabs button{flex:0 0 auto;background:rgba(20,16,28,.8);border:1px solid rgba(255,255,255,.14);color:rgba(242,240,236,.7);font:600 13px Inter,sans-serif;padding:8px 13px;border-radius:999px;cursor:pointer;transition:all .2s}
+.avtabs button.sel{color:#fff;border-color:#ff4fa3;background:linear-gradient(135deg,rgba(255,45,85,.35),rgba(255,79,200,.3));box-shadow:0 0 14px rgba(255,79,200,.35)}
+.av3 .avscroll{min-height:150px}
+.coll h2 em{font-style:italic;color:#ff7cc0}.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:52vh;overflow:auto;padding:2px}
+.citem{position:relative;display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:16px;background:rgba(20,16,28,.8);border:1px solid rgba(255,255,255,.1);text-align:left}
+.citem.on{border-color:#ff4fa3;box-shadow:0 0 16px rgba(255,79,163,.35)}.citem.neon{background:linear-gradient(160deg,rgba(60,10,40,.9),rgba(14,8,20,.95));border-color:rgba(255,45,149,.6)}
+.citem b{font:700 13px Inter,sans-serif;color:#fff}.citem span{font:400 11px/1.35 Inter,sans-serif;color:rgba(242,240,236,.65)}.citem small{font:600 10.5px Inter,sans-serif;color:#ff9fd0}
+.cimg{position:relative;aspect-ratio:1;border-radius:12px;background:radial-gradient(circle at 50% 60%,rgba(255,79,163,.18),rgba(10,8,16,.9));display:flex;align-items:center;justify-content:center;overflow:hidden}.cimg img{width:100%;height:100%;object-fit:contain}
+.citem.lock .cimg img{filter:grayscale(1) brightness(.55)}.citem.lock.neon .cimg img{filter:grayscale(.55) brightness(.7)}.clk{position:absolute;right:8px;top:6px;font-style:normal;font-size:16px}.ceq{font:700 11px Inter,sans-serif;font-style:normal;color:#5ef0a0}.cbtn{padding:7px 10px;font-size:12px;margin-top:2px}
+.cbar{height:5px;border-radius:9px;background:rgba(255,255,255,.1);overflow:hidden}.cbar i{display:block;height:100%;background:linear-gradient(90deg,#ff2d55,#ff4fc8)}
+.scope-nv #game{filter:sepia(1) hue-rotate(70deg) saturate(3.2) brightness(1.55) contrast(1.15)}.scope-pk #game{filter:sepia(.6) hue-rotate(290deg) saturate(2.4) brightness(1.5) contrast(1.1)}
+#talkie.neon{box-shadow:0 0 0 1px #ff2d95,0 0 22px rgba(255,45,149,.55)}
 .avline{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;border-bottom:1px solid rgba(255,255,255,.06)}
 .avline:last-child{border-bottom:0}
 .avlbl{font:600 13px Inter,sans-serif;color:rgba(242,240,236,.75);letter-spacing:.02em;flex:0 0 auto}
@@ -780,10 +795,13 @@ const OUTFITS = {
   femme: [{ n: "Street", shirt: 0xffffff, pants: 0x1d1d24, hair: 0x2b1a10, shoes: 0x111111, print: 0x111111 }, { n: "Sport", shirt: 0x111114, pants: 0x9b5cff, hair: 0xd9b77a, shoes: 0xffffff, print: 0x9b5cff }, { n: "Miami", shirt: 0x3fd16b, pants: 0xf2e6d0, hair: 0x111111, shoes: 0xffffff, print: 0xffffff }]
 };
 const SKIN_TONES = [0xf2cfb3, 0xc68a5e, 0x6e4a33, 0xe0b48f, 0xa86e45, 0x4a3022];
+const ACC = { hats: ["Aucun", "Casquette", "Casquette à l'envers", "Bonnet", "Bob", "Bandeau", "Chapeau"], beards: ["Sans barbe", "Barbe", "Moustache", "Bouc", "Moustache et bouc"],
+  ears: ["Aucune", "Clous argent", "Clous dorés", "Anneaux dorés"], chains: ["Aucune", "Chaîne dorée", "Chaîne argent", "Pendentif C néon"], watches: ["Aucune", "Montre noire", "Montre dorée", "Montre connectée rose"], bags: ["Aucun", "Sac à dos noir", "Sac à dos rose", "Banane"],
+  heights: ["Petite", "Moyenne", "Grande"], hatC: [0x111114, 0xffffff, 0xff6fb5, 0x22324f, 0xcbb89a, 0x3fd16b, 0xa8471f] };
 // créateur de perso : coupe, couleur des cheveux, barbe, haut, bas, chaussures (le torse nu n'existe pas)
 const AV = {
   skinOrder: [0, 3, 1, 4, 2, 5],
-  hs: [{ k: "buzzed", n: "Rasés" }, { k: "parted", n: "Courts" }, { k: "long", n: "Longs" }, { k: "curly", n: "Bouclés" }, { k: "afro", n: "Afro" }],
+  hs: [{ k: "buzzed", n: "Rasés" }, { k: "parted", n: "Courts" }, { k: "long", n: "Longs" }, { k: "curly", n: "Bouclés" }, { k: "afro", n: "Afro" }, { k: "bun", n: "Chignon" }, { k: "pony", n: "Queue de cheval" }, { k: "braids", n: "Tresses" }],
   hc: [0x15110e, 0x3b2314, 0x6b4423, 0xd9b77a, 0xa8471f, 0xe8e2d6, 0xff6fb5],
   hcN: ["Noir", "Brun", "Châtain", "Blond", "Roux", "Platine", "Rose"],
   tops: [{ n: "T-shirt", sleeve: 0.43 }, { n: "Sweat", sleeve: 0.95, hood: 1 }, { n: "Chemise", sleeve: 0.95, collar: 1 }, { n: "Costume", sleeve: 0.95, suit: 1 }, { n: "Col roulé", sleeve: 0.95 }, { n: "Débardeur", sleeve: 0.12 }],
@@ -796,7 +814,8 @@ function lookOf(lk) {
   if (lk.top == null) return OUTFITS[lk.gender] && OUTFITS[lk.gender][lk.outfit] || OUTFITS.homme[0];
   const t = AV.tops[lk.top] || AV.tops[0], b = AV.bots[lk.bot] || AV.bots[0], tc = AV.tc[lk.tc] != null ? AV.tc[lk.tc] : 0xffffff;
   return { n: "Perso", shirt: tc, pants: b.c, shoes: (AV.shoes[lk.sh] || AV.shoes[0]).c, print: t.suit ? 0x111114 : t.collar ? 0xffffff : tc, hair: AV.hc[lk.hc] != null ? AV.hc[lk.hc] : 0x1a1a1a,
-    hairStyle: (AV.hs[lk.hs] || AV.hs[1]).k, beard: lk.gender === "homme" && !!lk.beard, glasses: +lk.gl || 0, freckles: +lk.fr || 0, sleeve: t.sleeve, shorts: !!b.shorts, suit: !!t.suit };
+    hairStyle: (AV.hs[lk.hs] || AV.hs[1]).k, beard: lk.gender === "homme" && +lk.beard === 1, beardS: lk.gender === "homme" ? +lk.beard || 0 : 0, glasses: +lk.gl || 0, freckles: +lk.fr || 0, sleeve: t.sleeve, shorts: !!b.shorts, suit: !!t.suit,
+    hat: +lk.hat || 0, hatC: ACC.hatC[+lk.htc || 0], ear: +lk.ea || 0, chain: +lk.ch || 0, watch: +lk.wa || 0, bag: +lk.bg || 0, tall: lk.ht != null ? +lk.ht : 1 };
 }
 const GOALS = { livraison: { label: "Livraisons", color: COL.business }, salle: { label: "Séances", color: COL.physique }, mentor: { label: "Mentor", color: COL.mental }, mamie: { label: "Mamie", color: COL.env } };
 const CARS = [
@@ -1771,7 +1790,134 @@ function addCurls(h, kind, col) { const F = faceFrame(h); if (!F) return null; c
     const g = new THREE.IcosahedronGeometry((afro ? 0.03 : 0.025) * (0.75 + rnd() * 0.6), 0); const p = d.multiplyScalar(R0 * (0.94 + rnd() * 0.12)).add(ctr); g.rotateX(rnd() * 3); g.rotateY(rnd() * 3); g.translate(p.x, p.y, p.z); parts.push(g.toNonIndexed ? g.toNonIndexed() : g); }
   if (!parts.length || !THREE.BufferGeometryUtils) return null; const geo = THREE.BufferGeometryUtils.mergeBufferGeometries(parts); geo.computeVertexNormals();
   const c = new THREE.Color(col != null ? col : 0x2a1a10), m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: c, flatShading: true })); m.scale.setScalar(F.s || 1); attachToHead(F, m); return m; }
-function makeHuman(o) { const curl = HQ.ready && (o.hairStyle === "curly" || o.hairStyle === "afro") ? o.hairStyle : null; if (curl) o = Object.assign({}, o, { hairStyle: "buzzed" }); const h = HQ.ready ? makeHumanQ(o) : makeHumanLegacy(o); if (HQ.ready && h) { try { if (curl) addCurls(h, curl, o.hair); if (o.glasses) addGlasses(h, o.glasses); if (o.freckles) addFreckles(h, o.freckles); } catch (e) {} } return h; }
+/* V306.8 · AVATARS DÉTAILLÉS (demande de Thomas : « le plus de détails possible, un peu comme un Sims ») · tout en vraie 3D, accroché aux os du perso, donc tout bouge avec lui
+   couvre-chefs (casquette, casquette à l'envers, bonnet, bob, bandeau, chapeau), styles de barbe (moustache, bouc), boucles d'oreilles, chaîne, montre, sac à dos, taille */
+function accMat(c, shiny) { return shiny ? new THREE.MeshPhongMaterial({ color: c, shininess: 110, specular: 0xffffff }) : new THREE.MeshLambertMaterial({ color: c }); }
+// repère de la tête mesuré sur le modèle : origine entre les yeux, x vers la droite du perso, y vers le haut, z vers l'avant (unités du monde, échelle du perso comprise)
+function headAcc(h, obj) { const F = faceFrame(h); if (!F) return null; attachToHead(F, obj); return obj; }
+function boneAcc(h, re, obj, wpos) { let bone = null; h.traverse(o => { if (!bone && o.isBone && re.test(o.name)) bone = o; }); if (!bone) return null; h.updateMatrixWorld(true); const q = h.getWorldQuaternion(new THREE.Quaternion()); obj.quaternion.premultiply(q); obj.position.copy(wpos); h.add(obj); obj.updateMatrixWorld(true); bone.attach(obj); return obj; }
+function bonePos(h, re) { let p = null; h.updateMatrixWorld(true); h.traverse(o => { if (!p && o.isBone && re.test(o.name)) p = o.getWorldPosition(new THREE.Vector3()); }); return p; }
+function hatRadius(o) { const k = o.hairStyle; return k === "afro" ? 0.188 : k === "curly" ? 0.16 : k === "long" ? 0.146 : k === "buzzed" ? 0.132 : 0.143; }
+function addHat(h, o) { const t = +o.hat || 0; if (!t) return; const col = o.hatC != null ? o.hatC : 0x111114, R = hatRadius(o), g = new THREE.Group(), M = accMat(col), C = new THREE.Vector3(0, 0.045, -0.112);
+  const dome = (r, th, sy = 1) => { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 28, 14, 0, Math.PI * 2, 0, th), M); m.scale.set(1, sy, 1.06); m.position.copy(C); return m; };
+  if (t === 1 || t === 2) { // casquette : calotte à 6 pans, bouton, visière courbée, petit C rose brodé devant
+    const cr = dome(R * 1.0, 1.5, 1.0); cr.position.y = C.y - R * 0.04; g.add(cr); const btn = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), M); btn.position.set(C.x, C.y + R * 0.88, C.z); g.add(btn);
+    const vs = new THREE.Shape(), A = 1.15; for (let k = 0; k <= 16; k++) { const a = -A + 2 * A * k / 16, x = Math.sin(a) * R * 0.98, y = Math.cos(a) * R * 1.78; k ? vs.lineTo(x, y) : vs.moveTo(x, y); } for (let k = 16; k >= 0; k--) { const a = -A + 2 * A * k / 16; vs.lineTo(Math.sin(a) * R * 1.0, Math.cos(a) * R * 0.98); }
+    const vg = new THREE.ExtrudeGeometry(vs, { depth: 0.008, bevelEnabled: false, curveSegments: 18 }); vg.rotateX(Math.PI / 2); { const pa = vg.attributes.position; for (let k = 0; k < pa.count; k++) pa.setY(k, pa.getY(k) - 2.2 * pa.getX(k) * pa.getX(k)); vg.computeVertexNormals(); } const vis = new THREE.Mesh(vg, accMat(new THREE.Color(col).multiplyScalar(0.85).getHex())); const back = t === 2;
+    vis.position.set(C.x, C.y + R * 0.17, C.z); vis.rotation.set(0, back ? Math.PI : 0, 0); vis.rotateX(0.2); g.add(vis);
+    if (!back) { const lg = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.0045, 6, 16, Math.PI * 1.45), accMat(col === 0xff6fb5 ? 0xffffff : 0xff2d95)); lg.position.set(C.x, C.y + R * 0.45, C.z + R * 0.93); lg.rotation.set(-0.45, 0, Math.PI * 0.27); g.add(lg); }
+    else { const op = new THREE.Mesh(new THREE.CircleGeometry(R * 0.32, 18, 0, Math.PI), accMat(0x0c0c0e)); op.scale.y = 0.75; op.position.set(C.x, C.y + R * 0.06, C.z + R * 1.035); op.rotation.x = -0.12; g.add(op); const sp = new THREE.Mesh(new THREE.BoxGeometry(R * 0.7, 0.012, 0.006), accMat(new THREE.Color(col).multiplyScalar(0.7).getHex())); sp.position.set(C.x, C.y + R * 0.08, C.z + R * 1.045); g.add(sp); } }
+  else if (t === 3) { // bonnet côtelé avec revers et pompon
+    const cr = dome(R * 1.05, 1.62, 1.12); g.add(cr); const rib = new THREE.Mesh(new THREE.CylinderGeometry(R * 1.09, R * 1.11, 0.05, 32, 1, true), M); rib.position.set(C.x, C.y + R * 0.04, C.z); rib.scale.z = 1.06; g.add(rib);
+    for (let k = 0; k < 28; k++) { const a = k / 28 * Math.PI * 2, l = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.05, 0.004), accMat(new THREE.Color(col).multiplyScalar(0.75).getHex())); l.position.set(C.x + Math.sin(a) * R * 1.105, C.y + R * 0.04, C.z + Math.cos(a) * R * 1.17); g.add(l); }
+    const pp = new THREE.Mesh(new THREE.IcosahedronGeometry(0.04, 1), accMat(col === 0xffffff ? 0xff6fb5 : 0xffffff)); pp.position.set(C.x, C.y + R * 1.22, C.z); g.add(pp); }
+  else if (t === 4) { // bob
+    const cr = dome(R * 1.07, 1.4, 0.95); cr.position.y = C.y + R * 0.1; g.add(cr); const sm = new THREE.Mesh(new THREE.TorusGeometry(R * 1.07, 0.003, 4, 36), accMat(new THREE.Color(col).multiplyScalar(0.7).getHex())); sm.rotation.x = Math.PI / 2; sm.scale.set(1, 1.06, 1); sm.position.set(C.x, C.y + R * 0.27, C.z); g.add(sm);
+    const br = new THREE.Mesh(new THREE.CylinderGeometry(R * 1.06, R * 1.5, R * 0.3, 32, 1, true), new THREE.MeshLambertMaterial({ color: col, side: THREE.DoubleSide })); br.position.set(C.x, C.y + R * 0.14, C.z); br.scale.z = 1.06; g.add(br); }
+  else if (t === 5) { // bandeau de sport
+    const bk = /curly|afro/.test(o.hairStyle || "") ? 1.16 : 1.04, bd = new THREE.Mesh(new THREE.CylinderGeometry(R * bk, R * (bk + 0.02), 0.042, 32, 1, true), new THREE.MeshLambertMaterial({ color: col, side: THREE.DoubleSide })); bd.position.set(C.x, C.y + R * 0.12, C.z); bd.scale.z = 1.08; bd.rotation.x = -0.18; g.add(bd); }
+  else if (t === 6) { // chapeau : calotte pincée, bord plat, ruban
+    const cr = new THREE.Mesh(new THREE.CylinderGeometry(R * 0.82, R * 1.0, R * 0.95, 28), M); cr.position.set(C.x, C.y + R * 0.55, C.z); cr.scale.z = 1.12; g.add(cr);
+    const pinch = new THREE.Mesh(new THREE.SphereGeometry(R * 0.82, 20, 8, 0, Math.PI * 2, 0, 0.9), M); pinch.position.set(C.x, C.y + R * 0.75, C.z); pinch.scale.set(1, 0.4, 1.12); g.add(pinch);
+    const rib = new THREE.Mesh(new THREE.CylinderGeometry(R * 1.005, R * 1.01, 0.03, 28, 1, true), accMat(col === 0x111114 ? 0xff2d95 : 0x111114)); rib.position.set(C.x, C.y + R * 0.2, C.z); rib.scale.z = 1.12; g.add(rib);
+    const br = new THREE.Mesh(new THREE.CylinderGeometry(R * 1.75, R * 1.75, 0.008, 36), M); br.position.set(C.x, C.y + R * 0.08, C.z); br.scale.z = 1.08; g.add(br); }
+  return headAcc(h, g); }
+function addFaceHair(h, o) { const st = +o.beardS || 0; if (st < 2) return; const col = o.hair != null ? new THREE.Color(o.hair).multiplyScalar(1.15) : new THREE.Color(0x2a1a10), M = new THREE.MeshLambertMaterial({ color: col, flatShading: true }), g = new THREE.Group();
+  const tuft = (pts, r) => { const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))); const tg = new THREE.TubeGeometry(curve, 16, r, 6, false); return new THREE.Mesh(tg, M); };
+  if (st === 2 || st === 4) { const th = 0.0085; g.add(tuft([[-0.034, -0.088, 0.012], [-0.018, -0.079, 0.026], [0, -0.077, 0.03], [0.018, -0.079, 0.026], [0.034, -0.088, 0.012]], th));
+    [-1, 1].forEach(sd => { const e = new THREE.Mesh(new THREE.SphereGeometry(th, 6, 5), M); e.position.set(sd * 0.034, -0.088, 0.012); g.add(e); }); }
+  if (st === 3 || st === 4) { const gt = new THREE.Mesh(new THREE.SphereGeometry(0.02, 12, 10), M); gt.scale.set(0.8, 1.05, 0.42); gt.position.set(0, -0.142, 0.022); g.add(gt);
+    const lip = new THREE.Mesh(new THREE.SphereGeometry(0.009, 8, 6), M); lip.scale.set(1.2, 1.4, 0.7); lip.position.set(0, -0.117, 0.024); g.add(lip); }
+  return headAcc(h, g); }
+function addEarrings(h, o) { const t = +o.ear || 0; if (!t) return; const M = accMat(t === 1 ? 0xd9dde3 : 0xd4af37, true), g = new THREE.Group();
+  [-1, 1].forEach(sd => { const e = t === 3 ? new THREE.Mesh(new THREE.TorusGeometry(0.011, 0.0022, 6, 18), M) : new THREE.Mesh(new THREE.SphereGeometry(0.0045, 8, 6), M); e.position.set(sd * 0.1, -0.072, -0.098); if (t === 3) e.rotation.y = Math.PI / 2; g.add(e); });
+  return headAcc(h, g); }
+function addChain(h, o) { const t = +o.chain || 0; if (!t) return; const nk = bonePos(h, /^neck_01$/), sp = bonePos(h, /^spine_03$/); if (!nk || !sp) return; const g = new THREE.Group(), gold = t !== 2, M = accMat(gold ? 0xd4af37 : 0xd9dde3, true);
+  const pts = [[0, 0.03, -0.07], [0.075, 0.01, -0.04], [0.105, -0.03, 0.04], [0.095, -0.085, 0.15], [0.05, -0.125, 0.215], [0, -0.14, 0.232], [-0.05, -0.125, 0.215], [-0.095, -0.085, 0.15], [-0.105, -0.03, 0.04], [-0.075, 0.01, -0.04]].map(q => new THREE.Vector3(q[0], q[1], q[2]));
+  const ch = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 90, t === 2 ? 0.0032 : 0.0042, 6, true), M); g.add(ch);
+  for (let k = 0; k < 40; k++) { const q = new THREE.CatmullRomCurve3(pts, true).getPointAt(k / 40), l = new THREE.Mesh(new THREE.TorusGeometry(0.0062, 0.0016, 4, 8), M); l.position.copy(q); l.rotation.set(k % 2 ? 0 : Math.PI / 2, k * 0.6, 0); g.add(l); }
+  if (t === 3) { const pd = new THREE.Mesh(new THREE.TorusGeometry(0.019, 0.0055, 8, 20, Math.PI * 1.45), new THREE.MeshBasicMaterial({ color: 0xff2d95 })); pd.position.set(0, -0.163, 0.238); pd.rotation.z = Math.PI * 0.27; g.add(pd); const gl = new THREE.Mesh(new THREE.CircleGeometry(0.03, 16), new THREE.MeshBasicMaterial({ color: 0xff2d95, transparent: true, opacity: 0.25, depthWrite: false })); gl.position.set(0, -0.163, 0.236); g.add(gl); }
+  return boneAcc(h, /^neck_01$/, g, new THREE.Vector3(nk.x, nk.y - 0.02, nk.z)); }
+function addWatch(h, o) { const t = +o.watch || 0; if (!t) return; const hp = bonePos(h, /^hand_l$/), la = bonePos(h, /^lowerarm_l$/); if (!hp || !la) return; const g = new THREE.Group(), band = accMat(t === 2 ? 0xd4af37 : t === 3 ? 0xff6fb5 : 0x141416, t === 2), face = accMat(t === 3 ? 0x0a0a0c : 0x1d1d22, true);
+  const d = hp.clone().sub(la).normalize(), at = hp.clone().addScaledVector(d, -0.045); const bd = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.024, 18, 1, true), new THREE.MeshPhongMaterial({ color: band.color, shininess: 80, side: THREE.DoubleSide })); g.add(bd);
+  const cs = new THREE.Mesh(t === 3 ? new THREE.BoxGeometry(0.03, 0.01, 0.036) : new THREE.CylinderGeometry(0.019, 0.019, 0.01, 20), face); cs.position.x = 0.036; cs.rotation.z = Math.PI / 2; g.add(cs);
+  if (t === 3) { const sc = new THREE.Mesh(new THREE.PlaneGeometry(0.024, 0.03), new THREE.MeshBasicMaterial({ color: 0xff2d95 })); sc.position.x = 0.0415; sc.rotation.y = Math.PI / 2; g.add(sc); }
+  g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d); return boneAcc(h, /^lowerarm_l$/, g, at); }
+function addBag(h, o) { const t = +o.bag || 0; if (!t) return; const sp = bonePos(h, /^spine_03$/); if (!sp) return; const g = new THREE.Group();
+  if (t === 3) { const M = accMat(0x111114), bn = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.24, 16), M); [-1, 1].forEach(sd => { const cp = new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 10), M); cp.position.y = sd * 0.12; bn.add(cp); }); bn.rotation.z = Math.PI / 2 - 0.25; bn.position.set(0, 0.0, 0.215); g.add(bn); const z = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.006, 0.006), accMat(0xff2d95)); z.rotation.z = -0.25; z.position.set(0, 0.02, 0.267); g.add(z);
+    const st = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.008, 4, 30), M); st.scale.set(1.0, 1.55, 1.12); st.rotation.set(0, 0, 0.6); st.position.set(0, 0.04, 0.02); g.add(st); return boneAcc(h, /^spine_03$/, g, sp.clone()); }
+  const col = t === 2 ? 0xff6fb5 : 0x18181c, M = accMat(col), dk = accMat(new THREE.Color(col).multiplyScalar(0.6).getHex());
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.38, 0.14, 2, 2, 2), M); body.position.set(0, -0.03, -0.24); g.add(body); const top = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.3, 14, 1, false, 0, Math.PI), M); top.rotation.z = Math.PI / 2; top.position.set(0, 0.16, -0.24); g.add(top);
+  const pk = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.15, 0.05), dk); pk.position.set(0, -0.1, -0.33); g.add(pk); const zp = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.008, 0.008), accMat(t === 2 ? 0xffffff : 0xff2d95)); zp.position.set(0, -0.03, -0.358); g.add(zp);
+  [-1, 1].forEach(sd => { const s = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.012, 4, 20, Math.PI), dk); s.rotation.set(0, Math.PI / 2, -0.15); s.position.set(sd * 0.1, 0.0, -0.13); s.scale.set(1, 1.6, 1); g.add(s); });
+  return boneAcc(h, /^spine_03$/, g, sp.clone()); }
+/* V306.8 : coiffures attachées (chignon, queue de cheval, tresses), posées sur la base rasée, à la couleur choisie */
+function taperTube(pts, r0, r1, seg = 24) { const cv = new THREE.CatmullRomCurve3(pts.map(q => new THREE.Vector3(q[0], q[1], q[2]))), g = new THREE.TubeGeometry(cv, seg, 1, 10, false), pa = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i <= seg; i++) { const t = i / seg, c = cv.getPointAt(t), r = r0 + (r1 - r0) * Math.pow(t, 1.4); for (let j = 0; j <= 10; j++) { const k = i * 11 + j; v.fromBufferAttribute(pa, k).sub(c).normalize().multiplyScalar(r).add(c); pa.setXYZ(k, v.x, v.y, v.z); } } g.computeVertexNormals(); return g; }
+function addTied(h, o) { const t = o.tied; if (!t) return; const col = new THREE.Color(o.hair != null ? o.hair : 0x2a1a10).multiplyScalar(1.5), M = new THREE.MeshStandardMaterial({ color: col, roughness: 0.55, metalness: 0.05 }), g = new THREE.Group();
+  const band = c => { const b = new THREE.Mesh(new THREE.TorusGeometry(0.022, 0.006, 6, 16), accMat(0xff2d95)); b.position.set(...c); return b; };
+  // volume sur le dessus pour les cheveux tirés en arrière
+  if (t === "bun") { const bn = new THREE.Mesh(new THREE.SphereGeometry(0.058, 18, 14), M); bn.scale.set(1, 0.82, 1); bn.position.set(0, 0.16, -0.215); g.add(bn); for (let k = 0; k < 7; k++) { const tw = new THREE.Mesh(new THREE.TorusGeometry(0.042 - k * 0.004, 0.009, 6, 18), M); tw.position.set(0, 0.16 + (k - 3) * 0.008, -0.215); tw.rotation.x = Math.PI / 2 + 0.5; g.add(tw); } const b = band([0, 0.125, -0.19]); b.rotation.x = Math.PI / 2 + 0.6; g.add(b); }
+  if (t === "pony") { g.add(new THREE.Mesh(taperTube([[0, 0.07, -0.25], [0, 0.05, -0.31], [0, -0.03, -0.35], [0, -0.14, -0.34], [0, -0.25, -0.31]], 0.046, 0.012), M)); const b = band([0, 0.064, -0.262]); b.rotation.x = 1.1; b.scale.setScalar(1.15); g.add(b); }
+  if (t === "braids") [-1, 1].forEach(sd => { const P = [[sd * 0.085, -0.02, -0.15], [sd * 0.105, -0.09, -0.12], [sd * 0.11, -0.18, -0.08], [sd * 0.105, -0.27, -0.05], [sd * 0.1, -0.34, -0.035]], cv = new THREE.CatmullRomCurve3(P.map(q => new THREE.Vector3(...q)));
+    for (let k = 0; k < 16; k++) { const tt = k / 16, c = cv.getPointAt(tt), m = new THREE.Mesh(new THREE.SphereGeometry(0.024 * (1 - tt * 0.45), 10, 8), M); m.position.copy(c); m.position.x += (k % 2 ? 0.006 : -0.006) * sd; m.scale.set(1, 1.35, 0.85); m.rotation.z = (k % 2 ? 0.5 : -0.5); g.add(m); }
+    const b = band(cv.getPointAt(1).toArray()); b.rotation.x = Math.PI / 2; b.scale.setScalar(0.6); g.add(b); });
+  return headAcc(h, g); }
+/* V306.8 · MA COLLECTION (demande de Thomas, 19/11 9h34) : même esprit que les voitures · talkies-walkies et jumelles de plus en plus stylés, le plus beau aux couleurs de Constancy City (néons roses)
+   Au début un seul de chaque, les autres sont grisés avec leur condition. On les gagne par la régularité (jours d'affilée, missions, livraisons). Les plus rares seront aussi proposés en boutique plus tard (rien de payant activé). */
+const COLL = {
+  talkie: [
+    { id: "t0", n: "Talkie de Thomas", d: "Celui qu'il t'a laissé le premier soir. Usé, mais il marche.", c: 0x3a3d44, a: 0x8a8f99, u: ["start"] },
+    { id: "t1", n: "Talkie Sport", d: "Antenne souple, coque verte. Pour ceux qui sortent tous les jours.", c: 0x18181c, a: 0x3fd16b, u: ["streak", 3] },
+    { id: "t2", n: "Talkie Pro", d: "Noir mat, écran bleu, double antenne. Le matériel des pros.", c: 0x111114, a: 0x34a8ff, u: ["missions", 6] },
+    { id: "t3", n: "Talkie Doré", d: "Coque or brossé. On ne l'a qu'avec 7 jours d'affilée.", c: 0xc9a046, a: 0xfff1b0, u: ["streak", 7], gold: 1 },
+    { id: "t4", n: "Talkie Constancy City", d: "Néons roses, écran qui pulse, le son de la ville. Le plus rare.", c: 0x0c0a12, a: 0xff2d95, u: ["streak", 30], neon: 1, shop: 1 } ],
+  bino: [
+    { id: "j0", n: "Jumelles de randonnée", d: "Simples et solides. Zoom ×4.", c: 0x2f3a2a, a: 0x6b8f71, u: ["start"], z: 1 },
+    { id: "j1", n: "Jumelles marines", d: "Étanches, zoom ×8, pour voir loin depuis la côte.", c: 0x22324f, a: 0xe8dcc8, u: ["deliveries", 10], z: 1.6 },
+    { id: "j2", n: "Jumelles de nuit", d: "Vision nocturne verte. Les dinosaures ne se cachent plus.", c: 0x1b1f1a, a: 0x5ef07a, u: ["streak", 5], z: 1.6, nv: "nv" },
+    { id: "j3", n: "Jumelles Constancy City", d: "Liserés néon, vision de nuit rose, zoom ×12. Le plus rare.", c: 0x0c0a12, a: 0xff2d95, u: ["streak", 21], z: 2.2, nv: "pk", neon: 1, shop: 1 } ] };
+function collOk(it) { const [k, v] = it.u; if (!P) return k === "start"; if (k === "start") return true; if (k === "streak") return Math.max(P.streakDays || 1, P.bestStreak || 0) >= v; if (k === "missions") return (P.storyI || 0) >= v; if (k === "deliveries") return (P.deliveries || 0) >= v; return false; }
+function collCond(it) { const [k, v] = it.u; return k === "streak" ? `${v} jours d'affilée` : k === "missions" ? `${v} missions terminées` : k === "deliveries" ? `${v} livraisons` : ""; }
+function collProg(it) { const [k, v] = it.u; const n = !P ? 0 : k === "streak" ? Math.max(P.streakDays || 1, P.bestStreak || 0) : k === "missions" ? (P.storyI || 0) : k === "deliveries" ? (P.deliveries || 0) : 0; return Math.min(1, n / v); }
+function collEq(cat) { const id = P && P.equip && P.equip[cat]; const it = COLL[cat].find(q => q.id === id); return it && collOk(it) ? it : COLL[cat][0]; }
+function makeTalkie3D(it) { const g = new THREE.Group(), body = it.gold ? new THREE.MeshPhongMaterial({ color: it.c, shininess: 120, specular: 0xfff3c0 }) : new THREE.MeshPhongMaterial({ color: it.c, shininess: 40 }), acc = new THREE.MeshPhongMaterial({ color: it.a, shininess: 60 });
+  const b = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.13, 0.034, 2, 4, 2), body); { const pa = b.geometry.attributes.position; for (let k = 0; k < pa.count; k++) { const x = pa.getX(k), z = pa.getZ(k); if (Math.abs(x) > 0.028 && Math.abs(z) > 0.014) { pa.setX(k, x * 0.9); pa.setZ(k, z * 0.82); } } b.geometry.computeVertexNormals(); } g.add(b);
+  const gr = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.038, 0.004), new THREE.MeshPhongMaterial({ color: 0x0a0a0c })); gr.position.set(0, -0.03, 0.0175); g.add(gr); for (let k = 0; k < 5; k++) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.0025, 0.002), acc); l.position.set(0, -0.046 + k * 0.008, 0.0198); g.add(l); }
+  const sc = new THREE.Mesh(new THREE.PlaneGeometry(0.04, 0.026), new THREE.MeshBasicMaterial({ color: it.neon ? 0xff2d95 : it.id === "t2" ? 0x34a8ff : 0x9fd8a0 })); sc.position.set(0, 0.022, 0.0172); g.add(sc);
+  const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.006, it.id === "t1" ? 0.11 : 0.07, 8), new THREE.MeshPhongMaterial({ color: it.id === "t1" ? it.a : 0x141416 })); ant.position.set(-0.02, 0.1 + (it.id === "t1" ? 0.02 : 0), 0); g.add(ant);
+  if (it.id === "t2") { const a2 = ant.clone(); a2.position.x = 0.02; a2.scale.y = 0.7; a2.position.y = 0.09; g.add(a2); }
+  const kn = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.012, 12), acc); kn.position.set(0.017, 0.071, 0); g.add(kn); const ptt = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.03, 0.012), acc); ptt.position.set(-0.034, 0.02, 0); g.add(ptt);
+  if (it.neon) { const nm = new THREE.MeshBasicMaterial({ color: 0xff2d95 }); [[0.0318, 0], [-0.0318, 0]].forEach(([x]) => { const e = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.12, 0.036), nm); e.position.x = x; g.add(e); }); const tip = new THREE.Mesh(new THREE.SphereGeometry(0.008, 10, 8), nm); tip.position.set(-0.02, 0.137, 0); g.add(tip);
+    const cl = new THREE.Mesh(new THREE.TorusGeometry(0.012, 0.0035, 6, 16, Math.PI * 1.45), nm); cl.position.set(0, -0.004, 0.0185); cl.rotation.z = Math.PI * 0.27; g.add(cl); }
+  return g; }
+function makeBino3D(it) { const g = new THREE.Group(), body = new THREE.MeshPhongMaterial({ color: it.c, shininess: 50 }), acc = new THREE.MeshPhongMaterial({ color: it.a, shininess: 80 }), lens = new THREE.MeshPhongMaterial({ color: it.nv === "nv" ? 0x2ad06a : it.neon ? 0xff4fa3 : 0x6fa8ff, shininess: 160, specular: 0xffffff });
+  [-1, 1].forEach(sd => { const br = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.034, 0.12, 20), body); br.rotation.x = Math.PI / 2; br.position.set(sd * 0.038, 0, 0); g.add(br);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.033, 0.0045, 8, 22), it.neon ? new THREE.MeshBasicMaterial({ color: 0xff2d95 }) : acc); rim.position.set(sd * 0.038, 0, 0.06); g.add(rim); const ln = new THREE.Mesh(new THREE.CircleGeometry(0.029, 20), lens); ln.position.set(sd * 0.038, 0, 0.0605); g.add(ln);
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.024, 0.025, 16), new THREE.MeshLambertMaterial({ color: 0x141416 })); cup.rotation.x = Math.PI / 2; cup.position.set(sd * 0.036, 0, -0.07); g.add(cup);
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.0315, 0.0315, 0.05, 20, 1, true), acc); grip.rotation.x = Math.PI / 2; grip.position.set(sd * 0.038, 0, 0.005); g.add(grip); });
+  const br = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.022, 0.07), body); g.add(br); const fk = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.028, 14), acc); fk.position.set(0, 0.018, -0.02); g.add(fk);
+  if (it.neon) { const nm = new THREE.MeshBasicMaterial({ color: 0xff2d95 }); [-1, 1].forEach(sd => { const st = new THREE.Mesh(new THREE.TorusGeometry(0.0322, 0.0022, 6, 22), nm); st.position.set(sd * 0.038, 0, -0.035); g.add(st); }); }
+  return g; }
+// le talkie équipé est accroché à la ceinture du perso (hanche droite), visible en jeu
+function addBeltTalkie(h) { try { const it = collEq("talkie"), pel = bonePos(h, /^pelvis$/); if (!pel) return; const t = makeTalkie3D(it); t.scale.setScalar(1.3); t.rotation.set(0, -Math.PI / 2, -0.06); boneAcc(h, /^pelvis$/, t, new THREE.Vector3(pel.x - 0.255, pel.y - 0.03, pel.z - 0.015)); h.userData.beltTalkie = t; } catch (e) {} }
+function collThumb(cat, it) { return snapshot("coll-" + it.id, () => { const o = cat === "talkie" ? makeTalkie3D(it) : makeBino3D(it); o.rotation.set(cat === "talkie" ? 0.1 : 0.28, cat === "talkie" ? 0.25 : 0.62, 0); const g = new THREE.Group(); g.add(o); return g; }, 200, 200, cat === "talkie" ? 0.85 : 1.0); }
+function openCollection(cat) { cat = cat || openCollection._c || "talkie"; openCollection._c = cat; setMode("menu");
+  const L = COLL[cat], eq = collEq(cat), tabs = [["talkie", "Talkies-walkies"], ["bino", "Jumelles"]];
+  show(`<div class="panel coll" data-out><div class="kicker">Ma collection</div><h2>Tes <em>objets</em></h2>
+    <div class="avtabs">${tabs.map(([k, n]) => `<button type="button" data-ct="${k}" class="${k === cat ? "sel" : ""}">${n}</button>`).join("")}</div>
+    <div class="cgrid">${L.map(it => { const ok = collOk(it), on = eq.id === it.id; return `<div class="citem ${ok ? "" : "lock"} ${on ? "on" : ""} ${it.neon ? "neon" : ""}"><div class="cimg"><img src="${collThumb(cat, it)}" alt="">${ok ? "" : `<i class="clk">🔒</i>`}</div><b>${it.n}</b><span>${it.d}</span>
+      ${ok ? (on ? `<em class="ceq">Équipé</em>` : `<button type="button" class="btn alt cbtn" data-eq="${it.id}">Équiper</button>`) : `<div class="cbar"><i style="width:${Math.round(collProg(it) * 100)}%"></i></div><small>${collCond(it)}${it.shop ? " · bientôt aussi en boutique" : ""}</small>`}</div>`; }).join("")}</div>
+    <p class="note">Reviens chaque jour : chaque objet se gagne avec la régularité.</p><button class="btn" id="cBack" type="button">Retour</button></div>`);
+  screen.querySelectorAll("[data-ct]").forEach(b => b.addEventListener("click", () => openCollection(b.dataset.ct)));
+  screen.querySelectorAll("[data-eq]").forEach(b => b.addEventListener("click", () => { P.equip = P.equip || {}; P.equip[cat] = b.dataset.eq; saveNow(); stat("equipe-" + b.dataset.eq); sfx.ui && sfx.ui(); if (cat === "talkie" && meMesh) { if (meMesh.userData.beltTalkie && meMesh.userData.beltTalkie.parent) meMesh.userData.beltTalkie.parent.remove(meMesh.userData.beltTalkie); addBeltTalkie(meMesh); } openCollection(cat); }));
+  on("cBack", openMenu); }
+// nouvel objet gagné : une notification, une seule fois
+function collTick(dt) { if (!P || G.mode !== "play") return; collTick.t = (collTick.t || 0) - dt; if (collTick.t > 0) return; collTick.t = 8; P.bestStreak = Math.max(P.bestStreak || 0, P.streakDays || 1); const seen = P.collSeen || (P.collSeen = ["t0", "j0"]);
+  for (const cat of ["talkie", "bino"]) for (const it of COLL[cat]) if (!seen.includes(it.id) && collOk(it)) { seen.push(it.id); saveNow(); stat("objet-" + it.id); notify("gold", `<b>Nouvel objet débloqué : ${it.n}.</b> Menu › Ma collection pour l'équiper.`); return; } }
+function addAccessories(h, o) { try { addTied(h, o); } catch (e) {} try { addHat(h, o); } catch (e) {} try { addFaceHair(h, o); } catch (e) {} try { addEarrings(h, o); } catch (e) {} try { addChain(h, o); } catch (e) {} try { addWatch(h, o); } catch (e) {} try { addBag(h, o); } catch (e) {}
+  if (o.tall) { const k = [0.94, 1, 1.06][o.tall | 0] || 1; h.scale.multiplyScalar(k); } }
+function makeHuman(o) { const curl = HQ.ready && (o.hairStyle === "curly" || o.hairStyle === "afro") ? o.hairStyle : null, tied = HQ.ready && /^(bun|pony|braids)$/.test(o.hairStyle || "") ? o.hairStyle : null; if (curl || tied) o = Object.assign({}, o, { hairStyle: tied ? "parted" : "buzzed", tied }); const h = HQ.ready ? makeHumanQ(o) : makeHumanLegacy(o); if (HQ.ready && h) { try { if (curl) addCurls(h, curl, o.hair); if (o.glasses) addGlasses(h, o.glasses); if (o.freckles) addFreckles(h, o.freckles); } catch (e) {} if (h.userData.q) { addAccessories(h, o); if (o.player) addBeltTalkie(h); } } return h; }
 // gabarit de costaud (street workout, bodybuilders) : bras, épaules et pecs gonflés, taille fine
 function buff(h, k = 1) { const u = h.userData; if (!u || !u.aL) return h; u.aL.scale.setScalar(1 + 0.5 * k); u.aR.scale.setScalar(1 + 0.5 * k); u.torso.scale.set(1 + 0.32 * k, 1, 1 + 0.26 * k); u.lL.scale.setScalar(1 + 0.18 * k); u.lR.scale.setScalar(1 + 0.18 * k); return h; }
 const BODY_T = [ // [part, bras, jambes, torse x, torse z, ventre x, ventre z, hanches, taille, largeur]
@@ -2705,7 +2851,7 @@ const TALKIE = { t: 75, card: null, i: -1, hideT: 0, lines: [
 function talkieCrackle(d = 0.35) { const c = SND.ctx; if (!c || !SND.on) return; noiseHit(0.08, 1800, 0.7, d); const t = c.currentTime, o = c.createOscillator(), g = c.createGain(); o.type = "square"; o.frequency.value = 1240; g.gain.setValueAtTime(0.025, t); g.gain.exponentialRampToValueAtTime(0.0005, t + 0.09); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.1); }
 function talkieSay(txt) {
   if (!TALKIE.card) { const d = document.createElement("div"); d.id = "talkie"; d.innerHTML = '<svg viewBox="0 0 24 40" class="ti"><rect x="4" y="9" width="16" height="29" rx="3" fill="#18181b" stroke="#f4f1ea" stroke-width="1.4"/><rect x="15" y="1" width="2.6" height="9" rx="1.2" fill="#f4f1ea"/><rect x="7" y="13" width="10" height="7" rx="1" fill="#ff2d55"/><g fill="#f4f1ea">' + [0, 1, 2].map(k => `<rect x="7" y="${24 + k * 3.6}" width="10" height="1.4" rx=".7"/>`).join("") + '</g></svg><div class="tx"><b>Thomas · Canal 1</b><span></span></div>'; document.body.appendChild(d); TALKIE.card = d; }
-  TALKIE.card.querySelector("span").textContent = txt; TALKIE.card.classList.add("on"); TALKIE.hideT = 4.5 + txt.length * 0.055; talkieCrackle(0.4);
+  TALKIE.card.querySelector("span").textContent = txt; { const it = collEq("talkie"); TALKIE.card.style.setProperty("--tk", "#" + new THREE.Color(it.a).getHexString()); TALKIE.card.classList.toggle("neon", !!it.neon); } TALKIE.card.classList.add("on"); TALKIE.hideT = 4.5 + txt.length * 0.055; talkieCrackle(0.4);
   const n = TALKIE.lines.indexOf(txt), a = new Audio(`assets/voix/talkie_${n + 1}.mp3`); a.volume = 0.9; a.onerror = () => {}; if (SND.on) a.play().catch(() => {});
 }
 function updateTalkie(dt) {
@@ -6572,10 +6718,10 @@ function updateWild(dt) {
 const SCOPE = { x: 0, z: 0, y: 0, on: false, yaw: 0, pitch: -0.05, fov: 14 };
 function inPark() { const o = G.me; return o.z < -2380 && jgMask(o.x, o.z) < 1.08; }
 function scopeNear() { const h = SCOPE.home || [SCOPE.x, 0, SCOPE.z]; return G.onFoot && !G.inside && (Math.hypot(G.me.x - h[0], G.me.z - h[2]) < 4 || inPark()); }
-function toggleScope() { SCOPE.on = !SCOPE.on; SCOPE.bino = SCOPE.on && inPark(); $("scopeV").classList.toggle("bino", !!SCOPE.bino); if (SCOPE.bino) { SCOPE.x = G.me.x; SCOPE.z = G.me.z; SCOPE.y = GH(G.me.x, G.me.z); SCOPE.yaw = G.camYaw != null ? G.camYaw : G.me.h; SCOPE.pitch = -0.04; SCOPE.fov = 12; help("<b>Jumelles.</b> Glisse sur les côtés pour regarder, vers le haut pour zoomer. Cherche les dinosaures.", 6); $("scopeV").classList.toggle("on", true); return; } if (SCOPE.home) { SCOPE.x = SCOPE.home[0]; SCOPE.y = SCOPE.home[1]; SCOPE.z = SCOPE.home[2]; } if (SCOPE.on) { SCOPE.yaw = Math.atan2(0 - SCOPE.x, 0 - SCOPE.z); SCOPE.pitch = -0.06; SCOPE.fov = 16; help("<b>Longue-vue.</b> Glisse pour regarder autour, pousse vers le haut pour zoomer. Ouvre l'œil : la ville cache des secrets.", 7); } $("scopeV").classList.toggle("on", SCOPE.on); }
+function toggleScope() { SCOPE.on = !SCOPE.on; if (!SCOPE.on) document.body.classList.remove("scope-nv", "scope-pk"); SCOPE.bino = SCOPE.on && inPark(); $("scopeV").classList.toggle("bino", !!SCOPE.bino); if (SCOPE.bino) { SCOPE.x = G.me.x; SCOPE.z = G.me.z; SCOPE.y = GH(G.me.x, G.me.z); SCOPE.yaw = G.camYaw != null ? G.camYaw : G.me.h; SCOPE.pitch = -0.04; { const jb = collEq("bino"); SCOPE.fov = 12 / (jb.z || 1); document.body.classList.toggle("scope-nv", jb.nv === "nv"); document.body.classList.toggle("scope-pk", jb.nv === "pk"); } help("<b>Jumelles.</b> Glisse sur les côtés pour regarder, vers le haut pour zoomer. Cherche les dinosaures.", 6); $("scopeV").classList.toggle("on", true); return; } if (SCOPE.home) { SCOPE.x = SCOPE.home[0]; SCOPE.y = SCOPE.home[1]; SCOPE.z = SCOPE.home[2]; } if (SCOPE.on) { SCOPE.yaw = Math.atan2(0 - SCOPE.x, 0 - SCOPE.z); SCOPE.pitch = -0.06; SCOPE.fov = 16; help("<b>Longue-vue.</b> Glisse pour regarder autour, pousse vers le haut pour zoomer. Ouvre l'œil : la ville cache des secrets.", 7); } $("scopeV").classList.toggle("on", SCOPE.on); }
 function updateScope(dt) {
   if (!SCOPE.on) return false; const inp = input();
-  SCOPE.yaw -= inp.side * 0.6 * dt * (SCOPE.fov / 30); SCOPE.fov = clamp(SCOPE.fov - inp.fwd * 14 * dt, 3, 40);
+  SCOPE.yaw -= inp.side * 0.6 * dt * (SCOPE.fov / 30); SCOPE.fov = clamp(SCOPE.fov - inp.fwd * 14 * dt, SCOPE.bino ? 3 / (collEq("bino").z || 1) : 3, 40);
   camera.position.set(SCOPE.x, SCOPE.y + 1.7, SCOPE.z); camera.lookAt(SCOPE.x + Math.sin(SCOPE.yaw) * 100, SCOPE.y + 1.7 + SCOPE.pitch * 100, SCOPE.z + Math.cos(SCOPE.yaw) * 100);
   if (camera.fov !== SCOPE.fov) { camera.fov = SCOPE.fov; camera.updateProjectionMatrix(); }
   if (meMesh) meMesh.visible = false; sky.position.copy(camera.position); return true;
@@ -8117,7 +8263,8 @@ function checkGoal() {
   if (!P.goal || P.goal.done) return;
   if (goalProgress().k >= 1) { P.goal.done = true; P.unlocked = P.unlocked || {}; P.unlocked[P.goal.type] = Math.max(P.unlocked[P.goal.type] || 0, P.goal.tier + 1); saveNow(); goalReached(); }
 }
-function addCash(n) { P.cash += n; if (n > 0) { P.earned = (P.earned || 0) + n; addXP(Math.round(n / 4)); } G.deltaTimer = 2.2; const d = $("delta"); d.textContent = (n >= 0 ? "+$" : "-$") + fmt(Math.abs(n)); d.style.color = n >= 0 ? "var(--cash)" : "var(--danger)"; d.classList.add("on"); if (n > 0) sfx.cash(); }
+// V306.7 · un cadeau (sauvegarde, confirmation, bonus des commentaires, parrainage) va dans le cash mais ne compte JAMAIS dans l'objectif : seul l'effort fait avancer la barre
+function addCash(n, gift) { P.cash += n; if (n > 0 && !gift) { P.earned = (P.earned || 0) + n; addXP(Math.round(n / 4)); } G.deltaTimer = 2.2; const d = $("delta"); d.textContent = (n >= 0 ? "+$" : "-$") + fmt(Math.abs(n)); d.style.color = n >= 0 ? "var(--cash)" : "var(--danger)"; d.classList.add("on"); if (n > 0) sfx.cash(); }
 function restDay() { return !!P && P.day >= 3 && P.day % 3 === 0; }
 function restBrief() { const k = storyStep(), st = k ? STORY_STEPS[k] : null;
   notify("blue", `<b>Jour ${P.day} · jour de repos.</b> Pas de mission imposée aujourd'hui : balade-toi, la plage, la montagne, la jungle. Le corps se construit aussi au repos. La police de l'inertie, elle, ne se repose jamais : ne reste pas planté.${st ? ` <br>Envie d'avancer quand même ? Ta mission : <b>${st.t}</b>.` : ""}`, 11); }
@@ -9857,7 +10004,7 @@ const EMAIL_GATE_S = 120;
 const VERIFY_URL = "https://script.google.com/macros/s/AKfycbxFiuYqwJzJ7XlKYMkvvJ_lH8ZVk4znGWgh9TeY3YSZ3c_lsDI_dlHhhy7SYcNg3mIaIQ/exec"; // Apps Script de Thomas : renvoie l'état Kit d'une adresse (active = confirmée). Vide = pas de blocage.
 function emailBlocked() { return false; } /* V306.2 : la confirmation de l'adresse ne bloque plus jamais le jeu (fuite n°1 depuis Instagram et TikTok). L'e-mail Kit part toujours (double opt-in), et confirmer devient une récompense : +$2 000 et le badge ✓. */
 const CONFIRM_BONUS = 2000;
-function confirmReward() { if (!P || !P.emailOk || P.confirmBonus) return; P.confirmBonus = 1; addCash(CONFIRM_BONUS); saveNow(); stat("bonus-confirmation"); try { celebrate(3); } catch (e) {} notify("gold", `<b>Adresse confirmée ✓</b> <b style="color:var(--cash)">+$${fmt(CONFIRM_BONUS)}</b> versés et le badge ✓ à côté de ton pseudo.`, 7); }
+function confirmReward() { if (!P || !P.emailOk || P.confirmBonus) return; P.confirmBonus = 1; addCash(CONFIRM_BONUS, true); saveNow(); stat("bonus-confirmation"); try { celebrate(3); } catch (e) {} notify("gold", `<b>Adresse confirmée ✓</b> <b style="color:var(--cash)">+$${fmt(CONFIRM_BONUS)}</b> versés et le badge ✓ à côté de ton pseudo.`, 7); }
 function confirmPoll() { if (!P || !P.email || P.emailOk || !VERIFY_URL || navigator.webdriver) return; checkConfirmed().then(ok => { if (ok) confirmReward(); }); }
 addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && G.started) confirmPoll(); });
 function confirmNudge() { if (!P || !P.email || P.emailOk || CREATOR) return; const d = new Date().toDateString(); if (P.cnDay === d) return; P.cnDay = d; saveNow(); setTimeout(() => { if (P && !P.emailOk && G.mode === "play") notify("gold", "📩 Confirme ton adresse dans l'e-mail <b>« Confirme ton adresse · Constancy »</b> : <b style=\"color:var(--cash)\">+$" + fmt(CONFIRM_BONUS) + "</b> et le badge ✓.", 7); }, 45000); } // mode créateur : jamais d'identifiants demandés
@@ -9962,13 +10109,13 @@ function sendScore() { if (!P || !P.email || !GFORM || navigator.onLine === fals
 function csvRows(t) { return t.split(/\r?\n/).map(l => { const out = []; let cur = "", q = false; for (const ch of l) { if (ch === '"') q = !q; else if (ch === "," && !q) { out.push(cur); cur = ""; } else cur += ch; } out.push(cur); return out; }); }
 async function fetchBoard() { const t = await fetch(BOARD_CSV + "&t=" + Date.now()).then(r => r.text()); const rows = csvRows(t), top = [], par = {};
   rows.forEach(r => { if (r[0] && r[0] !== "pseudo" && r[1] && !isNaN(+r[1])) top.push({ n: r[0], s: +r[1] }); if (r[3] && r[3] !== "parrain" && r[4] && !isNaN(+r[4])) par[r[3]] = +r[4]; }); return { top, par }; }
-function checkReferrals(par) { if (!P || !P.pid) return; const n = par[P.pid] || 0, paid = P.filleulsPaid || 0; if (n > paid) { const k = n - paid; P.filleulsPaid = n; addCash(REF_BONUS * k); saveNow(); stat("parrainage-recompense"); celebrate(4);
+function checkReferrals(par) { if (!P || !P.pid) return; const n = par[P.pid] || 0, paid = P.filleulsPaid || 0; if (n > paid) { const k = n - paid; P.filleulsPaid = n; addCash(REF_BONUS * k, true); saveNow(); stat("parrainage-recompense"); celebrate(4);
   notify("gold", `<b>${k > 1 ? k + " amis ont" : "Un ami a"} rejoint Constancy grâce à toi.</b> <b style="color:var(--cash)">+$${fmt(REF_BONUS * k)}</b> versés. Continue : Chaque ami inscrit te rapporte $${fmt(REF_BONUS)}.`, 8); } }
 function refreshReferrals() { if (!P || !P.pid || !P.email) return; fetchBoard().then(b => checkReferrals(b.par)).catch(() => {}); }
 async function shareGame() {
   const url = GAME_URL + "?p=" + pid(), text = "Pas le temps d'attendre GTA 6 ? Joue à Constancy, la ville où ta régularité fait le score. Gratuit, dans le navigateur :";
   let ok = false; try { if (navigator.share) { await navigator.share({ title: "Constancy", text, url }); ok = true; } else { await navigator.clipboard.writeText(text + " " + url); ok = true; help("<b>Lien copié.</b> Colle-le à tes amis (SMS, Insta, Snap…).", 5); } } catch (e) { ok = false; }
-  if (ok) { stat("partage-jeu"); const today = new Date().toDateString(); if (P.shareDay !== today) { P.shareDay = today; addCash(SHARE_BONUS); saveNow(); notify("gold", `<b>Merci pour le partage !</b> <b style="color:var(--cash)">+$${fmt(SHARE_BONUS)}</b>. Et chaque ami qui crée sa sauvegarde avec ton lien : <b>+$${fmt(REF_BONUS)}</b> pour toi.`, 7); } }
+  if (ok) { stat("partage-jeu"); const today = new Date().toDateString(); if (P.shareDay !== today) { P.shareDay = today; addCash(SHARE_BONUS, true); saveNow(); notify("gold", `<b>Merci pour le partage !</b> <b style="color:var(--cash)">+$${fmt(SHARE_BONUS)}</b>. Et chaque ami qui crée sa sauvegarde avec ton lien : <b>+$${fmt(REF_BONUS)}</b> pour toi.`, 7); } }
 }
 function openShare(fromMenu) {
   setMode("menu"); const url = GAME_URL + "?p=" + pid();
@@ -10007,7 +10154,7 @@ function socialTick() {
   if (!P || G.mode !== "play") return; const t = P.playS || 0;
   if (P.email && t - (P.scoreAt || 0) > 240) sendScore();
   if (P.email && !P.sharePrompt && t > 540 && !G.entering && !G.inside && !G.para && !G.ufoRide) { P.sharePrompt = 1; saveNow(); stat("ecran-parrainage"); openShare(false); }
-  if (!P.refWelcome && refCode() && t > 20) { P.refWelcome = 1; addCash(FRIEND_BONUS); saveNow(); stat("bienvenue-filleul"); notify("gold", `<b>Un ami t'a invité.</b> Cadeau de bienvenue : <b style="color:var(--cash)">+$${fmt(FRIEND_BONUS)}</b>. Bienvenue à Constancy City.`, 7); }
+  if (!P.refWelcome && refCode() && t > 20) { P.refWelcome = 1; addCash(FRIEND_BONUS, true); saveNow(); stat("bienvenue-filleul"); notify("gold", `<b>Un ami t'a invité.</b> Cadeau de bienvenue : <b style="color:var(--cash)">+$${fmt(FRIEND_BONUS)}</b>. Bienvenue à Constancy City.`, 7); }
 }
 function emailMoment(dt) { // le bon moment : juste après une mission, ou quand le joueur souffle (arrêté), sinon au plus tard à 4 min
   if (P.email || CREATOR || G.emailGate || G.mode !== "play" || G.entering || (G.inside && P.emailAsks) || P.emailLater) return;
@@ -10058,7 +10205,7 @@ function openEmailGate(after, step) {
     if (!okMail && /Ce domaine/.test(chk.textContent)) { $("emErr").textContent = "Cette adresse ne peut pas recevoir d'e-mails."; return; }
     const pw = ($("emPw") && $("emPw").value) || ""; if (pwScore(pw) < 1) { $("emErr").style.color = "#ff6b8a"; $("emErr").textContent = "Mot de passe : 6 caractères minimum."; pwDraw(); return; }
     try { pwHashOf(v, pw).then(h => { P.pwH = h; saveNow(); cloudPush(true); }); } catch (e) {}
-    { const ps = ($("emPs") && $("emPs").value || "").replace(/[<>"&]/g, "").trim().slice(0, 16); if (ps) P.pseudo = ps; } pid(); P.email = v; if (!P.src) P.src = SRC; /* V306.6 : la source part avec le compte, même si la sauvegarde est créée avant la première partie */ if (!P.emailBonus) { P.emailBonus = 1; addCash(EMAIL_BONUS); } saveNow(); stat("email-ok"); if (refCode()) stat("inscription-parrainee"); const q = kitQueue(); q.push(v); kitSave(q); kitFlush();
+    { const ps = ($("emPs") && $("emPs").value || "").replace(/[<>"&]/g, "").trim().slice(0, 16); if (ps) P.pseudo = ps; } pid(); P.email = v; if (!P.src) P.src = SRC; /* V306.6 : la source part avec le compte, même si la sauvegarde est créée avant la première partie */ if (!P.emailBonus) { P.emailBonus = 1; addCash(EMAIL_BONUS, true); } saveNow(); stat("email-ok"); if (refCode()) stat("inscription-parrainee"); const q = kitQueue(); q.push(v); kitSave(q); kitFlush();
     P.kitV = 1; saveNow(); G.emailGate = false; stat("sauvegarde-sans-mur"); const fin = () => { if (after) after(); else resume(); celebrate(4); notify("gold", "<b>Sauvegarde créée ✓</b> <b style=\"color:var(--cash)\">+$" + fmt(EMAIL_BONUS) + "</b> versés. Ta progression est gardée. Bonus : confirme ton adresse dans l'e-mail reçu pour <b>+$" + fmt(CONFIRM_BONUS) + "</b> et le badge ✓.", 9); };
     try { xFlash(fin); } catch (e) { fin(); } };
   on("emGo", go); inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
@@ -10129,7 +10276,7 @@ if (CONFIRMED) { const wait = () => { if (G.mode !== "title" || !screen.querySel
 const BONUS_DM = (() => { try { const u = new URL(location.href), b = (u.searchParams.get("b") || "").toLowerCase(); if (b === "jeu5000") { localStorage.setItem("constancy-bonus", "5000"); u.searchParams.delete("b"); history.replaceState(null, "", u.pathname + (u.search.length > 1 ? u.search : "") + u.hash); return true; } return localStorage.getItem("constancy-bonus") === "5000"; } catch (e) { return false; } })();
 function giveBonusDM() { // versé dès que la partie démarre, une seule fois par partie
   if (!P || P.bonusDM) return; let pend = false; try { pend = localStorage.getItem("constancy-bonus") === "5000"; } catch (e) {} if (!pend) return;
-  P.bonusDM = 1; addCash(5000); saveNow(); try { localStorage.removeItem("constancy-bonus"); } catch (e) {} stat("bonus-dm-verse");
+  P.bonusDM = 1; addCash(5000, true); saveNow(); try { localStorage.removeItem("constancy-bonus"); } catch (e) {} stat("bonus-dm-verse");
   setTimeout(() => { celebrate(3); try { sfx.cash(); } catch (e) {} notify("gold", "🎁 <b>+$5 000 offerts</b> · Merci d'avoir commenté JEU. Ton bonus est sur ton compte.", 8); }, 1800); }
 const NOSTAT = (() => { try { const u = new URL(location.href); if (u.searchParams.get("nostat") === "1") { localStorage.setItem("skipgc", "t"); u.searchParams.delete("nostat"); history.replaceState(null, "", u.pathname + (u.search.length > 1 ? u.search : "") + u.hash); } return localStorage.getItem("skipgc") === "t"; } catch (e) { return /[?&]nostat=1/.test(location.search); } })();
 if (onWeb && GC_CODE && !NOSTAT) { const sc = document.createElement("script"); sc.async = true; sc.src = "https://gc.zgo.at/count.js"; sc.dataset.goatcounter = `https://${GC_CODE}.goatcounter.com/count`; document.head.appendChild(sc); }
@@ -10279,9 +10426,15 @@ function snapshot(key, build, w = 220, h = 160, dist = 1) {
       const d = new THREE.DirectionalLight(0xffffff, 0.7); d.position.set(3, 5, 6); snapScene.add(d);
       snapCam = new THREE.PerspectiveCamera(35, w / h, 0.1, 100);
     }
+    const sz = snapR.getSize(new THREE.Vector2()); if (sz.x !== w || sz.y !== h) { snapR.setSize(w, h); snapCam.aspect = w / h; snapCam.updateProjectionMatrix(); }
     const o = build(); snapScene.add(o);
+    if (dist && dist.face) { // V306.8 : gros plan sur le visage (créateur d'avatar, onglets Visage, Cheveux, Accessoires)
+      let hm = null; o.traverse(q => { if (!hm && q.userData && q.userData.rig) hm = q; }); o.updateMatrixWorld(true); const F = hm && faceFrame(hm);
+      const c = F ? F.c.clone() : new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()), f = F ? F.fwd : new THREE.Vector3(0, 0, 1), a = dist.a || 0;
+      const dir = f.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), a); snapCam.position.copy(c).addScaledVector(dir, 1.15).add(new THREE.Vector3(0, 0.12, 0)); snapCam.lookAt(c.x, c.y - 0.02, c.z);
+    } else {
     const box = new THREE.Box3().setFromObject(o), c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3()), r = Math.max(s.x, s.y, s.z) * dist;
-    snapCam.position.set(c.x + r * 1.1, c.y + r * 0.45, c.z + r * 1.6); snapCam.lookAt(c);
+    snapCam.position.set(c.x + r * 1.1, c.y + r * 0.45, c.z + r * 1.6); snapCam.lookAt(c); }
     snapR.render(snapScene, snapCam); const url = snapR.domElement.toDataURL("image/png"); snapScene.remove(o);
     return (snapCache[key] = url);
   } catch (e) { return ""; }
@@ -10292,38 +10445,39 @@ let pickObj = null, pickMus = null, pickTier = 0;
 const look = { gender: "homme", outfit: 0, skin: 1, hs: 1, hc: 0, beard: 0, gl: 0, fr: 0, top: 0, tc: 0, bot: 0, sh: 0 };
 const hex = n => "#" + n.toString(16).padStart(6, "0");
 function createAvatar() {
-  const L = look, key = "av-" + JSON.stringify(L), NF = 36, big = snapshot(key + "@0", () => makeHuman(lookHuman(L)), 240, 300, 0.9);
+  const L = look, tab = createAvatar._tab || "corps", face = tab === "visage" || tab === "cheveux" || (tab === "accessoires" && createAvatar._fz !== 0), key = "av-" + JSON.stringify(L) + (face ? "#f" : ""), NF = face ? 24 : 36, W = 300, H = 380;
+  const shot = a => face ? snapshot(key + "@" + a, () => { const g = new THREE.Group(); g.add(makeHuman(lookHuman(L))); return g; }, W, H, { face: 1, a }) : snapshot(key + "@" + a, () => { const h = makeHuman(lookHuman(L)); h.rotation.y = a; const g = new THREE.Group(); g.add(h); return g; }, W, H, 0.9);
+  const ang = k => face ? Math.sin(k / NF * Math.PI * 2) * 0.62 : k / NF * Math.PI * 2, big = shot(ang(0));
   const sw = (attr, i, sel, c, t) => `<button type="button" class="avsw ${sel ? "sel" : ""}" data-${attr}="${i}" style="--c:${hex(c)}" aria-label="${t}" title="${t}"></button>`;
   const sel = (attr, list, cur) => `<div class="avsel"><select data-sel="${attr}">${list.map((t, i) => `<option value="${i}" ${cur === i ? "selected" : ""}>${t}</option>`).join("")}</select></div>`;
   const row = (t, html) => `<div class="avline"><span class="avlbl">${t}</span>${html}</div>`;
-  show(`<div class="panel avpanel av2"><div class="kicker avk"><i></i>Étape 1 sur 3</div><h2 class="avh">Crée ton <em>perso</em></h2>
-    <div class="avstage"><div class="avframe"><img src="${big}" alt="Aperçu de ton perso" class="avprev" id="avImg"><img src="${big}" alt="" class="avrefl" id="avRefl"><i class="avfloor"></i></div></div>
+  const TABS = [["corps", "Corps"], ["visage", "Visage"], ["cheveux", "Cheveux"], ["tenue", "Tenue"], ["accessoires", "Accessoires"]];
+  const rows = { corps: row("Peau", `<div class="avsws">${AV.skinOrder.map(i => sw("s", i, L.skin === i, SKIN_TONES[i], "Teinte " + (i + 1))).join("")}</div>`) + row("Taille", sel("ht", ACC.heights, L.ht != null ? +L.ht : 1)),
+    visage: (L.gender === "homme" ? row("Barbe", sel("b", ACC.beards, +L.beard || 0)) : "") + row("Lunettes", sel("gl", ["Sans lunettes", "Rondes dorées", "Rondes noires", "Carrées noires", "Solaires"], +L.gl || 0)) + row("Taches de rousseur", sel("fr", ["Aucune", "Quelques-unes", "Beaucoup"], +L.fr || 0)) + row("Boucles d'oreilles", sel("ea", ACC.ears, +L.ea || 0)),
+    cheveux: row("Coupe", sel("hs", AV.hs.map(h => h.n), L.hs)) + row("Couleur", `<div class="avsws">${AV.hc.map((c, i) => sw("hc", i, L.hc === i, c, AV.hcN[i])).join("")}</div>`),
+    tenue: row("Haut", sel("t", AV.tops.map(t => t.n), L.top)) + row("Couleur", `<div class="avsws">${AV.tc.map((c, i) => sw("tc", i, L.tc === i, c, "Couleur " + (i + 1))).join("")}</div>`) + row("Bas", sel("bt", AV.bots.map(t => t.n), L.bot)) + row("Chaussures", sel("sh", AV.shoes.map(t => t.n), L.sh)),
+    accessoires: row("Couvre-chef", sel("hat", ACC.hats, +L.hat || 0)) + ((+L.hat || 0) ? row("Couleur", `<div class="avsws">${ACC.hatC.map((c, i) => sw("htc", i, (+L.htc || 0) === i, c, "Couleur " + (i + 1))).join("")}</div>`) : "") + row("Chaîne", sel("ch", ACC.chains, +L.ch || 0)) + row("Montre", sel("wa", ACC.watches, +L.wa || 0)) + row("Sac", sel("bg", ACC.bags, +L.bg || 0)) };
+  show(`<div class="panel avpanel av2 av3"><div class="kicker avk"><i></i>Étape 1 sur 3</div><h2 class="avh">Crée ton <em>perso</em></h2>
+    <div class="avstage"><div class="avframe${face ? " avface" : ""}"><img src="${big}" alt="Aperçu de ton perso" class="avprev" id="avImg"><img src="${big}" alt="" class="avrefl" id="avRefl"><i class="avfloor"></i>${tab === "accessoires" ? `<button type="button" class="avzoom" id="avZoom">${face ? "Voir en entier" : "Voir le visage"}</button>` : ""}</div></div>
     <div class="avgen"><button type="button" data-g="homme" class="${L.gender === "homme" ? "sel" : ""}">Homme</button><button type="button" data-g="femme" class="${L.gender === "femme" ? "sel" : ""}">Femme</button><i class="avgbar" style="transform:translateX(${L.gender === "femme" ? 100 : 0}%)"></i></div>
-    <div class="avscroll">
-    ${row("Peau", `<div class="avsws">${AV.skinOrder.map(i => sw("s", i, L.skin === i, SKIN_TONES[i], "Teinte " + (i + 1))).join("")}</div>`)}
-    ${row("Coupe", sel("hs", AV.hs.map(h => h.n), L.hs))}
-    ${row("Cheveux", `<div class="avsws">${AV.hc.map((c, i) => sw("hc", i, L.hc === i, c, AV.hcN[i])).join("")}</div>`)}
-    ${L.gender === "homme" ? row("Barbe", sel("b", ["Sans barbe", "Barbe"], L.beard ? 1 : 0)) : ""}
-    ${row("Lunettes", sel("gl", ["Sans lunettes", "Rondes dorées", "Rondes noires", "Carrées noires", "Solaires"], +L.gl || 0))}
-    ${row("Taches de rousseur", sel("fr", ["Aucune", "Quelques-unes", "Beaucoup"], +L.fr || 0))}
-    ${row("Haut", sel("t", AV.tops.map(t => t.n), L.top))}
-    ${row("Couleur", `<div class="avsws">${AV.tc.map((c, i) => sw("tc", i, L.tc === i, c, "Couleur " + (i + 1))).join("")}</div>`)}
-    ${row("Bas", sel("bt", AV.bots.map(t => t.n), L.bot))}
-    ${row("Chaussures", sel("sh", AV.shoes.map(t => t.n), L.sh))}
-    </div>
+    <div class="avtabs">${TABS.map(([k, n]) => `<button type="button" data-tab="${k}" class="${k === tab ? "sel" : ""}">${n}</button>`).join("")}</div>
+    <div class="avscroll">${rows[tab]}</div>
     <button class="btn" id="ok" data-focus type="button">C'est moi</button></div>`);
   const redo = () => { sfx.ui && sfx.ui(); createAvatar(); };
-  screen.querySelectorAll("[data-g]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.g; if (v === L.gender) return; L.gender = v; L.outfit = 0; L.hs = v === "femme" ? 2 : 1; L.beard = 0; redo(); }));
-  const setF = { s: v => L.skin = +v, hc: v => L.hc = +v, tc: v => L.tc = +v, hs: v => L.hs = +v, b: v => L.beard = +v, gl: v => L.gl = +v, fr: v => L.fr = +v, t: v => L.top = +v, bt: v => L.bot = +v, sh: v => L.sh = +v };
+  screen.querySelectorAll("[data-g]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.g; if (v === L.gender) return; L.gender = v; L.outfit = 0; L.hs = v === "femme" ? 2 : 1; L.beard = 0; if (v === "femme" && !L.ea) L.ea = 1; redo(); }));
+  const setF = { s: v => L.skin = +v, hc: v => L.hc = +v, tc: v => L.tc = +v, hs: v => L.hs = +v, b: v => L.beard = +v, gl: v => L.gl = +v, fr: v => L.fr = +v, t: v => L.top = +v, bt: v => L.bot = +v, sh: v => L.sh = +v,
+    ht: v => L.ht = +v, ea: v => L.ea = +v, hat: v => L.hat = +v, htc: v => L.htc = +v, ch: v => L.ch = +v, wa: v => L.wa = +v, bg: v => L.bg = +v };
+  screen.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => { if (createAvatar._tab === b.dataset.tab) return; createAvatar._tab = b.dataset.tab; createAvatar._st = 0; createAvatar._fz = b.dataset.tab === "accessoires" ? 1 : undefined; redo(); }));
+  on("avZoom", () => { createAvatar._fz = face ? 0 : 1; redo(); });
   screen.querySelectorAll(".avsw").forEach(b => { const a = Object.keys(b.dataset)[0]; b.addEventListener("click", () => { setF[a](b.dataset[a]); redo(); }); });
   screen.querySelectorAll("select[data-sel]").forEach(s => s.addEventListener("change", () => { setF[s.dataset.sel](s.value); redo(); }));
   // vitrine : le perso tourne très lentement sur lui-même, les angles sont calculés au fil de l'eau sans bloquer l'écran
   const frames = [big], img = $("avImg"), refl = $("avRefl"); let fi = 0, gen = 1; clearInterval(createAvatar._spin); clearTimeout(createAvatar._gen);
-  const mk = () => { if (!img || !img.isConnected || gen >= NF) return; const a = gen / NF * Math.PI * 2; frames.push(snapshot(key + "@" + gen, () => { const h = makeHuman(lookHuman(L)); h.rotation.y = a; const g = new THREE.Group(); g.add(h); return g; }, 240, 300, 0.9)); gen++; createAvatar._gen = setTimeout(mk, 40); };
+  const mk = () => { if (!img || !img.isConnected || gen >= NF) return; frames.push(shot(ang(gen))); gen++; createAvatar._gen = setTimeout(mk, 40); };
   createAvatar._gen = setTimeout(mk, 120);
   createAvatar._spin = setInterval(() => { if (!img || !img.isConnected) { clearInterval(createAvatar._spin); return; } if (frames.length < 2) return; fi = (fi + 1) % frames.length; if (fi === 0 && frames.length < NF) return; img.src = frames[fi]; if (refl) refl.src = frames[fi]; }, 160);
   const sc = screen.querySelector(".avscroll"); if (sc && createAvatar._st) sc.scrollTop = createAvatar._st; if (sc) sc.addEventListener("scroll", () => createAvatar._st = sc.scrollTop);
-  on("ok", () => { createAvatar._st = 0; clearInterval(createAvatar._spin); clearTimeout(createAvatar._gen); stat("perso-cree"); avatarReveal(afterAvatar); });
+  on("ok", () => { createAvatar._st = 0; createAvatar._tab = "corps"; createAvatar._fz = undefined; clearInterval(createAvatar._spin); clearTimeout(createAvatar._gen); stat("perso-cree"); avatarReveal(afterAvatar); });
 }
 function xFlash(then) { // flash blanc-rose + souffle et impact, comme à l'arrivée sur le menu
   const f = document.createElement("div"); f.className = "xflash"; document.body.appendChild(f); try { flashback(); } catch (e) {} requestAnimationFrame(() => requestAnimationFrame(() => f.classList.add("on")));
@@ -10415,6 +10569,8 @@ function welcomeBack() {
 setTimeout(kitFlush, 4000); window.addEventListener("online", kitFlush);
 function startPlayHome() { G.homeStart = true; startPlay(); setTimeout(refreshReferrals, 8000); }
 function startPlay() {
+  // V306.7 : sauvegardes touchées par le bug des cadeaux (objectif cash validé ou avancé par les bonus avant toute vraie partie) · corrigé une seule fois
+  if (P && !P.goalFix) { P.goalFix = 1; const g = P.goal, early = (P.playS || 0) < 300 && !Object.keys(P.counts || {}).length; if (g && g.type === "cash" && early) { g.done = false; g.base = P.earned || 0; if (P.unlocked && P.unlocked.cash && g.tier === 0) delete P.unlocked.cash; } try { saveNow(); } catch (e) {} }
   if (P && emailBlocked() && !G.emailGate && !startPlay._go) { openConfirmWait(() => { startPlay._go = true; try { startPlay(); } finally { startPlay._go = false; } }); return; } // adresse non confirmée : pas de jeu
   if (P && !P.email && !G.emailGate && !startPlay._go && !navigator.webdriver && !CREATOR) { openEmailGate(() => { startPlay._go = true; try { startPlay(); } finally { startPlay._go = false; } }); return; } // sauvegarde obligatoire avant de jouer
   window.__showcase = false; FW.party = 0; G.playT0 = performance.now(); if (!CREATOR) G.wxForce = null; setTimeout(giveBonusDM, 2500); setTimeout(() => { confirmPoll(); confirmNudge(); }, 4000); returnStats(); jour1Check();
@@ -10808,6 +10964,7 @@ function openMenu() {
     ${!P.email ? `<button class="btn alt" id="saveM" type="button">💾 Créer ma sauvegarde · +$${fmt(EMAIL_BONUS)}</button>` : !P.emailOk ? `<button class="tlink" id="confM" type="button" style="display:block;margin:4px auto 0">📩 Confirme ton adresse : +$${fmt(CONFIRM_BONUS)} et le badge ✓</button>` : ""}
     <div class="pm-grid">
       <button class="pm-t" id="persoM" type="button">${pmIcon("perso")}<span>Mon perso</span></button>
+      <button class="pm-t pk" id="collM" type="button">${pmIcon("perso")}<span>Ma collection</span></button>
       <button class="pm-t" id="boardM" type="button">${pmIcon("board")}<span>Classement</span></button>
       <button class="pm-t pk" id="shareM" type="button">${pmIcon("share")}<span>Inviter un ami</span></button>
       <button class="pm-t" id="sndT" type="button">${pmIcon("son")}<span>${SND.on ? "Son activé" : "Son coupé"}</span></button>
@@ -10818,7 +10975,7 @@ function openMenu() {
     ${CREATOR ? `<div class="pm-grid two"><button class="pm-t" id="crDay" type="button"><span>☀︎ Plein jour</span></button><button class="pm-t" id="crNight" type="button"><span>☾ Nuit</span></button><button class="pm-t" id="crSun" type="button"><span>☀︎ Beau temps</span></button><button class="pm-t" id="crRain" type="button"><span>☂ Pluie</span></button></div><p class="note">Mode créateur : touche la carte pour t'y téléporter.</p>` : ""}
     ${desk ? `<div class="card keys pm-keys"><div class="kgrid"><kbd>Z Q S D</kbd><span>Se déplacer</span><kbd>Maj</kbd><span>Sprint, turbo</span><kbd>Espace</kbd><span>Sauter (×2 : double saut), freiner</span><kbd>F</kbd><span>Monter, descendre, entrer</span><kbd>V</kbd><span>Vue première personne</span><kbd>M</kbd><span>Carte et GPS</span><kbd>J</kbd><span>Joker</span><kbd>Échap</kbd><span>Menu</span></div></div>` : ""}
     <div class="pm-links"><button type="button" id="credits">Crédits</button><i></i><button type="button" id="stopG">Arrêter la partie</button></div><button id="quitHidden" type="button" hidden></button></div>`);
-  on("persoM", openPersoDetails);
+  on("persoM", openPersoDetails); on("collM", () => openCollection());
   on("crDay", () => { creatorSetHour(13); resume(); }); on("crNight", () => { creatorSetHour(22.5); resume(); }); on("crSun", () => { G.wxForce = 0; WX.rain = 0; resume(); }); on("crRain", () => { G.wxForce = 0.85; resume(); });
   on("res", resume); on("stopG", stopMenu); on("shareS", shareStreak); on("shareM", () => openShare(true)); on("boardM", openBoard);
   on("sndT", () => { $("soundBtn").click(); const b = $("sndT"); if (b) b.querySelector("span").textContent = SND.on ? "Son activé" : "Son coupé"; });
@@ -10948,7 +11105,7 @@ function envCar(mesh) { mesh.traverse(o => { if (!o.isMesh || !o.material) retur
 function envUpdate() { if (!ENVR.day) return; const want = (typeof nightK === "number" && nightK > 0.5) ? ENVR.night : ENVR.day; if (ENVR.cur === want) return; ENVR.cur = want;
   ENVR.mats.forEach(m => { m.envMap = want; m.combine = THREE.MixOperation; m.reflectivity = m.userData.refl || 0.3; m.needsUpdate = true; }); }
 window.__W = () => ({ DINOL, loadDinoModels, jetGear, FKID, collide0Terrain, isWater, PERI, RIV, POI, REGL, GRS, CARS, RDX, RGN, REG, regH, EXW, MARSH, mrH, deckH, makeCar, makeRide, JW, RPOOL, GOLF, MX, MXC, mxAt, CLUBI, enterClub, MODELS, ROOFP, AUR, FAIR, PIER, CLUB, BALC, BALP, WETR, WX, TOWER, RIB, BIGS, HELI, openMap3D, M3, NSKY, CTRAIL, spinWheels, get carMesh() { return carMesh; }, NAT, GANTRY, MT, setCarW: id => { P.car = id; setCar(id); }, leaveHome, WRIDE, startWheel, wheelDoor, BEACH, get renderer() { return renderer; }, JUNGLE, JG, JTRACK, jgH, landH, landH0, fillH, CONT, COUNTRY, LIFT, startLift, liftDown, liftDoor, TCAM, ANTENNA, BANNER, TOWER, STUNT, FAIR, PIER, traffic, PALM_SPOTS, PROPC, BLOCK_BOXES, FIRES, LM, life, GH, RAMPS, STUNT, SHOWROOM, GUING, BELL, bell, clink, get nightK() { return nightK; }, notify, setClip, startMamie, LM, startGym, endDay, openShop, storyCheck, storyStart, storyStep, applyMuscle, get P() { return P; }, dinos, playModelAnim, beacons, get ownMark() { return ownMark; }, get destBeacon() { return destBeacon; }, leaveGym: typeof leaveGym === "function" ? leaveGym : null, setCar: typeof setCar === "function" ? setCar : null, WILD, nearMRoad, toggleCar, nearestRide, AP, PAD, G, P, traffic, peds, rentals, GH, MT, HW, SHORE, HALF, scene, camera, get carMesh() { return carMesh; }, get meMesh() { return meMesh; }, mtnH, beachH, shoreEdge, shoreE, hourNow, enterGym: typeof enterGym === 'function' ? enterGym : null });
-window.__F = () => ({ makeLodHuman, makeHumanLegacy, renderer, camera, CINE, ITV, TALKIE, makeHuman, modelInstance, setClip, pick, SKINS, HAIRS, PANTS, SHIRTS, HQ, cineIK, bodyVar, openEmailGate, openMenu, splashAt, PUD, placePuddles, addCurls, startPrologue, titleScreen, stat }); // V306 : fonctions pour les tests automatiques
+window.__F = () => ({ makeLodHuman, makeHumanLegacy, renderer, camera, lookHuman, faceFrame, AV, openCollection, COLL, CINE, ITV, TALKIE, makeHuman, modelInstance, setClip, pick, SKINS, HAIRS, PANTS, SHIRTS, HQ, cineIK, bodyVar, openEmailGate, openMenu, splashAt, PUD, placePuddles, addCurls, startPrologue, titleScreen, stat }); // V306 : fonctions pour les tests automatiques
 window.__X = () => ({ FX, peds, scene, TCAM, COUNTRY, planes, callUfo, SND, sfx, updateMusic, screech, traffic, SH3, CS_BOX, pushCsBoxes, LAMPS, LAMPI, buildingTop, TOWER, updatePlane, breakLamp, updateLamps, VEG, POOLS, POOLF, CAFES, LIFEG, life, GARROW, HZN, FT, planeRescue, AP, offerVoisin, DISP, CATS, startDelivery, jump, RZ0, RZ1, rentals, nearestRide, FT, offerVoisin, VOIS, MECH, SIT, BENCHES, SKID, NSKY, CROSS, RB, WX, applyDirt, LM, offerVtc, dailyState, dailyAdd, rc, tlState, tlNow, SEAT_Y, STREET, scene, camera, CHUNKS, sunDir: () => sea.material.uniforms.sunDir.value, startRun, startClub, ZONES, BLOCK_BOXES, PROPC, bMin, bMax, bC, PIG, horn, crickets, coo, ambientEvents, TL, startRace, LITTER, traffic, get race() { return G.race; } });
 // V306 : profileur caché ?prof=1 · temps passé par fonction de mise à jour (window.__PROF), pour traquer ce qui fait laguer sur téléphone
 if (/[?&]prof=1/.test(location.search)) { window.__PROF = {}; window.__PROFR = { t: 0, n: 0 }; ["applySky", "beaconFx", "checkInterior", "checkZones", "cullChunks", "drawMinimap", "planeGuard", "syncAllRigs", "titleCam", "updateAirportGate", "updateAmbulance", "updateAura", "updateAurora", "updateBalconyPeople", "updateBanner", "updateBeachLife", "updateBell", "updateBigScreens", "updateBirds", "updateBoat", "updateBreath", "updateBusSound", "updateBusStops", "updateCafes", "updateCamera", "updateCamera0", "updateCar", "updateCarLights", "updateCats", "updateCine", "updateClub", "updateClubInside", "updateCountry", "updateCranes", "updateCrossers", "updateDaily", "updateDinos", "updateDirt", "updateDispute", "updateDoorClose", "updateER", "updateEggs", "updateEnter", "updateFair", "updateFairKid", "updateFairKid0", "updateFires", "updateFireworks", "updateFlags", "updateFlyby", "updateFoodTruck", "updateFx", "updateGantry", "updateGarage", "updateGhost", "updateGlare", "updateGolf", "updateGpsTrail", "updateGrass", "updateGrassField", "updateGuideArrow", "updateGuing", "updateGymFolks", "updateHeliAmb", "updateHolly", "updateHomeView", "updateHomeWindow", "updateHud", "updateInterview", "updateJW", "updateJungle", "updateLamps", "updateLevelBadge", "updateLife", "updateLife4", "updateLift", "updateLitter", "updateMarket", "updateMarsh", "updateMe", "updateMechanics", "updateMission", "updateMotocross", "updateMurmur", "updateMusic", "updateNavLights", "updateNightSky", "updatePOI", "updatePalms", "updateParachute", "updatePhotoPeds", "updatePigeons", "updatePlane", "updatePolice", "updatePoliceCheck", "updatePoolLife", "updatePosts", "updatePuddles", "updateRace", "updateRadio", "updateRadio2", "updateRainbow", "updateRegions", "updateReminders", "updateResidence", "updateRibbons", "updateRoads", "updateRoofParties", "updateRoofParties0", "updateRoofPools", "updateRunway", "updateSafari", "updateScope", "updateShopFolks", "updateShops3D", "updateSitters", "updateSkid", "updateSound", "updateSpin", "updateSplash", "updateStreetScenes", "updateTLOD", "updateTV", "updateTalkie", "updateTips", "updateTrafficLights", "updateTrails", "updateTreeLOD", "updateUfo", "updateUfoRide", "updateVeg", "updateVoisin", "updateWeather", "updateWheelRide", "updateWild", "updateWorkers", "updateWorldLife", "updateZoneTitle"].forEach(n => { try { const f = eval(n); if (typeof f !== "function") return; const w = function () { const t0 = performance.now(); try { return f.apply(this, arguments); } finally { const r = window.__PROF[n] || (window.__PROF[n] = { t: 0, n: 0 }); r.t += performance.now() - t0; r.n++; } }; eval(n + " = w"); } catch (e) {} });
@@ -11012,7 +11169,7 @@ function loop(now) {
   updateSound();
   for (let i = 0; i < ANIMATED.length; i++) { const g = ANIMATED[i]; if (!g.visible || !g.parent) continue; const gp = g.parent.isScene ? g.position : g.parent.position; if (gp.distanceToSquared(camera.position) < 160000 && (g.parent.isScene || g.parent.visible)) g.userData.mixer.update(dt); }
   if (mamieMesh && mamieMesh.userData.q && G.started) setClip(mamieMesh, G.alerts.mamieActive && !G.mission ? "Waving" : "Idle_Talking_Loop");
-  updateGlare(dt); updateGuideArrow(dt); updateRadio(); updateNightSky(dt); if ((loop.cf = (loop.cf || 0) + 1) % 15 === 0) cullChunks(); updateDinos(dt); updateWild(dt); updateSpin(dt); updateFx(dt); updateWeather(dt); updateFireworks(dt); updateUfo(dt); updateGhost(dt); updateTrails(dt); sea.material.uniforms.time.value = now / 1000; sea.position.y = -0.62 + Math.sin(now / 1000 * 0.6) * 0.1; sea.position.x = Math.round(camera.position.x / 20) * 20; sea.position.z = Math.round(camera.position.z / 20) * 20; syncAllRigs(dt); fpsTick(dt); try { distCull(dt); rgnFrustum(); } catch (e) {} try { updatePuddles(dt); } catch (e) { if (!PUD.err) { PUD.err = 1; console.warn("flaques", e); } } updateCine(dt); updateTalkie(dt); updateInterview(dt); updateHomeView(dt); envUpdate(); renderFrame();
+  updateGlare(dt); updateGuideArrow(dt); updateRadio(); updateNightSky(dt); if ((loop.cf = (loop.cf || 0) + 1) % 15 === 0) cullChunks(); updateDinos(dt); updateWild(dt); updateSpin(dt); updateFx(dt); updateWeather(dt); updateFireworks(dt); updateUfo(dt); updateGhost(dt); updateTrails(dt); sea.material.uniforms.time.value = now / 1000; sea.position.y = -0.62 + Math.sin(now / 1000 * 0.6) * 0.1; sea.position.x = Math.round(camera.position.x / 20) * 20; sea.position.z = Math.round(camera.position.z / 20) * 20; syncAllRigs(dt); fpsTick(dt); try { distCull(dt); rgnFrustum(); } catch (e) {} try { updatePuddles(dt); } catch (e) { if (!PUD.err) { PUD.err = 1; console.warn("flaques", e); } } updateCine(dt); updateTalkie(dt); updateInterview(dt); try { collTick(dt); } catch (e) {} updateHomeView(dt); envUpdate(); renderFrame();
 }
 
 /* ============ Commandes ============ */

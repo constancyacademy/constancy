@@ -4,7 +4,7 @@ set -e
 R=$(cd "$(dirname "$0")/.." && pwd)
 M=$HOME/monteur; mkdir -p $M/src $M/out /tmp/fnt
 cp $R/outils/fnt/*.ttf /tmp/fnt/
-cp -r $R/outils/mus $M/mus; cp -r $R/outils/cov $M/cov
+cp -r $R/outils/mus $M/mus; cp -r $R/outils/cov $M/cov; mkdir -p $M/cov/out
 sed -e "s#/home/claude/src/#$M/src/#" -e "s#/home/claude/r7/#$M/#g" -e "s#/home/claude/mus/#$M/mus/#g" $R/outils/render2.py > $M/render2.py
 for f in $R/specs/*.json; do sed -e "s#/home/claude/mus/#$M/mus/#g" "$f" > $M/$(basename "$f"); done
 # Rushes : chaque fichier rushes/JJ-MM/<nom>.mp4 devient $M/src/t_<nom>.mp4

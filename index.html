@@ -1640,6 +1640,9 @@ function makeScooter() {
 
 /* --- deux-roues et voitures de location --- */
 const RENT_M = new THREE.MeshPhongMaterial({ color: 0x3fd16b, shininess: 60 }), DARK_M = new THREE.MeshLambertMaterial({ color: 0x18181c });
+// V306.6 · performance : fusionne les pièces fixes d'un groupe par matériau (un seul appel de dessin par matériau au lieu d'un par pièce)
+function mergeByMat(grp) { const by = new Map(); grp.children.slice().forEach(o => { if (!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh || !o.geometry || !o.geometry.index || o.children.length) return; o.updateMatrix(); const g = o.geometry.clone(); g.applyMatrix4(o.matrix); ['uv2', 'color'].forEach(k => { if (g.attributes[k]) g.deleteAttribute(k); }); if (!g.attributes.uv) return; (by.get(o.material) || by.set(o.material, []).get(o.material)).push([o, g]); });
+  by.forEach((L, m) => { if (L.length < 2) return; const mg = THREE.BufferGeometryUtils.mergeBufferGeometries(L.map(q => q[1])); if (!mg) return; L.forEach(([o]) => grp.remove(o)); const me = new THREE.Mesh(mg, m); grp.add(me); }); return grp; }
 function wheel(r, x, y, z, parent) { const w = new THREE.Mesh(new THREE.TorusGeometry(r, r * 0.22, 8, 18), DARK_M); w.rotation.y = Math.PI / 2; w.position.set(x, y, z); parent.add(w); }
 // V305.1 : le train d'atterrissage de l'avion de chasse rentre en vol (version sans train calculée une fois : on retire les triangles sous le fuselage)
 function jetGearSplit(g) { const L = []; g.traverse(o => { if (o.isMesh && !o.userData.noGear && o.geometry && o.geometry.attributes.position && !o.isSkinnedMesh) L.push(o); });
@@ -4096,7 +4099,8 @@ function buildFair() {
     const gd = { g, a: k / 24 * Math.PI * 2, ppl: [] };
     if (CF && CF.Sitting_Idle_Loop && k % 5 !== 2) { const n = k % 3 === 0 ? 2 : 1; for (let q = 0; q < n; q++) { const sd = q ? -1 : 1, h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x34e0ff, 0xf6c945, 0x111114, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: (k + q) % 2 === 0, sleeve: 0.25 }));
       h.position.set(sd * 0.62, -3.72, 0); h.rotation.y = sd > 0 ? -Math.PI / 2 : Math.PI / 2; h.scale.multiplyScalar(0.95); g.add(h); setClip(h, n === 2 ? "Sitting_Talking_Loop" : "Sitting_Idle_Loop", 0.8 + Math.random() * 0.3); h.userData.manual = true; gd.ppl.push(h); } } const roof = new THREE.Mesh(new THREE.SphereGeometry(1.35, 12, 6, 0, 6.28, 0, Math.PI / 2), steel); roof.position.y = -1.5; g.add(roof); const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.5, 5), steel); bar.position.y = -0.7; g.add(bar);
-    scene.add(g); FAIR.gond.push(gd); }
+    mergeByMat(g); scene.add(g); FAIR.gond.push(gd); }
+  mergeByMat(W); /* V306.6 : la grande roue passe de 356 pièces à 6 appels de dessin, chaque nacelle de 10 à 2 */
   addProp(wx, z0 - 9, 2.4); addProp(wx, z0 + 9, 2.4);
   // ======= carrousel à chevaux : plateau rayé, chevaux qui montent et descendent, auvent illuminé =======
   { const cx = PIER.x1 - 58, cz = z0 + 24, CR = new THREE.Group(); CR.position.set(cx, Y, cz); scene.add(CR); FAIR.carou = CR; FAIR.horses = [];
@@ -4115,7 +4119,8 @@ function buildFair() {
       [[-0.18, 0.55], [0.18, 0.55], [-0.18, -0.55], [0.18, -0.55]].forEach(([lx, lz]) => { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.7, 0.14), hm); leg.position.set(lx, -0.6, lz); leg.rotation.x = lz > 0 ? -0.6 : 0.5; hg.add(leg); });
       const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.12, 0.6), pinkM); saddle.position.y = 0.34; hg.add(saddle);
       const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 5.6, 6), gold); rod.position.y = 1.0; hg.add(rod);
-      hg.position.set(Math.cos(a) * r, 2.3, Math.sin(a) * r); hg.rotation.y = -a; CR.add(hg); FAIR.horses.push({ g: hg, ph: k * 0.9 }); }
+      hg.position.set(Math.cos(a) * r, 2.3, Math.sin(a) * r); hg.rotation.y = -a; mergeByMat(hg); CR.add(hg); FAIR.horses.push({ g: hg, ph: k * 0.9 }); }
+    mergeByMat(CR); /* V306.6 : carrousel de 127 à 40 appels de dessin */
     const cl = label("Carrousel", "#ffd36e"); cl.position.set(cx, Y + 11.5, cz); cl.scale.set(9, 2.3, 1); scene.add(cl); }
   // ======= manège à sensations : le grand bras qui tourne =======
   const bx = PIER.x1 - 22, bz = z0 - 28, B = new THREE.Group(); B.position.set(bx, Y + 20, bz); scene.add(B); FAIR.booster = B;

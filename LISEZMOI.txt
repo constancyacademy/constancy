@@ -1,0 +1,4 @@
+CONSTANCY · BRANCHE « rushes » (séparée du site, jamais fusionnée dans main)
+· rushes/JJ-MM/ : Rushes 9:16 1080 × 1920 sans texte, déposés par la conversation jeu (même nom qu'avant : sujet_action_moment.mp4). Après chaque dépôt, la conversation jeu déclenche la tâche « Constancy · Monteur réels ».
+· outils/ : Chaîne de montage (render2.py, musiques et temps forts .json, polices, gabarit des miniatures noires). Installation : bash outils/installer.sh
+· specs/ : Exemples de montage (format : segs [rush, début, fin, fenêtre 9:16 x y l h, 0, vitesse], texts [début, fin, texte ou « @Q »], music, abo, jeu_text, nl_fsz, text_plate, fade).

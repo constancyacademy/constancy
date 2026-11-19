@@ -1,0 +1,1 @@
+W.scene.traverse(o=>{ if(o.isSprite&&o.material&&o.material.map&&o.material.map.image&&o.material.map.image.width==512&&o.material.map.image.height==128) o.visible=false; if(o.isMesh&&o.material&&o.material.blending===2&&o.geometry&&o.geometry.parameters&&o.geometry.parameters.height>40) o.visible=false; });

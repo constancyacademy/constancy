@@ -1,0 +1,6 @@
+CAPTURE DE RUSHES PAR LE MONTEUR (19/11, sans l'iMac)
+· Le jeu (index.html de main, sans media/) tourne dans Chromium sans écran (swiftshader). Les scripts three.js des CDN sont servis en local (dossier vendor : three@0.128.0 depuis cdn.jsdelivr.net, map.txt = adresse → fichier), cdnjs est bloqué par le proxy.
+· cap.js fige le temps (performance.now, Date.now, requestAnimationFrame) et avance de 1/30 s par image : Rendu lent mais 30 i/s parfaits, voitures et passants sans saut.
+· Caméra : window.__camK (G) => ({p, t, fov}), temps du plan = performance.now() - window.__T0. dayT : heure = 8 + dayT/60 (360 = 14h). hide.js cache les étiquettes et les rayons de mission.
+· Lancement : VD=<dossier vendor> node cap.js out_dir shots.json, puis ffmpeg -framerate 30 -i out_dir/<nom>_%03d.png -crf 14 -pix_fmt yuv420p rush.mp4. Chargement 3 à 4 min, 4 à 15 s par image en 1080 × 1920.
+· Attention : Feux d'artifice de jour dans le ciel vers 1 s après le début d'un plan (cx, images 25 et plus) : Recadrer sous le ciel ou couper.

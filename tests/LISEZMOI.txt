@@ -1,0 +1,9 @@
+Tests automatiques de Constancy (navigateur sans écran Playwright, Chromium). Lancés avant chaque publication.
+· Contrôle de syntaxe : node --check sur le plus gros bloc <script> de index.html.
+· tf.js PAGE PREFIXE : Parcours complet ?s=tt · accueil (Constancy City, un seul gros bouton) → avatar → sauvegarde sans mur (adresse de test, réseau coupé, aucune vraie inscription envoyée) → en jeu. Vérifie window.__stats (arrivee-tt, jouer-tt, perso-cree-tt, ecran-email-1-tt, email-ok-tt, badge-jour1) et la sauvegarde (src, cash +5 000).
+· test_cine.js PAGE PREFIXE : Prologue (main sur l'épaule), talkie-walkie, mini-interview, lignes du pont.
+· views2.js LISTE.json : Vues fixes à capturer et contrôler image par image (dinosaures, musée, fontaine, temples, pluie, route dorée, avatars). Erreurs de page affichées en direct (PAGEERR).
+· prof.js : Temps par fonction (?prof=1) dans 3 lieux de référence (ville, parc, sud).
+· tri.js : Triangles et appels de dessin par objet dans les 3 lieux (règle : jamais une version plus lourde que la précédente).
+· err.js : Toutes les erreurs console au lancement et en jeu.
+Adresse de test : Toujours une adresse qui contient « test ». Compteur caché sur téléphone : ?fps=1.

@@ -1,0 +1,17 @@
+// plusieurs vues fixes en un seul chargement : node views.js page.html outPrefix views.json [w h]
+const { chromium } = require('playwright'); const fs = require('fs');
+(async () => { const [,, page, pre, vf, w = 900, h = 900] = process.argv; const V = JSON.parse(fs.readFileSync(vf, 'utf8'));
+  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--allow-file-access-from-files', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--mute-audio'] });
+  const p = await (await b.newContext({ viewport: { width: +w, height: +h } })).newPage(); const errs = []; p.on('pageerror', e => { errs.push(e.message); console.log('PAGEERR', e.message, (e.stack || '').split('\n').slice(1, 3).join(' | ')); }); p.on('console', m => { if (/continent|terre|roues|warn|rror|FKID|enfant/i.test(m.text())) errs.push(m.text().slice(0, 200)); });
+  const t0 = Date.now(); await p.goto('file://' + require('path').resolve(page) + '?nostat=1' + (process.env.Q || '')); await p.waitForSelector('#quick', { timeout: 400000 });
+  await p.click('#quick', { force: true, noWaitAfter: true, timeout: 600000 }); await p.waitForSelector('#ok, .choice', { timeout: 600000 }); if (await p.$('#ok')) { await p.waitForTimeout(400); await p.evaluate(() => document.getElementById('ok').click()); } await p.waitForSelector('.choice', { timeout: 600000 }); await p.click('.choice', { force: true, noWaitAfter: true, timeout: 600000 }); await p.waitForTimeout(2500); if (await p.$('#gSkip')) await p.click('#gSkip', { force: true, noWaitAfter: true, timeout: 600000 }); await p.waitForTimeout(500);
+  await p.evaluate(() => { const W = window.__W(); if (W.P) { W.P.storyI = 99; } W.G.mission = null; window.__outHome = 1; W.G.inside = false; W.G.intro = null; W.G.afterCar = null; });
+  console.log('started', await p.evaluate(() => { const W = window.__W(); return !!(W.P && W.G.started); }));
+  await p.waitForTimeout(3000); await p.addStyleTag({ content: 'body *:not(#game){visibility:hidden!important} #game{visibility:visible!important}' });
+  console.log('load', (Date.now() - t0) / 1000);
+  for (const v of V) { await p.evaluate(v => { const W = window.__W(); window.__outHome = 1; W.G.inside = false; W.G.intro = null; W.G.afterCar = null; W.G.mission = null; W.G.started = true; if (W.P) { W.P.day = 2; W.P.nightStart = 0; W.P.dayT = v.dayT || 600; } window.__wx = 0; W.WX.rain = 0;
+      if (v.me) { W.G.me.x = v.me[0]; W.G.me.z = v.me[1]; W.G.me._lx = W.G.me.x; W.G.me._lz = W.G.me.z; }
+      if (v.js) eval(v.js);
+      window.__camK = v.camjs ? eval(v.camjs) : () => ({ p: v.p, t: v.t, fov: v.fov || 60 }); W.camera.far = Math.max(W.camera.far, v.far || 0); if (v.nofog && W.scene.fog) { W.scene.fog.near = 1e5; W.scene.fog.far = 2e5; } }, v);
+    await p.waitForTimeout(v.wait || 6000); await p.screenshot({ path: pre + v.name + '.png', timeout: 240000 }); console.log('view', v.name, JSON.stringify(await p.evaluate(() => { const W = window.__W(); if (W.FKID) console.log('FKID', JSON.stringify({ st: W.FKID.st, t: W.FKID.t, off: W.FKID.off, kid: !!W.FKID.kid, why: W.FKID.why, mode: W.G.mode, foot: W.G.onFoot, day: W.P && W.P.day, fk: W.P && W.P.fairKidDay })); return { h: W.hourNow(), nk: W.nightK, P: W.P && [W.P.day, W.P.dayT, W.P.nightStart], dbg: window.__dbg }; }))); }
+  console.log('errs', JSON.stringify(errs.slice(0, 8))); await b.close(); })();

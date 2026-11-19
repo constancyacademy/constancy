@@ -1,0 +1,12 @@
+const { chromium } = require('playwright'); const path = require('path');
+(async () => { const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--allow-file-access-from-files', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--mute-audio'] });
+  const p = await (await b.newContext({ viewport: { width: 600, height: 600 } })).newPage(); const errs = [];
+  p.on('pageerror', e => { errs.push('PAGEERR ' + e.message + ' ' + (e.stack || '').split('\n').slice(1, 3).join(' | ')); console.log('PAGEERR', e.message, (e.stack || '').split('\n').slice(1, 3).join(' | ')); });
+  p.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.log('CONSOLE', m.type(), m.text().slice(0, 300)); });
+  await p.goto('file://' + path.resolve(process.argv[2]) + '?nostat=1'); await p.waitForSelector('#quick', { timeout: 600000 }); console.log('title ok');
+  await p.waitForTimeout(5000); await p.click('#quick', { force: true, noWaitAfter: true, timeout: 600000 }); await p.waitForSelector('#ok, .choice', { timeout: 600000 }); if (await p.$('#ok')) await p.evaluate(() => document.getElementById('ok').click());
+  await p.waitForSelector('.choice', { timeout: 600000 }); await p.click('.choice', { force: true, noWaitAfter: true, timeout: 600000 }); await p.waitForTimeout(8000);
+  console.log('frames', await p.evaluate(() => new Promise(r => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 < 3000) requestAnimationFrame(f); else r(n); }; requestAnimationFrame(f); })));
+  console.log('state', await p.evaluate(() => { const W = window.__W(); return JSON.stringify({ mode: W.G.mode, started: W.G.started, dayT: W.P && W.P.dayT }); }));
+  await p.waitForTimeout(4000); console.log('info', await p.evaluate(() => JSON.stringify(window.__dbg ? { calls: window.__dbg().calls, tri: window.__dbg().triangles } : {}))); console.log('state2', await p.evaluate(() => { const W = window.__W(); return JSON.stringify({ mode: W.G.mode, dayT: W.P && W.P.dayT }); }));
+  await b.close(); })();

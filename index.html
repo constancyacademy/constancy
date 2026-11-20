@@ -613,7 +613,7 @@ function dirtRibbon(P, w) {
   pts.push(P[P.length - 1]); const pos = [], uv = [], idx = []; let dist = 0;
   for (let i = 0; i < pts.length; i++) { const [x, z] = pts[i], a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], tx = b[0] - a[0], tz = b[1] - a[1], tl = Math.hypot(tx, tz) || 1, nx = -tz / tl, nz = tx / tl;
     if (i) dist += Math.hypot(x - pts[i - 1][0], z - pts[i - 1][1]);
-    [-1, 1].forEach(sd => { const px = x + nx * w / 2 * sd, pz = z + nz * w / 2 * sd; pos.push(px, landH(px, pz) + 0.09, pz); uv.push(sd < 0 ? 0 : 1, dist / w); }); }
+    [-1, 1].forEach(sd => { const px = x + nx * w / 2 * sd, pz = z + nz * w / 2 * sd; pos.push(px, landH(px, pz) + ((nearNat(px, pz) < 9.5 || onHighway(px, pz)) ? -0.35 : 0.09), pz); uv.push(sd < 0 ? 0 : 1, dist / w); }); } /* V308.6 (Monteur, 20/11 1h17 : « une plaque de terre marron passe sous la caméra ») : un chemin de terre qui croise la nationale passait PAR-DESSUS l'asphalte · il passe désormais dessous */
   for (let i = 0; i < pts.length - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
   const m = new THREE.Mesh(g, DIRT_M); m.receiveShadow = true; scene.add(m);
@@ -1860,7 +1860,7 @@ function nfxTrail(U) {
   if (U.trail) return U.trail; const N = 64, R = U.em.length, pos = new Float32Array(R * N * 2 * 3), col = new Float32Array(R * N * 2 * 3), idx = [];
   for (let r = 0; r < R; r++) for (let i = 0; i < N - 1; i++) { const a = (r * N + i) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
   const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.BufferAttribute(col, 3)); geo.setIndex(idx);
-  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false })); mesh.frustumCulled = false; mesh.renderOrder = 5; scene.add(mesh);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false })); mesh.frustumCulled = false; mesh.renderOrder = 5; scene.add(mesh); /* V308.6 (Monteur, 20/11 1h17 : « les traînées brûlent le bas de l'image en blanc, baisse-les de moitié ») */
   U.trail = { mesh, pos, col, N, R, h: Array.from({ length: R }, () => []) }; return U.trail;
 }
 const _nv = new THREE.Vector3(), _nw = new THREE.Vector3(), _nc = new THREE.Color();
@@ -9361,6 +9361,7 @@ function collide0Terrain(o, swim) {
   // bord de l'eau : la voiture s'arrête au rivage, à la nage on peut aller jusqu'au large (limite plus loin)
   if (onHighway(o.x, o.z)) { if (o.z < HW.z0 - 30 && o.z > HW.z1 + 10) { const lx = HW.x - 7.2, rx = HW.x + 7.2; if (o.x < lx) { o.x = lx; hit = true; } if (o.x > rx) { o.x = rx; hit = true; } } return hit; }
   if (onAirport(o.x, o.z) || (o.x > AP.x0 + 1 && o.x < AP.x1 - 1 && o.z > AP.zg - 30 && o.z < AP.z1)) { if (o.z > AP.z1 - 2) { o.z = AP.z1 - 2; hit = true; }
+    if (!(o === G.car && G.ride && RIDES[G.ride.kind] && RIDES[G.ride.kind].plane && G.car.alt > 2)) for (const S of AP_SOL) { const dx = o.x - S.x, dz = o.z - S.z, d = Math.hypot(dx, dz), R = S.r + (o === G.car && !G.onFoot ? 1.4 : 0.35); if (d < R && d > 1e-3) { o.x = S.x + dx / d * R; o.z = S.z + dz / d * R; hit = true; } } /* V308.6 : tour de contrôle et radar solides */
     // grillage entre le parking et la zone avions : on passe par l'entrée voitures (barrière) ou par le portillon piétons
     { const fz = AP.z0 - 3, inCar = Math.abs(o.x - AP.gx) < 5.6, inPed = o === G.me && Math.abs(o.x - (AP.gx + 11)) < 1.3; let pi = -1;
       if (!inCar && !inPed && Math.abs(o.z - fz) < 1.1 && APF.inst && (pi = fenceAt(o.x)) >= 0 && !APF.panels[pi].down && o === G.car && !G.onFoot && Math.abs(G.car.v) > 4) { const q = APF.panels[pi]; q.down = 1; q.dir = Math.sign(Math.cos(G.car.h) * Math.sign(G.car.v)) || 1; G.car.v *= 0.8; if (SND.ctx) noiseHit(0.3, 1400, 0.6, 0.4); if (!G.fenceT) { G.fenceT = 1; help("Le grillage n'a pas tenu.", 2); } }
@@ -9538,7 +9539,23 @@ function buildAirports(r) {
     const el = label("Escadrille Constancy · missions", "#c8d27a"); el.position.set(272, 13, AP.z0 + 14); el.scale.set(20, 5, 1); scene.add(el); }
   // tour de contrôle + aérogare vitrée
   const glass = new THREE.MeshPhongMaterial({ color: 0x9fd3ff, shininess: 90, specular: 0x99bbdd, emissive: 0x112233 });
-  addGeo(wallM, new THREE.CylinderGeometry(2.6, 3.4, 30, 12), -150, 15, AP.z0 + 22); addGeo(glass, new THREE.CylinderGeometry(6, 4.5, 5, 12), -150, 32, AP.z0 + 22); addGeo(roofCap(), new THREE.CylinderGeometry(6.6, 6.6, 0.8, 12), -150, 34.8, AP.z0 + 22);
+  /* V308.6 (MODIFICATION : « la tour de contrôle, il faut en créer une plus grande, quelque chose de plus imposant ») : tour de 70 m · fût à ailettes, balcon, vigie évasée en verre incliné à montants, anneau néon rose, toit, mât à feu rouge qui clignote, radar qui tourne · on ne la traverse plus */
+  { const TX = -150, TZ = AP.z0 + 22, H = 56, conc = new THREE.MeshLambertMaterial({ color: 0xece8e1 }), fin = new THREE.MeshLambertMaterial({ color: 0xc4cad3 }), dark = new THREE.MeshLambertMaterial({ color: 0x2a2f37 }), steelT = new THREE.MeshLambertMaterial({ color: 0x9aa3ad });
+    const cabG = new THREE.MeshPhongMaterial({ color: 0x7fc4f0, shininess: 120, specular: 0xb5d8f5, emissive: 0x0d2236, transparent: true, opacity: 0.86 });
+    addGeo(conc, new THREE.BoxGeometry(18, 6, 18), TX, 3, TZ); addGeo(glass, new THREE.BoxGeometry(18.3, 2.2, 18.3), TX, 3.4, TZ); addGeo(roofCap(), new THREE.BoxGeometry(19, 0.5, 19), TX, 6.2, TZ);
+    addGeo(conc, new THREE.CylinderGeometry(3.3, 4.8, H, 20), TX, H / 2, TZ);
+    for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; addGeo(fin, new THREE.BoxGeometry(0.8, H * 0.9, 1.7), TX + Math.cos(a) * 4.1, H * 0.47, TZ + Math.sin(a) * 4.1, Math.PI / 2 - a); }
+    addGeo(fin, new THREE.CylinderGeometry(5.8, 5.8, 0.7, 24), TX, H * 0.6, TZ); addGeo(steelT, new THREE.TorusGeometry(5.7, 0.07, 4, 36), TX, H * 0.6 + 1.1, TZ, 0, 1, 1, 1, Math.PI / 2);
+    addGeo(conc, new THREE.CylinderGeometry(7.6, 3.6, 4.2, 8), TX, H + 2.1, TZ);
+    addGeo(cabG, new THREE.CylinderGeometry(8.9, 7.5, 6, 8, 1, true), TX, H + 7.2, TZ);
+    for (let k = 0; k < 8; k++) { const a = (k + 0.5) / 8 * Math.PI * 2, rr = 8.15; addGeo(dark, new THREE.BoxGeometry(0.28, 6.2, 0.28), TX + Math.cos(a) * rr, H + 7.2, TZ + Math.sin(a) * rr, -a, 1, 1, 1, 0, 0); }
+    addGeo(dark, new THREE.CylinderGeometry(7.4, 7.4, 0.5, 8), TX, H + 4.35, TZ); addGeo(conc, new THREE.CylinderGeometry(9.8, 9.2, 1.1, 8), TX, H + 10.7, TZ); addGeo(fin, new THREE.CylinderGeometry(4.2, 5.6, 1.8, 8), TX, H + 12.1, TZ);
+    addGeo(steelT, new THREE.CylinderGeometry(0.14, 0.24, 12, 6), TX, H + 19, TZ); [3, 6.5, 10].forEach(y => addGeo(steelT, new THREE.BoxGeometry(2.2, 0.08, 0.08), TX, H + 13 + y, TZ));
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(7.75, 0.13, 6, 56), new THREE.MeshBasicMaterial({ color: 0xff2d95 })); ring.rotation.x = Math.PI / 2; ring.position.set(TX, H + 4.1, TZ); scene.add(ring);
+    const bc = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 8), new THREE.MeshBasicMaterial({ color: 0xff2a2a })); bc.position.set(TX, H + 25.3, TZ); scene.add(bc); APG.beacon = bc;
+    const RX = TX + 26, RZ = TZ - 8; addGeo(steelT, new THREE.CylinderGeometry(0.7, 1.3, 11, 10), RX, 5.5, RZ); addGeo(conc, new THREE.BoxGeometry(4, 1.2, 4), RX, 0.6, RZ);
+    const rad = new THREE.Group(); rad.position.set(RX, 11.6, RZ); const rm = new THREE.MeshLambertMaterial({ color: 0xf1f2f4, side: THREE.DoubleSide }); { const dg = new THREE.CylinderGeometry(4.2, 4.2, 1.6, 16, 1, true, -0.9, 1.8); dg.rotateZ(Math.PI / 2); const d = new THREE.Mesh(dg, rm); d.position.z = -0.6; rad.add(d); const arm = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 2.2), dark); arm.position.z = 0.4; rad.add(arm); } scene.add(rad); APG.radar = rad;
+    AP_SOL.push({ x: TX, z: TZ, r: 9.6 }, { x: RX, z: RZ, r: 2.6 }); }
   // V277 : aérogare moderne · façade vitrée à montants, toit en vague qui déborde, colonnes blanches, passerelles d'embarquement, enseignes
   { const tc = document.createElement("canvas"); tc.width = 256; tc.height = 256; const tg = tc.getContext("2d"); const gr = tg.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, "#bfe3ff"); gr.addColorStop(0.55, "#6fa9d6"); gr.addColorStop(1, "#2f5f8a"); tg.fillStyle = gr; tg.fillRect(0, 0, 256, 256);
     tg.fillStyle = "rgba(255,240,210,.55)"; for (let k = 0; k < 4; k++) tg.fillRect(20 + k * 60, 150, 30, 70); tg.fillStyle = "#e9edf2"; tg.fillRect(0, 0, 256, 10); tg.fillRect(0, 124, 256, 8); tg.fillRect(0, 0, 8, 256); tg.fillRect(124, 0, 6, 256);
@@ -9573,7 +9590,7 @@ function buildAirports(r) {
   const ml = label("Aérodrome du Mont", "#cfd8e6"); ml.position.set(PAD.x1 + 10, PAD.h + 12, PAD.z1 - 20); ml.scale.set(18, 4.5, 1); scene.add(ml);
   { const mesh = makeRide("avion"); mesh.position.set(px, PAD.h, PAD.z1 - 14); mesh.rotation.y = Math.PI; scene.add(mesh); rentals.push({ kind: "avion", mesh, x: px, z: PAD.z1 - 14, h: Math.PI, plane: true }); }
 }
-const APG = { arm: null, peds: [] };
+const APG = { arm: null, peds: [] }, AP_SOL = [];
 
 function buildAirportLandside(asph, white, wallM, r) {
   const fz = AP.z0 - 3, gx = AP.gx, grass = new THREE.MeshLambertMaterial({ color: 0x5f8f4a }), hedge = new THREE.MeshLambertMaterial({ color: 0x3f6b35 });
@@ -9612,6 +9629,7 @@ function fencePanel(i) { const q = APF.panels[i], w = q.x1 - q.x0; _fd.position.
 function fenceAt(x) { return APF.panels.findIndex(q => x >= q.x0 - 0.3 && x <= q.x1 + 0.3); }
 function updateAirportGate(dt) {
   if (APF.inst) APF.panels.forEach((q, i) => { if (q.down && q.t < 1) { q.t = Math.min(1, q.t + dt * 2.6); fencePanel(i); } });
+  if (APG.radar) APG.radar.rotation.y += dt * 1.1; if (APG.beacon) APG.beacon.visible = (performance.now() % 1400) < 380;
   if (!APG.arm) return; const o = target(), near = Math.abs(o.x - AP.gx) < 9 && Math.abs(o.z - (AP.z0 - 3)) < (G.onFoot ? 7 : 16);
   const tgt = near ? 1.35 : 0; APG.arm.rotation.z = clamp(APG.arm.rotation.z + (tgt - APG.arm.rotation.z) * Math.min(1, dt * 3), 0, 1.45);
   if (near && !G.gateHint) { G.gateHint = true; help("La barrière se lève. <b>Aéroport</b> : les avions sont derrière le grillage.", 4); }

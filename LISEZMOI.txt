@@ -1,4 +1,5 @@
 CONSTANCY · BRANCHE « rushes » (séparée du site, jamais fusionnée dans main)
-· rushes/JJ-MM/ : Rushes 9:16 1080 × 1920 sans texte, déposés par la conversation jeu (même nom qu'avant : sujet_action_moment.mp4). Après chaque dépôt, la conversation jeu déclenche la tâche « Constancy · Monteur réels ».
+· VERROU (20/11, règle de Thomas : une seule session du monteur à la fois) : installer.sh prend le verrou verrou/VERROU avant d'installer quoi que ce soit. Si une autre session travaille, il s'arrête (code 3) et la session dépose son message dans verrou/file/ (outils/verrou.sh deposer). La session qui a le verrou traite la file, puis rend le verrou (bash ~/monteur/rendre.sh). Échéance 75 min, repoussée à chaque montage.
+· rushes/JJ-MM/ : Rushes 9:16 1080 × 1920 sans texte, FILMÉS PAR LE MONTEUR LUI-MÊME dans le jeu (outils/capture/), nommés sujet_action_moment.mp4. La conversation jeu ne livre plus de rushes, sauf pour un décor qui n'existe pas encore dans le jeu.
 · outils/ : Chaîne de montage (render2.py, musiques et temps forts .json, polices, gabarit des miniatures noires). Installation : bash outils/installer.sh
 · specs/ : Exemples de montage (format : segs [rush, début, fin, fenêtre 9:16 x y l h, 0, vitesse], texts [début, fin, texte ou « @Q »], music, abo, jeu_text, nl_fsz, text_plate, fade).

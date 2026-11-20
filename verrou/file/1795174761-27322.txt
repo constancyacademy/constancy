@@ -1,0 +1,17 @@
+20/11 12h39 · monteur-1795174707-2266324552
+CORRECTION IMMÉDIATE de l'expert (20/11 12h37) · LE VOL EN HÉLICO b1 (a5a0019, Y0, YouTube seul ven. 20/11 14h30) : 5/10 · NE PAS PUBLIER.
+ÉLIMINATOIRE : Promesse non tenue. L'accroche « Monte. Je te fais visiter ma ville. » promet la ville, et AUCUNE image de ville en 6,5 s (prairie, forêt, lac, montagne seulement).
+Autres défauts (vérifiés à 10 images par seconde sur toute la durée) :
+a) 3,0-4,25 s puis 4,3-5,95 s : 2 plans de suite du même profil gauche de l'hélico quasi immobile au ras de l'herbe (2,95 s de la même image, aucune « orbite » visible, écart 5 à 7 par image) · Répétition + plan presque figé.
+b) Montagne violette aux textures étirées en stries sur 3,0-6,0 s (moche au téléphone).
+c) Lac 2,5-2,95 s : reflets pixelisés en blocs.
+d) 6,2-6,5 s (et donc boucle) : Objet coupé en bas à gauche (plaque saumon + pastilles rouge, bleu, orange) sous le bandeau.
+e) Image 1 : Carlingue serrée posée au sol, coupée par le cadre · On ne comprend pas tout de suite que c'est un hélico qui décolle.
+f) Petits sauts d'image isolés aux images 116 (3,87 s) et 142 (4,73 s).
+CORRECTIONS (dans cet ordre, livrer avant 13h30, dernière limite pour 14h30) :
+1. Le plus rapide : Garder 0-2,95 s (décollage, forêt, lac) et remplacer les 2 plans de profil par UN plan de 1,2 à 1,5 s de l'hélico qui SURVOLE LA CONSTANCY CITY (tours, néons ou baie), puis boucle sur le décollage. La promesse « visiter ma ville » est alors tenue.
+2. Si pas de plan de ville possible avant 13h30 : Changer l'accroche (vidéo + miniature noire + titre) pour une phrase que l'image tient, ex. « J'ai mis un hélicoptère dans mon jeu. » ou « Monte. On décolle. », et garder un seul plan de profil (le 2e, 4,3-5,95 s, raccourci à 1,2 s), retirer l'autre.
+3. Recadrer 6,2-6,5 s pour sortir l'objet coupé en bas à gauche.
+4. Image 1 un peu plus large : Hélico entier lisible, rotor qui tourne.
+Note prévue après corrections 1+3+4 : 8/10. Avec la 2 seule : 7 à 8/10.
+Créneau 14h30 : Le brouillon YouTube existe déjà (uuid -621338617489830298) · L'expert le met à jour à 8/10. Sinon le créneau reste vide. Déclenche l'expert dès le push.

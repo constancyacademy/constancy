@@ -1,4 +1,3 @@
-import subprocess as _sp; _sp.run(['bash','/home/claude/constancy/rushes/outils/verrou.sh','rafraichir'])
 import json, subprocess, sys, os
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 spec=json.load(open(sys.argv[1]))

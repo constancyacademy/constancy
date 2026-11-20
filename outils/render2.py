@@ -1,10 +1,11 @@
+import subprocess as _sp; _sp.run(['bash','/home/claude/constancy/rushes/outils/verrou.sh','rafraichir'])
 import json, subprocess, sys, os
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 spec=json.load(open(sys.argv[1]))
 W,H=1080,1920
-SRC='/home/claude/src/'
+SRC='/root/monteur/src/'
 FG='/tmp/fnt/ebg700.ttf'; FG6='/tmp/fnt/ebg600.ttf'; FI='/tmp/fnt/inter600.ttf'; FE='/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf'
-work='/home/claude/r7/tmp_'+spec['id']; os.makedirs(work,exist_ok=True)
+work='/root/monteur/tmp_'+spec['id']; os.makedirs(work,exist_ok=True)
 WIN={'T':(0,816),'B':(1075,845),'B2':(1040,880),'F':(0,1920)}
 def bandeau(path):
     im=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(im)
@@ -89,7 +90,7 @@ def build(texts,out):
     fc.append(''.join(f'[s{i}]' for i in range(len(segs)))+f'concat=n={len(segs)}:v=1:a=0[c]')
     last='c'; k=bi+1
     if spec.get('music'):
-        mj=json.load(open('/home/claude/mus/'+spec['music']+'.json'))
+        mj=json.load(open('/root/monteur/mus/'+spec['music']+'.json'))
         bts=[b for b in mj['beats'] if b<total]
         if spec.get('beat_every',1)>1: bts=bts[::spec['beat_every']]
         E='+'.join(f'exp(-(t-{b})/0.085)*gte(t,{b})' for b in bts) or '0'
@@ -97,7 +98,7 @@ def build(texts,out):
         fc.append(f"[c]scale={Wb}:{Hb},crop={W}:{H}:x='(iw-ow)/2+{A}*({E})*sin(t*93)':y='(ih-oh)/2+{A}*({E})*cos(t*71)',eq=brightness='0.07*({E})':eval=frame[cv]"); last='cv'
     if 'overlay_seq' in spec:
         inputs+=['-framerate','30','-i',spec['overlay_seq']+'/f%04d.png']
-        fc.append(f'[c][{k}:v]overlay=0:0:shortest=0[cs]'); last='cs'; k+=1
+        fc.append(f'[{last}][{k}:v]overlay=0:0:shortest=0[cs]'); last='cs'; k+=1
     for j,t in enumerate(texts):
         p=f'{work}/{os.path.basename(out)}_t{j}.png'; text_png(t[2],p,t[3] if len(t)>3 else None,t[4] if len(t)>4 else None); inputs+=['-i',p]
         fc.append(f"[{last}][{k}:v]overlay=0:0:enable='between(t,{t[0]},{t[1]})'[o{j}]"); last=f'o{j}'; k+=1
@@ -118,5 +119,5 @@ for ver in (('q','jeu','yt') if spec.get('abo') else ('q','jeu')):
             elif ver=='yt': tt.append([t[0],t[1],'Abonne-toi',spec.get('yt_sub','Une nouveauté chaque jour.'),'🔔'])
             else: tt.append([t[0],t[1],spec['jeu_text']] if spec.get('jeu_text') else [t[0],t[1],'Commente JEU','Le lien du jeu en message privé','🎁'])
         else: tt.append(t)
-    out=f"/home/claude/r7/out/reel_{spec['id']}_{spec.get('ver','b7')}_{ver}.mp4"; os.makedirs('/home/claude/r7/out',exist_ok=True)
+    out=f"/root/monteur/out/reel_{spec['id']}_{spec.get('ver','b7')}_{ver}.mp4"; os.makedirs('/root/monteur/out',exist_ok=True)
     build(tt,out); print('OK',ver,round(total,2))

@@ -4,3 +4,6 @@ CAPTURE DE RUSHES PAR LE MONTEUR (19/11, sans l'iMac)
 · Caméra : window.__camK (G) => ({p, t, fov}), temps du plan = performance.now() - window.__T0. dayT : heure = 8 + dayT/60 (360 = 14h). hide.js cache les étiquettes et les rayons de mission.
 · Lancement : VD=<dossier vendor> node cap.js out_dir shots.json, puis ffmpeg -framerate 30 -i out_dir/<nom>_%03d.png -crf 14 -pix_fmt yuv420p rush.mp4. Chargement 3 à 4 min, 4 à 15 s par image en 1080 × 1920.
 · Attention : Feux d'artifice de jour dans le ciel vers 1 s après le début d'un plan (cx, images 25 et plus) : Recadrer sous le ciel ou couper.
+· capd.js (20/11, Jour et nuit b1) : Même chose que cap.js mais le jeu reste chargé. node capd.js <dossier_jobs> (avec VD et NODE_PATH), puis déposer des jobs JSON {out, w, h, shots, eval} : Le démon les exécute dans l'ordre et écrit <job>.done. Repérage en 540 × 960 en 20 s par image, rendu 1080 × 1920 en 3 à 5 s par image.
+· Jour → nuit au même angle dans un seul plan : Dans camjs, « const W=window.__W(); if(W.P){ W.P.dayT=(T<1.2857?360:840); } » (14h puis 22h, bascule instantanée). Cacher les feux d'artifice : window.__FW.pts.visible=false.
+· Repères : Grande roue (-575, 40, -56) · canal du centre z ≈ 130 · grande tour (28, -28) · tour de contrôle de l'aéroport x = -150.

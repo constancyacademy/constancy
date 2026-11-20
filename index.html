@@ -866,8 +866,7 @@ function updateDecks(dt) { if (!DK.ready) return; const cam = camera.position, n
       if (Math.abs(off) > lim && Math.abs(off) < lim + 3) { const k = Math.sign(off) * lim; G.car.x = px + nx * k; G.car.z = pz + nz * k; if (Math.abs(G.car.v) > 8) { if (typeof clang === "function") clang(0.4); G.car.v *= 0.8; } } break; } }); }
 const DECK_DEFS = [ // [x, z, hauteur] · hauteur 0 = posée au sol (sur la route qui l'accueille)
   { name: "Constancy Express · A10", w: 12, cars: 6, K: [[478, 66, 0], [540, 118, 8], [600, 188, 15], [680, 250, 16], [770, 300, 16], [840, 380, 12], [878, 448, 5], [896, 482, 0]], signs: [[0.18, "AÉROPORT · CONSTANCY SUD", "A10 · Sortie 2"], [0.62, "CONSTANCY SUD · PÉRIPHÉRIE", "Autoroute du Sud"]] },
-  { name: "Viaduc de l'Aéroport · A11", w: 13, cars: 6, span: 40, K: [[352, 540, 0], [400, 545, 6], [480, 520, 18], [560, 470, 26], [630, 400, 28], [680, 320, 28], [700, 240, 27], [715, 150, 20], [740, 60, 10], [755, 10, 3], [760, -32, 0]], signs: [[0.3, "CENTRE-VILLE · AUTOROUTE DE L'EST", "A11 · Nord"], [0.75, "AÉROPORT CONSTANCY", "A11 · Sud"]] },
-  { name: "Bretelle de l'Express", w: 10, cars: 2, K: [[566, 152, 11.6], [535, 200, 16], [524, 280, 24], [560, 350, 31], [612, 380, 31], [640, 386, 29.2], [632, 400, 28]], signs: [[0.4, "AÉROPORT", "Bretelle"]] },
+  /* V309.1 (Thomas : « le pont qui finit dans l'eau, enlève-le ») : Viaduc A11 et Bretelle de l'Express retirés */
   { name: "Bretelle du Boulevard", w: 10, cars: 2, K: [[772, 301, 16], [818, 250, 22], [848, 170, 30], [862, 92, 24], [872, 30, 10], [880, -16, 0]], signs: [[0.5, "BOULEVARD DE L'EST · DÉSERT", "Bretelle"]] }
 ];
 /* V309 (Thomas, 20/11 : Constancy Sud « ultra urbaine » façon Los Angeles, des ponts partout) : périphérique surélevé à 8 m autour de la résidence, freeway F10 à 18 m qui le franchit, 4 boucles entre les deux étages */
@@ -1137,7 +1136,7 @@ const sfx = {
 };
 // pas synthétisés : un grain de bruit filtré différemment selon le sol, jamais deux fois tout à fait le même
 function footstep() {
-  const c = SND.ctx; if (!c || !SND.on || G.mode !== "play" || G.inside) return; const me = G.me, out = Math.abs(me.x) > HALF || Math.abs(me.z) > HALF, t = c.currentTime;
+  const c = SND.ctx; if (!c || !SND.on || G.mode !== "play" || G.inside || CINE.on) return; const me = G.me, out = Math.abs(me.x) > HALF || Math.abs(me.z) > HALF, t = c.currentTime;
   if (!SND.stepB) SND.stepB = { grav: [0, 1, 2].map(() => noiseBuf(0.17, k => Math.pow(1 - k, 1.4) * (Math.random() < 0.3 ? 1 : 0.22))), pave: [0, 1].map(() => noiseBuf(0.06, k => Math.pow(1 - k, 5))) };
   if (!SND.stepB.grass) SND.stepB.grass = [0, 1, 2].map(() => noiseBuf(0.2, k => Math.sin(Math.min(1, k * 6) * Math.PI / 2) * Math.pow(1 - k, 2.2)));
   const rural = out && me.z < -470 && !isWater(me.x, me.z), beach = out && !rural;
@@ -1272,7 +1271,7 @@ function ambientEvents(pos, inCity) {
   if (green && slow && Math.random() < f / 4.5) leaves(0.022 + Math.random() * 0.02 + WX.rain * 0.02);
   if (inCity > 0.5 && day && G.onFoot && Math.random() < f / 1.1) { let n = 0, nx = 0, nz = 0; for (let i = 0; i < peds.length && n < 6; i++) { const m = peds[i].mesh; if (!m || !m.visible) continue; if (Math.hypot(m.position.x - pos.x, m.position.z - pos.z) < 15) { n++; nx = m.position.x; nz = m.position.z; } } if (n >= 2) voices(0.012 + 0.006 * Math.min(4, n), panTo(nx, nz)); }
   if (inCity > 0.6 && !G.police && !G.siren && Math.random() < f / 120) farSiren(0.016 + Math.random() * 0.01);
-  if (PIG.list.length && Math.random() < f / 4) { const q = PIG.list.find(q => q.st === 0 && q.y > 0 && Math.hypot(q.x - pos.x, q.z - pos.z) < 12); if (q) coo(0.05 * (1 - Math.hypot(q.x - pos.x, q.z - pos.z) / 12)); }
+  if (PIG.list.length && Math.random() < f / 14 && performance.now() - (coo.t || 0) > 12000) { const q = PIG.list.find(q => q.st === 0 && q.y > 0 && Math.hypot(q.x - pos.x, q.z - pos.z) < 8); if (q) { coo.t = performance.now(); coo(0.035 * (1 - Math.hypot(q.x - pos.x, q.z - pos.z) / 8)); } }
 }
 function updateSound() {
   if (!SND.ctx) return;
@@ -1310,9 +1309,10 @@ function updateSound() {
   if (playing && WX.rain > 0.1 && !G.inside) { const nd = WX.rain * 28 * (1 / 60); for (let q = 0; q < 3; q++) if (Math.random() < nd) { const o = SND.ctx.createOscillator(), g = SND.ctx.createGain(), st = t + Math.random() * 0.05, f = 1800 + Math.random() * 3200; o.type = "sine"; o.frequency.setValueAtTime(f, st); o.frequency.exponentialRampToValueAtTime(f * 0.55, st + 0.03); g.gain.setValueAtTime(0.012 + Math.random() * 0.02 * WX.rain, st); g.gain.exponentialRampToValueAtTime(0.0001, st + 0.04); o.connect(g); g.connect(SND.ctx.destination); o.start(st); o.stop(st + 0.05); } }
   loopVol("drone", playing && pos && G.ride && !isPlane(G.ride.kind) ? air * 0.12 : 0, t, 1.2);
   if (playing && pos && mtn > 0.3 && Math.random() < 0.004 * mtn) chirp(0.035 + Math.random() * 0.03);
-  if (playing && pos && typeof dinos !== "undefined" && dinos.length) { const d0 = dinos[0]; if (d0 && d0.mesh && d0.mesh.visible) { const dd = d0.mesh.position.distanceTo(camera.position); if (dd < 140 && (SND.nextThump || 0) < t) { SND.nextThump = t + 0.75; thump(0.35 * (1 - dd / 140)); } } }
+  if (playing && pos && !CINE.on && typeof dinos !== "undefined" && dinos.length) { const d0 = dinos[0]; if (d0 && d0.mesh && d0.mesh.visible) { const dd = d0.mesh.position.distanceTo(camera.position); if (dd < 140 && (SND.nextThump || 0) < t) { SND.nextThump = t + 0.75; thump(0.35 * (1 - dd / 140)); } } }
   loopVol("gymamb", playing && G.inside && G.inside !== "home" && G.inside !== "club" ? 0.35 : 0, t, 0.5);
-  if (playing) ambientEvents(pos, inCity);
+  const quiet = CINE.on || (typeof DREAM !== "undefined" && DREAM.on) || (typeof MIR !== "undefined" && MIR.on); /* V309.1 (Thomas 21h08 : « bruit de rebond toutes les 3 s ») : aucun bruit d'ambiance ponctuel pendant la cinématique, le rêve et le miroir */
+  if (playing && !quiet) ambientEvents(pos, inCity);
   if (playing && pos && nearSea > 0.6 && Math.random() < 0.0015) playBuf("gull", 0.25, 0.9 + Math.random() * 0.2);
   const sirOn = playing && (G.police || (G.siren && G.ride && G.ride.amb && !G.onFoot)), realSir = SND.loops.siren;
   SND.sir.frequency.setTargetAtTime(Math.floor(performance.now() / 450) % 2 ? 900 : 640, t, 0.02);
@@ -1414,9 +1414,10 @@ try { const d = Object.getOwnPropertyDescriptor(THREE.Texture.prototype, "needsU
 function janScan() { JAN.q.length = 0; JAN.tq.length = 0; JAN.scans++; const sT = new Set(), sG = new Set();
   scene.traverse(o => { if (o.isMesh && !o.isSkinnedMesh && !o.isInstancedMesh && o.geometry && !sG.has(o.geometry)) { const g = o.geometry; sG.add(g); const P = g.attributes && g.attributes.position; if (P && !P.isInterleavedBufferAttribute && FREED.has(g) && P.array && P.array.length > 0) JAN.q.push(o); }
     const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const m of ms) for (const k of JAN_KEYS) { const t = m[k]; if (t && t.isTexture && !sT.has(t)) { sT.add(t); if (!(t.userData && (t.userData.freed || t.userData.keepImage)) && !t.isVideoTexture && !t.isCubeTexture && JAN_IMG(t.image)) JAN.tq.push(t); } } }); }
-function janTick() { if (!renderer || !scene || !TOUCH_DEV()) return; const now = performance.now();
+function janTick() { if (!renderer || !scene) return; if (!TOUCH_DEV()) { JAN.tq.length = 0; } /* sur ordinateur : seulement la préparation (pas de libération des images) */ const now = performance.now();
   JAN.live.forEach(m => scene.remove(m)); JAN.live.length = 0;
-  if (now - JAN.scanT > (JAN.scans < 3 ? 4000 : 15000)) { JAN.scanT = now; try { janScan(); } catch (e) {} }
+  if (!JAN.q.length && !JAN.tq.length && typeof RGN !== "undefined" && RGN.cells && !(CINE.on && CINE.t > CINE_L7 - 1)) { let n = 0; for (const c of RGN.cells) { if (c.__up || n >= 3) continue; c.__up = 1; n++; try { const im = c.im, pr = new THREE.InstancedMesh(im.geometry, im.material, im.count); pr.instanceMatrix = im.instanceMatrix; if (im.instanceColor) pr.instanceColor = im.instanceColor; pr.frustumCulled = false; pr.matrixAutoUpdate = false; pr.matrix.makeScale(0, 0, 0); scene.add(pr); pr.updateMatrixWorld(true); JAN.live.push(pr); } catch (e) {} } }
+  if (now - JAN.scanT > (JAN.scans < 3 ? 4000 : 15000)) { JAN.scanT = now; try { janScan(); if (!TOUCH_DEV()) JAN.tq.length = 0; } catch (e) {} }
   const busy = CINE.on && CINE.t > CINE_L7 - 1; /* pendant le vol de drone, on laisse toute la place à l'image */
   for (let n = 0; JAN.tq.length && n < (busy ? 0 : 2);) { const t = JAN.tq.pop(), pr = renderer.properties.get(t); if (!JAN_IMG(t.image)) continue;
     if (!pr.__webglInit || pr.__version !== t.version) { try { renderer.initTexture(t); } catch (e) { continue; } n++; }
@@ -1812,8 +1813,11 @@ function brakeLights(mesh, on) {
 function paintOf(mesh) { let c = null; mesh.traverse(m => { if (c == null && m.isMesh && m.material && /white|lightblue|yellow|body|paint|main/i.test(m.material.name || "")) c = m.material.color.getHex(); }); return c == null ? 0x8a8d94 : c; }
 let beamM = null, beam = null;
 /* V308.3 (MODIFICATION, Thomas : « les feux doivent être allumés… ou alors une option où les feux s'allument, sans créer d'éléments à l'écran, un raccourci clavier ») : phares automatiques la nuit, touche L = allumés / éteints / automatiques */
-function carBeam(c, gh, w) { const hb = headBeam(), auto = nightK > 0.25 ? Math.min(1, (nightK - 0.25) * 2) : 0, nk = G.lights === "on" ? Math.max(0.75, auto) : G.lights === "off" ? 0 : auto;
-  beamM.opacity = nk * 0.5 * w; hb.visible = nk > 0; if (nk > 0) { const L = w < 1 ? 7 : 9.5; hb.position.set(c.x + Math.sin(c.h) * L, gh + 0.08, c.z + Math.cos(c.h) * L); hb.rotation.y = c.h; hb.scale.set(w < 1 ? 0.6 : 1, 1, w < 1 ? 0.75 : 1); } }
+function carBeam(c, gh, w) { const hb = headBeam(), auto = (typeof DREAM !== "undefined" && DREAM.on) ? 1 : nightK > 0.25 ? Math.min(1, (nightK - 0.25) * 2) : 0, nk = G.lights === "on" ? Math.max(0.75, auto) : G.lights === "off" ? 0 : auto;
+  /* V309.1 (Thomas 21h08 : « les feux de la voiture ne sont pas allumés sur téléphone ») : faisceau plus long et plus lumineux devant la voiture (visible aussi depuis l'habitacle) + deux halos sur les phares eux-mêmes */
+  const fp = !!G.fpv || !!(typeof NCK !== "undefined" && NCK && NCK.visible), Lb = w < 1 ? 7 : fp ? 15 : 11, zs = w < 1 ? 0.75 : fp ? 2.0 : 1.45;
+  beamM.opacity = nk * (fp ? 0.62 : 0.55) * w; hb.visible = nk > 0; if (nk > 0) { hb.position.set(c.x + Math.sin(c.h) * Lb, (typeof carMesh !== "undefined" && carMesh ? Math.max(gh, carMesh.position.y) : gh) + 0.08, c.z + Math.cos(c.h) * Lb); hb.rotation.y = c.h; hb.scale.set(w < 1 ? 0.6 : 1.1, 1, zs); }
+  if (w === 1 && typeof carMesh !== "undefined" && carMesh) { const u = carMesh.userData; if (!u.hlSpr) { u.hlSpr = []; const fz = (u.len || 4.6) / 2 + 0.05, sm = new THREE.SpriteMaterial({ map: glowTexture(), color: 0xeaf4ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }); [-1, 1].forEach(sd => { const sp = new THREE.Sprite(sm); sp.position.set(sd * 0.62, 0.62, fz); sp.scale.set(1.1, 0.7, 1); sp.renderOrder = 6; carMesh.add(sp); u.hlSpr.push(sp); }); u.hlM = sm; } u.hlM.opacity = nk * (fp ? 0 : 0.9); } }
 function headBeam() { // halo des phares au sol, la nuit
   if (beam) return beam;
   beamM = new THREE.MeshBasicMaterial({ map: glowTexture(), color: 0xfff0d0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -2407,7 +2411,7 @@ function addCostume(h, id) { const c = COLL.costume.find(q => q.id === id); if (
     const em = emblem(0xff2d95, 0xffffff, false); em.scale.setScalar(0.45); em.position.set(sp.x - 0.1, sp.y + 0.1, sp.z + 0.17); root.add(em); }
   root.children.slice().forEach(o => { const wp = o.position.clone(); root.remove(o); o.position.set(0, 0, 0); boneAcc(h, /^spine_03$/, o, wp); }); }
 function addAccessories(h, o) { try { addTied(h, o); } catch (e) {} try { addHat(h, o); } catch (e) {} try { addFaceHair(h, o); } catch (e) {} try { addEarrings(h, o); } catch (e) {} try { addChain(h, o); } catch (e) {} try { addWatch(h, o); } catch (e) {} try { addBag(h, o); } catch (e) {}
-  if (o.tall) { const k = [0.94, 1, 1.06][o.tall | 0] || 1; h.scale.multiplyScalar(k); } }
+  if (o.tall != null && o.tall !== 1) { const k = [0.9, 1, 1.08][o.tall | 0] || 1; h.scale.multiplyScalar(k); } } /* V309.1 (Thomas : « aucune différence entre petite et moyenne ») : « Petite » valait 0 et était ignorée */
 function makeHuman(o) { if (o.player && P && P.equip && P.equip.costume && HQ.ready) o = Object.assign({}, o, costumeLook(P.equip.costume)); const curl = HQ.ready && (o.hairStyle === "curly" || o.hairStyle === "afro") ? o.hairStyle : null, tied = HQ.ready && /^(bun|pony|braids)$/.test(o.hairStyle || "") ? o.hairStyle : null; if (curl || tied) o = Object.assign({}, o, { hairStyle: tied ? "parted" : "buzzed", tied }); const h = HQ.ready ? makeHumanQ(o) : makeHumanLegacy(o); if (HQ.ready && h) { try { if (curl) addCurls(h, curl, o.hair); if (o.glasses) addGlasses(h, o.glasses); if (o.freckles) addFreckles(h, o.freckles); } catch (e) {} if (h.userData.q) { addAccessories(h, o); if (o.costumeId) addCostume(h, o.costumeId); if (o.player && !o.costumeId) addBeltTalkie(h); } } return h; }
 // gabarit de costaud (street workout, bodybuilders) : bras, épaules et pecs gonflés, taille fine
 function buff(h, k = 1) { const u = h.userData; if (!u || !u.aL) return h; u.aL.scale.setScalar(1 + 0.5 * k); u.aR.scale.setScalar(1 + 0.5 * k); u.torso.scale.set(1 + 0.32 * k, 1, 1 + 0.26 * k); u.lL.scale.setScalar(1 + 0.18 * k); u.lR.scale.setScalar(1 + 0.18 * k); return h; }
@@ -2711,7 +2715,7 @@ function talkGesture(g, dt) {
   if (u.gt <= 0) { u.g0 = u.gt = 0.9 + Math.random() * 1.8; u.gs = Math.random() < 0.45 ? 1 : Math.random() < 0.55 ? 2 : 3; u.ga = 0.45 + Math.random() * 0.55; }
   const k = clamp(u.gt / u.g0, 0, 1), env = Math.pow(Math.sin(Math.PI * (1 - k)), 1.3) * u.ga, w = Math.sin(performance.now() / 1000 * 6 + u.phase) * 0.18;
   const arm = (up, lo, on) => { if (!on) return; _qh.setFromAxisAngle(_ax, -(0.5 + w) * env); relRot(r[up], _qh); if (r[lo]) { _qh.setFromAxisAngle(_ax, -(1.0 - w) * env); relRot(r[lo], _qh); } };
-  if (typeof CINE !== "undefined" && g === CINE.th) { u.gs = 1; u.ga = Math.min(u.ga, 0.3); } /* V308.8 : Thomas parle avec la main droite, la gauche reste posée sur l'épaule du joueur */ arm("upR", "loR", u.gs & 1); arm("upL", "loL", u.gs & 2);
+  if (typeof CINE !== "undefined" && g === CINE.th) { u.gs = 1; u.ga = Math.min(u.ga || 0.3, 0.3); } /* V308.8 : Thomas parle avec la main droite, la gauche reste posée sur l'épaule du joueur */ arm("upR", "loR", u.gs & 1); arm("upL", "loL", u.gs & 2);
 }
 let rigSweep = 0;
 // vrai saut : les deux bras partent vers le haut pour donner l'élan, les genoux se replient en l'air, puis on se réceptionne
@@ -2988,10 +2992,10 @@ function loadModels() {
   return modelWorkers(L, keys, 4);
 }
 const HEAVY_M = /^(lakehouse3|greenhouse3|cabin3|lookout3|lighthouse3|temple3|diner3|bungalow3|windmill3)$/, DINOL = { keys: [], p: null };
-function modelWorkers(L, keys, n) { const idle = () => new Promise(r => setTimeout(r, 0)); let i = 0;
+function modelWorkers(L, keys, n, gap = 0) { const idle = () => new Promise(r => setTimeout(r, gap)); let i = 0;
   const worker = async () => { while (i < keys.length) { const k = keys[i++]; const g = await new Promise(ok => L.load("assets/m_" + k + ".json", ok, undefined, () => ok(null))); await idle(); if (g) { try { prepModel(k, g); } catch (e) {} } await idle(); } };
   return Promise.all(Array.from({ length: n }, worker)); }
-function loadDinoModels() { if (DINOL.p || !DINOL.keys.length || !THREE.GLTFLoader) return DINOL.p; DINOL.p = MODELS_P.then(() => modelWorkers(new THREE.GLTFLoader(), DINOL.keys, 2)).then(() => { try { if (window.__dinoHook) window.__dinoHook(); } catch (e) {} }); return DINOL.p; }
+function loadDinoModels() { if (DINOL.p || !DINOL.keys.length || !THREE.GLTFLoader) return DINOL.p; DINOL.p = MODELS_P.then(() => modelWorkers(new THREE.GLTFLoader(), DINOL.keys, TOUCH_DEV() ? 1 : 2, TOUCH_DEV() ? 450 : 0)).then(() => { try { if (window.__dinoHook) window.__dinoHook(); } catch (e) {} }); return DINOL.p; }
 // V305.1 : le son d'intro est téléchargé EN PREMIER, avant tout le reste (il doit sonner dès le premier toucher)
 const INTRO_P = (typeof fetch === "function" ? fetch("assets/snd_intro.mp3").then(r => r.ok ? r.arrayBuffer() : null).then(b => { if (b) SNDRAW.intro = b; return b; }).catch(() => null) : Promise.resolve(null));
 function loadMedia() {
@@ -3000,8 +3004,10 @@ function loadMedia() {
   const snds = Object.entries(SND_FILES).filter(([k]) => k !== "intro").map(([k, u]) => fetch(u).then(r => r.ok ? r.arrayBuffer() : null).then(b => { if (b) { SNDRAW[k] = b; if (SND.ctx) decodeSnd(k); } }).catch(() => {}));
   MODELS_P = loadModels(); return Promise.race([Promise.all(imgs.concat(snds, [MODELS_P])), new Promise(ok => setTimeout(ok, 15000))]);
 }
+const IMG_S = {};
 function imgTex(k, rep) {
-  const im = IMG[k]; if (!im) return null;
+  let im = IMG[k]; if (!im) return null;
+  if (TOUCH_DEV() && !/[?&]hdtex=1/.test(location.search) && Math.max(im.width || 0, im.height || 0) > 512) { /* V309.1 : sols et façades en 512 px sur téléphone (4 fois moins de mémoire graphique, invisible à cette taille d'écran) */ IMG_S[k] = IMG_S[k] || (() => { const sc = 512 / Math.max(im.width, im.height), c = document.createElement("canvas"); c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); return c; })(); im = IMG_S[k]; }
   const t = new THREE.Texture(im); t.needsUpdate = true; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep); t.anisotropy = 4; return t;
 }
 /* --- palmier, lampadaire (fusionnés) --- */
@@ -3258,16 +3264,16 @@ function thomasAvatar() {
 function cineUI(on) {
   document.body.classList.toggle("cinema", !!on); /* V307 : pendant les bandes noires, tout le reste de l'interface disparaît, comme au cinéma */
   if (on) { const d = document.createElement("div"); d.id = "cine"; d.innerHTML = '<div class="cb t"></div><div class="cb b"></div><div class="cs"></div><div class="cfade"></div><button type="button" class="cskip">Passer ›</button>'; document.body.appendChild(d); CINE.ui = d; CINE.sub = d.querySelector(".cs");
-    /* V306.9 · tâche 1 de l'expert : le prologue se passe d'un toucher après 3 s (des joueurs partaient juste après) */ const sk = d.querySelector(".cskip"); sk.addEventListener("click", () => { if (CINE.t < 3) return; stat("prologue-passe"); try { CINE.voice.forEach(a => { try { a.pause(); } catch (e) {} }); } catch (e) {} endPrologue(); }); requestAnimationFrame(() => d.classList.add("in")); }
+    /* V306.9 · tâche 1 de l'expert : le prologue se passe d'un toucher après 3 s (des joueurs partaient juste après) */ const sk = d.querySelector(".cskip"); sk.addEventListener("click", () => { if (CINE.t < 3) return; stat("prologue-passe"); try { CINE.voice.forEach(a => { try { a.pause(); } catch (e) {} }); (CINE.vw || []).forEach(wStop); } catch (e) {} endPrologue(); }); requestAnimationFrame(() => d.classList.add("in")); }
   else if (CINE.ui) { const d = CINE.ui; d.classList.remove("in"); setTimeout(() => d.remove(), 900); CINE.ui = null; }
 }
 function cinePad(on) { const c = SND.ctx; if (!c || !SND.on) return;
   if (on) { const out = c.createGain(); out.gain.value = 0; const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1800; out.connect(lp); lp.connect(c.destination); const t0 = c.currentTime + 0.1; out.gain.linearRampToValueAtTime(0.09, t0 + 3.5);
     /* musique douce et un peu triste : La mineur, Fa, Do, Sol (nappes lentes + notes de piano qui s'éteignent) */
     const N = n => 440 * Math.pow(2, (n - 69) / 12), prog = [[57, 60, 64], [53, 57, 60], [48, 55, 64], [55, 59, 62]], oscs = [];
-    const pad = (f, a, d) => { const o = c.createOscillator(), g = c.createGain(); o.type = "triangle"; o.frequency.value = f; g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(0.16, a + 1.4); g.gain.setValueAtTime(0.16, a + d - 1.2); g.gain.linearRampToValueAtTime(0, a + d + 0.6); o.connect(g); g.connect(out); o.start(a); o.stop(a + d + 0.7); oscs.push(o); };
+    const pad = (f, a, d, v = 0.14) => { const o = c.createOscillator(), g = c.createGain(); o.type = "triangle"; o.frequency.value = f; g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(v, a + 1.4); g.gain.setValueAtTime(v, a + d); g.gain.linearRampToValueAtTime(0, a + d + 1.4); o.connect(g); g.connect(out); o.start(a); o.stop(a + d + 1.5); oscs.push(o); }; /* V309.1 : fondu enchaîné d'un accord à l'autre (plus de « pompe » toutes les 3,6 s) */
     const key = (f, a, v) => { const o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(); o.type = "sine"; o2.type = "sine"; o.frequency.value = f; o2.frequency.value = f * 2.01; g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(v, a + 0.012); g.gain.exponentialRampToValueAtTime(0.0008, a + 3.2); o.connect(g); o2.connect(g); g.connect(out); o.start(a); o2.start(a); o.stop(a + 3.3); o2.stop(a + 3.3); oscs.push(o, o2); };
-    for (let bar = 0; bar < 8; bar++) { const ch = prog[bar % 4], a = t0 + bar * 3.6; pad(N(ch[0] - 12), a, 3.6); ch.forEach(n => pad(N(n), a, 3.6)); [0, 1, 2, 1].forEach((q, k) => key(N(ch[q] + 12), a + k * 0.9, k === 0 ? 0.5 : 0.32)); if (bar % 2) key(N(ch[2] + 24), a + 2.7, 0.18); }
+    for (let bar = 0; bar < 8; bar++) { const ch = prog[bar % 4], a = t0 + bar * 3.6; pad(N(ch[0] - 12), a, 3.6, 0.07); ch.forEach(n => pad(N(n), a, 3.6)); [0, 1, 2, 1].forEach((q, k) => key(N(ch[q] + 12), a + k * 0.9, k === 0 ? 0.3 : 0.24)); if (bar % 2) key(N(ch[2] + 24), a + 2.7, 0.18); }
     CINE.pad = { out, oscs }; }
   else if (CINE.pad) { const { out, oscs } = CINE.pad, t = c.currentTime; out.gain.cancelScheduledValues(t); out.gain.setValueAtTime(out.gain.value, t); out.gain.linearRampToValueAtTime(0, t + 3); setTimeout(() => oscs.forEach(o => { try { o.stop(); } catch (e) {} }), 3200); CINE.pad = null; } }
 // V306.5 : flaques après la pluie · une voiture (joueur ou circulation) qui roule dedans fait jaillir une gerbe d'eau sur les côtés (0,4 s), bruit d'eau,
@@ -3410,10 +3416,13 @@ function wakeScene(flash) {
 function neonBuzz() { const c = SND.ctx; if (!c || SND.on === false) return; const t = c.currentTime, out = c.createGain(); out.gain.value = 0.16; out.connect(c.destination);
   const hum = c.createOscillator(), hg = c.createGain(), bp = c.createBiquadFilter(); hum.type = "sawtooth"; hum.frequency.value = 100; bp.type = "bandpass"; bp.frequency.value = 900; bp.Q.value = 1.2; hum.connect(bp); bp.connect(hg); hg.connect(out); hg.gain.setValueAtTime(0.0001, t); hg.gain.exponentialRampToValueAtTime(0.35, t + 0.05); hg.gain.setValueAtTime(0.35, t + 0.55); hg.gain.exponentialRampToValueAtTime(0.0001, t + 1.1); hum.start(t); hum.stop(t + 1.15);
   [0.19, 0.265, 0.335, 0.41].forEach((d, i) => { const n = c.createBufferSource(), b = c.createBuffer(1, Math.floor(c.sampleRate * 0.05), c.sampleRate), dd = b.getChannelData(0); for (let k = 0; k < dd.length; k++) dd[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / dd.length, 2); n.buffer = b; const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 2400; const g = c.createGain(); g.gain.value = i % 2 ? 0.5 : 0.8; n.connect(hp); hp.connect(g); g.connect(out); n.start(t + d); }); }
+function wClip(url) { const o = { buf: null, src: null, g: null }; try { const c = SND.ctx; if (c) fetch(url).then(r => r.arrayBuffer()).then(b => c.decodeAudioData(b, d => { o.buf = d; }, () => { o.bad = true; })).catch(() => { o.bad = true; }); } catch (e) {} return o; }
+function wPlay(o, vol) { const c = SND.ctx; if (!c || !o || !o.buf || SND.on === false) return false; try { if (c.state === "suspended") c.resume(); if (o.src) { try { o.src.stop(); } catch (e) {} } const s = c.createBufferSource(), g = c.createGain(); g.gain.value = vol; s.buffer = o.buf; s.connect(g); g.connect(c.destination); s.start(); o.src = s; o.g = g; return true; } catch (e) { return false; } }
+function wStop(o) { try { if (o && o.src) o.src.stop(); } catch (e) {} }
 function startPrologue(done) {
   if (CINE.on) return; CINE.on = true; CINE.sc = 0; CINE.sh = null; CINE.t = 0; CINE.li = -1; CINE.done = done; try { hideScreen(); } catch (e) {} setMode("cine"); G.onFoot = true; if (meMesh) meMesh.visible = true;
   try { CINE.th = thomasAvatar(); setClip(CINE.th, "Walk_Loop", 0.95); } catch (e) { console.warn("prologue", e); CINE.th = null; }
-  CINE.voice = CINE_LINES.map((_, i) => { const a = new Audio(`assets/voix/prologue_${i + 1}.mp3`); a.preload = "auto"; a.volume = 1; a.onerror = () => { a.bad = true; }; return a; });
+  CINE.voice = CINE_LINES.map((_, i) => { const a = new Audio(`assets/voix/prologue_${i + 1}.mp3`); a.preload = "auto"; a.volume = 1; a.onerror = () => { a.bad = true; }; return a; }); CINE.vw = CINE_LINES.map((_, i) => wClip(`assets/voix/prologue_${i + 1}.mp3`)); CINE.mw = wClip("assets/mus_bienvenue.mp3");
   cineUI(true); cinePad(true); stat("prologue-vu");
 }
 function endPrologue() {
@@ -3449,10 +3458,10 @@ function updateCine(dt) {
   // Thomas : il arrive derrière toi, à droite, puis s'arrête et parle
   const th = CINE.th; let headT = new THREE.Vector3(me.x - fx * 0.5, gy + 1.65, me.z - fz * 0.5);
   if (th && !CINE.sc && meMesh && meMesh.userData.rig && meMesh.userData.rig.head && th.userData.rig && th.userData.rig.head) { /* V307 : Thomas toujours un peu plus grand que le joueur (main posée SUR l'épaule, jamais à travers) */ try { th.position.set(0, 0, 0); th.updateMatrixWorld(true); meMesh.updateMatrixWorld(true); const a = new THREE.Vector3(), b = new THREE.Vector3(); meMesh.userData.rig.head.b.getWorldPosition(a); th.userData.rig.head.b.getWorldPosition(b); const hp = a.y - meMesh.position.y, ht = b.y; if (hp > 0.5 && ht > 0.5) { const f = clamp(hp * 1.05 / ht, 0.92, 1.3); th.scale.multiplyScalar(f); } } catch (e) {} CINE.sc = 1; }
-  if (th) { const k = E(T / 3.1), bx = L(-4.2, -0.36, k), sx = L(1.4, 0.3, k); /* V308.10 : Thomas assez près pour que sa main se pose vraiment sur l'épaule (avant, la cible était à 0,97 m pour un bras de 0,64 m : la main restait dans le vide) */ th.position.set(me.x + fx * bx + rx * sx, gy, me.z + fz * bx + rz * sx); th.rotation.y = h0 + L(-0.25, 0.08, k);
+  if (th) { const k = E(T / 3.1), bx = L(-4.2, -0.25, k), sx = L(1.4, 1.05, k); /* V309.1 (Thomas : « si c'est trop compliqué, pas de main sur l'épaule, 1 m d'écart ») */ /* V308.10 : Thomas assez près pour que sa main se pose vraiment sur l'épaule (avant, la cible était à 0,97 m pour un bras de 0,64 m : la main restait dans le vide) */ th.position.set(me.x + fx * bx + rx * sx, gy, me.z + fz * bx + rz * sx); th.rotation.y = Math.atan2((me.x + fx * 1.6) - th.position.x, (me.z + fz * 1.6) - th.position.z) * k + (h0 - 0.25) * (1 - k);
     if (T > 3.0 && !CINE.talk) { CINE.talk = 1; setClip(th, "Idle_Talking_Loop", 0.8); } th.visible = true;
     const sh = new THREE.Vector3(); let ok = false; if (meMesh && meMesh.userData.rig && meMesh.userData.rig.upR) { meMesh.updateMatrixWorld(true); meMesh.userData.rig.upR.b.getWorldPosition(sh); ok = true; } if (!ok) sh.set(me.x + rx * 0.2, gy + 1.42, me.z + rz * 0.2);
-    { const fat = meMesh && meMesh.userData.rig && meMesh.userData.rig.upR ? clamp(((P && P.cm) || 30) / 30, 1, 1.6) : 1; sh.y += 0.1 * fat; sh.x -= fx * 0.12 * fat; sh.z -= fz * 0.12 * fat; } /* V308.2 (Thomas) : la main posée SUR l'épaule sous tous les angles, jamais à travers */ const w = E((T - 2.7) / 0.8) * (1 - E((T - 21.6) / 0.9)); cineIK(th, w, sh, new THREE.Vector3(fx, 0, fz)); if (th.userData.rig && th.userData.rig.head) th.userData.rig.head.b.getWorldPosition(headT); }
+    { const fat = meMesh && meMesh.userData.rig && meMesh.userData.rig.upR ? clamp(((P && P.cm) || 30) / 30, 1, 1.6) : 1; sh.y += 0.1 * fat; sh.x -= fx * 0.12 * fat; sh.z -= fz * 0.12 * fat; } /* V308.2 (Thomas) : la main posée SUR l'épaule sous tous les angles, jamais à travers */ const w = E((T - 2.7) / 0.8) * (1 - E((T - 21.6) / 0.9)); void w; void sh; /* plus d'IK : les deux bras gardent l'animation naturelle de la parole */ if (th.userData.rig && th.userData.rig.head) th.userData.rig.head.b.getWorldPosition(headT); }
   let hy = 1.6; if (meMesh && meMesh.userData.rig && meMesh.userData.rig.head) { const hv = new THREE.Vector3(); meMesh.userData.rig.head.b.getWorldPosition(hv); if (hv.y - gy > 1.2 && hv.y - gy < 3) hy = hv.y - gy + 0.05; } const K = hy / 1.6; /* V307 : cadrage calé sur la vraie hauteur de la tête (le perso grand et en surpoids remplissait l'image) */ const pHead = new THREE.Vector3(me.x, gy + hy, me.z), cam = camera; let p, t, fov = 40;
   /* V307.2 (Thomas, 16h46) : découpage de cinéma · plan large où l'on voit Thomas arriver dès la 1re seconde, puis 3 plans de lui qui parle (à deux de face, son visage de trois quarts, à deux de profil), reliés par un léger fondu, puis la montée */
   const SH = TR < 3.0 ? 0 : TR < 10.2 ? 1 : TR < 15.2 ? 2 : TR < 20.0 ? 6 : TR < 27.0 ? 3 : TR < CINE_L7 ? 4 : 5; if (SH !== CINE.sh) { if (CINE.sh != null && CINE.lastP) { CINE.blend = { p: CINE.lastP.slice(), t: CINE.lastT.slice(), fov: CINE.lastF, t0: TR }; } CINE.sh = SH; }
@@ -3475,11 +3484,11 @@ function updateCine(dt) {
   CINE.lastP = p; CINE.lastT = t; CINE.lastF = fov;
   cam.position.set(p[0], p[1], p[2]); cam.lookAt(t[0], t[1], t[2]); if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
   // musique épique et titres
-  if (TR > CINE_L7 - 0.4 && !CINE.mus) { CINE.mus = 1; try { if (SND.on !== false) { const a = new Audio("assets/mus_bienvenue.mp3"); a.volume = 0.95; a.play().catch(() => {}); CINE.musA = a; } } catch (e) {} }
+  if (TR > CINE_L7 - 0.4 && !CINE.mus) { CINE.mus = 1; try { cinePad(false); } catch (e) {} try { if (SND.on !== false && wPlay(CINE.mw, 0.95)) { const o = CINE.mw; CINE.musA = { get volume() { return o.g ? o.g.gain.value : 0; }, set volume(v) { if (o.g) o.g.gain.value = v; }, pause() { wStop(o); } }; } else if (SND.on !== false) { const a = new Audio("assets/mus_bienvenue.mp3"); a.volume = 0.95; a.play().catch(() => {}); CINE.musA = a; } } catch (e) {} }
   if (CINE.ui && !CINE.wel) { const w = document.createElement("div"); w.className = "cwel"; w.innerHTML = '<div class="w1">Bienvenue à Constancy City</div><div class="w2"><b>Constancy</b> · le jeu</div>'; CINE.ui.appendChild(w); CINE.wel = w; }
   if (CINE.wel) { CINE.wel.classList.toggle("a", TR > CINE_L7 - 0.4 + 6.0); CINE.wel.classList.toggle("b", TR > CINE_L7 - 0.4 + 10.8); }
   // sous-titres et voix
-  let li = -1; CINE_LINES.forEach(([a, b], i) => { if (TR >= a && TR < b) li = i; }); if (li !== CINE.li) { CINE.li = li; if (CINE.sub) { CINE.sub.classList.remove("on"); if (li >= 0) { CINE.sub.textContent = CINE_LINES[li][2]; void CINE.sub.offsetWidth; CINE.sub.classList.add("on"); } } if (li >= 0) { const a = CINE.voice[li]; if (a && !a.bad && SND.on) { try { a.currentTime = 0; a.play().catch(() => {}); } catch (e) {} } } }
+  let li = -1; CINE_LINES.forEach(([a, b], i) => { if (TR >= a && TR < b) li = i; }); if (li !== CINE.li) { CINE.li = li; if (CINE.sub) { CINE.sub.classList.remove("on"); if (li >= 0) { CINE.sub.textContent = CINE_LINES[li][2]; void CINE.sub.offsetWidth; CINE.sub.classList.add("on"); } } if (li >= 0) { if (!wPlay(CINE.vw && CINE.vw[li], 1)) { const a = CINE.voice[li]; if (a && !a.bad && SND.on) { try { a.currentTime = 0; a.play().catch(() => {}); } catch (e) {} } } } }
   if (CINE.ui && T > 3 && !CINE.ui.classList.contains("skip")) CINE.ui.classList.add("skip");
   if (TR > CINE_END) { CINE.boom = true; endPrologue(); }
 }
@@ -5028,7 +5037,7 @@ function updateFair(dt) {
 // ambiance sonore de fête foraine : orgue de barbarie, foule, cris sur les manèges
 function fairScream(d) { const c = SND.ctx; if (!c || !SND.on) return; const t = c.currentTime, v = 0.06 * Math.pow(clamp(1 - d / 160, 0, 1), 1.5);
   for (let i = 0; i < 3; i++) { const o = c.createOscillator(), g = c.createGain(); o.type = "sawtooth"; o.frequency.setValueAtTime(900 + i * 140, t); o.frequency.exponentialRampToValueAtTime(1400 + i * 120, t + 0.25); o.frequency.exponentialRampToValueAtTime(700, t + 1.1); const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 1200; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2); o.connect(f); f.connect(g); g.connect(c.destination); o.start(t + i * 0.04); o.stop(t + 1.3); } }
-function bumpSound(d) { const c = SND.ctx; if (!c || !SND.on) return; const t = c.currentTime, v = 0.12 * Math.pow(clamp(1 - d / 70, 0, 1), 1.4); if (v < 0.004) return; // choc caoutchouc + petite étincelle de la perche
+function bumpSound(d) { const c = SND.ctx; if (!c || !SND.on || CINE.on || (typeof DREAM !== "undefined" && DREAM.on) || MIR.on || d > 32) return; const nw = performance.now(); if (nw - (bumpSound.t || 0) < 900) return; bumpSound.t = nw; const t = c.currentTime, v = 0.1 * Math.pow(clamp(1 - d / 32, 0, 1), 1.6); if (v < 0.004) return; /* V309.1 (Thomas : « un bruit de rebond toutes les 3 secondes pendant que je parle ») : on n'entend plus les autos tamponneuses qu'à moins de 32 m, jamais pendant le mode histoire */ // choc caoutchouc + petite étincelle de la perche
   const o = c.createOscillator(), g = c.createGain(); o.type = "triangle"; o.frequency.setValueAtTime(130 + Math.random() * 40, t); o.frequency.exponentialRampToValueAtTime(55, t + 0.18); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0005, t + 0.22); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.25);
   const n = c.createBufferSource(), b = c.createBuffer(1, c.sampleRate * 0.08, c.sampleRate), dd = b.getChannelData(0); for (let i = 0; i < dd.length; i++) dd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / dd.length, 3); n.buffer = b; const f = c.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 3200; const g2 = c.createGain(); g2.gain.value = v * 0.5; n.connect(f); f.connect(g2); g2.connect(c.destination); n.start(t + 0.01);
   if (Math.random() < 0.35) natureSound("laugh", v * 0.9); }
@@ -7102,7 +7111,7 @@ function updateMarsh(dt) { if (!EXW.built) return; const cam = camera.position, 
   EXW.crocs.forEach(o => { o.c.visible = near; if (!near || !o.sw) return; o.a += dt * 0.05; const nx = o.x + Math.cos(o.a) * 10, nz = o.z + Math.sin(o.a) * 10; o.c.position.set(nx, -0.32 + Math.sin(T * 1.3 + o.a) * 0.03, nz); o.c.rotation.y = -o.a + Math.sin(T * 2) * 0.08; });
   EXW.mist.forEach(m => { m.sp.visible = near; if (near) m.sp.position.x = m.x + Math.sin(T * 0.05 + m.ph) * 20; });
   if (EXW.fl) { EXW.fl.visible = near && nightK > 0.3; if (EXW.fl.visible) EXW.fl.material.opacity = 0.5 + 0.5 * Math.sin(T * 3); } }
-function updateJW(dt) { if (!DINOL.p && DINOL.keys.length && camera && (camera.position.z < -700 || camera.position.y > 220)) loadDinoModels(); updateMarsh(dt); updateRegions(dt); try { updateLife4(dt); } catch (e) {} updateRoads(dt); updateGrass(dt); updatePOI(dt);
+function updateJW(dt) { if (!DINOL.p && DINOL.keys.length && camera && (TOUCH_DEV() ? (G.mode === "play" && !CINE.on && !(M3 && M3.on) && G.me && G.me.z < -1350 && camera.position.y < 200) : (camera.position.z < -700 || camera.position.y > 220))) loadDinoModels(); /* V309.1 (plantages iPhone à la fin du drone, au dézoom de la carte, au clic vers la montagne) : sur téléphone, les 19 dinosaures ne se chargent plus parce que la caméra monte, seulement quand le joueur arrive vraiment vers le parc, un par un */ updateMarsh(dt); updateRegions(dt); try { updateLife4(dt); } catch (e) {} updateRoads(dt); updateGrass(dt); updatePOI(dt);
   /* V305.2 : le centre des visiteurs est solide (on ne traverse plus la verrière ni le mur) · portes vitrées coulissantes qui s'ouvrent quand on approche */
   if (JW.hubG && G.mode === "play") { const o = G.onFoot ? G.me : G.car, H = JW.hubG, ry = H.rotation.y, dx = o.x - H.position.x, dz = o.z - H.position.z, lx = dx * Math.cos(ry) - dz * Math.sin(ry), lz = dx * Math.sin(ry) + dz * Math.cos(ry);
     if (JW.doors) { const near = Math.abs(lx) < 5 && lz > -16 && lz < -6; JW.doors.forEach(d => { const was = d.k; d.k += ((near ? 1 : 0) - d.k) * Math.min(1, dt * 3.5); d.m.position.x = d.sd * (1.2 + d.k * 2.3); if (near && was < 0.03 && SND.ctx) noiseHit(0.05, 1600, 0.8, 0.4); }); }
@@ -11081,7 +11090,7 @@ function openLogin(after) {
     <button id="lgCode" type="button" class="eglink">J'ai un code de partie</button></div>`, "mail");
   const err = (t, c) => { const e = $("lgErr"); e.style.color = c || "#ff6b8a"; e.innerHTML = t; };
   on("lgEye", () => { const p = $("lgP"); p.type = p.type === "password" ? "text" : "password"; $("lgEye").textContent = p.type === "password" ? "Voir" : "Cacher"; });
-  on("lgNew", () => { G.emailGate = false; if (P) openEmailGate(after); else createAvatar(); }); on("lgCode", () => { G.emailGate = false; openTransfer(true); });
+  on("lgNew", () => { G.emailGate = false; if (P) openEmailGate(after); else if (/noreve/.test(location.search) || navigator.webdriver) createAvatar(); else startDream(); }); on("lgCode", () => { G.emailGate = false; openTransfer(true); });
   on("lgForgot", () => { const v = ($("lgE").value || "").trim().toLowerCase();
     err(`Écris-nous depuis ton adresse : on réinitialise ton mot de passe, ta partie est gardée.<br><a href="mailto:contact@constancyacademy.com?subject=${encodeURIComponent("Mot de passe oublié")}&body=${encodeURIComponent("Mon adresse de jeu : " + (v || "…"))}" style="color:#ff6fbf;font-weight:700">Écrire à contact@constancyacademy.com</a>`, "rgba(242,240,236,.8)"); stat("mdp-oublie"); });
   let busy = false; const go = async () => { if (busy) return; const v = ($("lgE").value || "").trim().toLowerCase(), pw = $("lgP").value || "";
@@ -11285,7 +11294,7 @@ function titleScreen() {
     <p class="note">Téléphone : pose ton pouce en bas de l'écran et glisse vers le haut pour avancer, vers le bas pour reculer, sur les côtés pour tourner. Ordinateur : flèches ou ZQSD, Espace pour freiner, F pour sortir de la voiture, Maj pour sprinter à pied. Sur téléphone, pousse le doigt au-delà du rond pour sprinter.</p></div>`);
   on("cont", () => { audioInit(); P = Object.assign(freshSave(saved.objective, saved.muscle), saved); P.counts = P.counts || {}; if (P.jokers == null) P.jokers = 2; dailyReturn(); const next = () => { if (G.newDay) welcomeBack(); else startPlay(); };
     if (G.newDay && !P.email && !CREATOR && P.emailLater && (P.emailReask || 0) < 3) { P.emailReask = (P.emailReask || 0) + 1; saveNow(); openEmailGate(next); } else next(); });
-  on("newg", () => { audioInit(); saved ? confirmNew() : createAvatar(); });
+  on("newg", () => { audioInit(); saved ? confirmNew() : startDream(); }); /* V309.1 (Thomas : « en bêta sur ordinateur, on crée son perso dès le début ») : une nouvelle partie passe TOUJOURS par le rêve puis le miroir */
   on("quick", () => { audioInit(); stat("jouer"); if (!/noreve/.test(location.search) && !navigator.webdriver) startDream(); else createAvatar(); }); /* V308.7 (Thomas, 20/11 9h32) : le mode histoire pour tout le monde, à chaque nouvelle partie (avant : une seule fois par téléphone, un joueur qui avait vu le début, ou dont la page avait sauté pendant le rêve, retombait sur l'ancien écran « Crée ton perso ») */ // V307 : le créateur passe aussi par le perso, l'objectif et la cinématique du début, à chaque fois
   on("tlogin", () => { audioInit(); openLogin(null); });
   
@@ -11454,7 +11463,7 @@ function addInstallButton() {
 }
 function confirmNew() {
   show(`<div class="panel"><h2>Repartir de zéro ?</h2><p class="lead">Ta progression actuelle sera effacée sur cet appareil.</p><div class="row"><button class="btn pink" id="yes" type="button">Effacer et recommencer</button><button class="btn alt" id="no" data-focus type="button">Annuler</button></div></div>`);
-  on("yes", () => { store.clear(); createAvatar(); }); on("no", titleScreen);
+  on("yes", () => { store.clear(); if (/noreve/.test(location.search) || navigator.webdriver) createAvatar(); else startDream(); }); on("no", titleScreen);
 }
 /* vignettes 3D (avatar, voitures) rendues à la volée */
 let snapR = null, snapScene = null, snapCam = null; const snapCache = {};
@@ -11512,20 +11521,20 @@ function mirAvatar(L, goal) {
 function mirrorStart() {
   if (!mirrorBuild()) return false; MIR.on = true; MIR.t0 = performance.now(); MIR.walk = 1; MIR.idle = 0; document.body.classList.add("mir3d", "mirwalk"); if (homeLight) homeLight.intensity = 1.1; if (MIR.light) MIR.light.intensity = 0.9;
   const E = k => k < 0 ? 0 : k > 1 ? 1 : k * k * (3 - 2 * k), L = (a, b, k) => a + (b - a) * k, s0 = { x: HZN.bed.x + 1.4, z: HZN.bed.z + 1.8 }, A = { x: s0.x + 0.2, z: MIR.S.z }, yaw0 = Math.atan2(3.1, 4.7), yawM = -Math.PI / 2;
-  const sub = document.createElement("div"); sub.className = "mirsub"; sub.textContent = "Ouf… Quel rêve."; document.body.appendChild(sub); MIR.sub = sub;
+  MIR.sub = null; /* V309.1 (Thomas) : plus de « Ouf… Quel rêve. » ni de main sur la tête : on arrive devant le miroir et on choisit son perso */
   window.__camK = () => { const T = (performance.now() - MIR.t0) / 1000, S = MIR.S, hy = MIR.headY || 1.62, kA = E(T / 1.8), kB = Math.min(1, Math.max(0, (T - 1.4) / 4.8)), kBe = kB * kB * (3 - 2 * kB), walking = T > 0.2 && T < 6.2;
     const yaw = L(yaw0, yawM, E(T / 2.0)), fx = Math.sin(yaw), fz = Math.cos(yaw), bob = walking ? Math.sin(T * 6.4) * 0.028 : 0, sway = walking ? Math.sin(T * 3.2) * 0.012 : 0;
     const bxp = L(L(s0.x, A.x, kA), S.x, kBe), bzp = L(L(s0.z, A.z, kA), S.z, kBe), hh = L(1.68, hy, kA);
     // le perso (vu dans le miroir) marche sous la caméra, puis s'arrête et se passe la main sur la tête
     const me = MIR.me; if (me) { me.visible = true; me.position.set(bxp - fx * 0.34, 0, bzp - fz * 0.34); /* V308.9 (Thomas : « devant le miroir, on voit le nez ») : la caméra était dans la tête */ me.rotation.y = yaw;
       if (walking && MIR.walk === 1) { MIR.walk = 2; try { setClip(me, "Walk_Loop", 0.8); } catch (e) {} } if (!walking && T > 6.2 && !MIR.idle) { MIR.idle = 1; try { if (!setClip(me, "Idle_Loop", 0.8)) setClip(me, null); } catch (e) {} }
-      const hw = E((T - 6.5) / 0.6) * (1 - E((T - 8.3) / 0.7)); MIR.ik = null; if (hw > 0.01 && me.userData.rig && me.userData.rig.head) { try { const hv = new THREE.Vector3(); me.updateMatrixWorld(true); me.userData.rig.head.b.getWorldPosition(hv); hv.y += 0.16; hv.x += fx * 0.04; hv.z += fz * 0.04; MIR.ik = { w: hw, t: hv }; } catch (e) {} } }
+      const hw = 0; MIR.ik = null; if (hw > 0.01 && me.userData.rig && me.userData.rig.head) { try { const hv = new THREE.Vector3(); me.updateMatrixWorld(true); me.userData.rig.head.b.getWorldPosition(hv); hv.y += 0.16; hv.x += fx * 0.04; hv.z += fz * 0.04; MIR.ik = { w: hw, t: hv }; } catch (e) {} } }
     if (T > 6.6 && MIR.sub && !MIR.sub.classList.contains("on")) MIR.sub.classList.add("on"); if (T > 9.2 && MIR.sub && !MIR.sub.classList.contains("out")) MIR.sub.classList.add("out");
-    if (T > 8.6 && document.body.classList.contains("mirwalk")) document.body.classList.remove("mirwalk");
+    if (T > 6.3 && document.body.classList.contains("mirwalk")) document.body.classList.remove("mirwalk");
     MIR.neon.color.setHSL((0.92 + 0.04 * Math.sin(T * 0.8)) % 1, 1, 0.5 + 0.06 * Math.sin(T * 2.2));
     const px = bxp + Math.cos(yaw) * sway, pz = bzp - Math.sin(yaw) * sway, py = hh + bob + (T > 6.2 ? Math.sin(T * 1.4) * 0.006 : 0), look = 4;
     /* V308.8 (Thomas : « quand on choisit les boucles d'oreilles… il faut qu'on se rapproche du personnage ») : la caméra cadre le visage (ou la poitrine pour la chaîne) quand on règle un détail */
-    const nw = performance.now(), dtc = Math.min(0.1, (nw - (MIR.lt || nw)) / 1000), ka = 1 - Math.exp(-dtc * 4.5); MIR.lt = nw; const fT = T > 8.6 ? (MIR.foc === "f" ? 1 : MIR.foc === "c" ? 0.55 : 0) : 0, pT = T > 8.6 ? 1 : 0; MIR.fz = (MIR.fz || 0) + (fT - (MIR.fz || 0)) * ka; MIR.pz = (MIR.pz || 0) + (pT - (MIR.pz || 0)) * ka;
+    const nw = performance.now(), dtc = Math.min(0.1, (nw - (MIR.lt || nw)) / 1000), ka = 1 - Math.exp(-dtc * 4.5); MIR.lt = nw; const fT = T > 6.3 ? (MIR.foc === "f" ? 1 : MIR.foc === "c" ? 0.55 : 0) : 0, pT = T > 6.3 ? 1 : 0; MIR.fz = (MIR.fz || 0) + (fT - (MIR.fz || 0)) * ka; MIR.pz = (MIR.pz || 0) + (pT - (MIR.pz || 0)) * ka;
     /* V308.8 (Thomas : « il faut que la personne voie son perso en entier · si on choisit le pantalon et qu'on ne voit pas le pantalon, ça ne fait pas sens ») :
        la caméra vise dans le miroir ce qu'on règle (visage, buste, jambes, pieds ou le corps entier) et le place au centre de la zone libre au-dessus du panneau */
     const land = window.innerWidth > window.innerHeight, fov0 = land ? 56 : 70, tO = [px + fx * look, py - L(0.25, 0.42, kB), pz + fz * look];
@@ -11559,7 +11568,7 @@ function createAvatar() {
     visage: (L.gender === "homme" ? row("Barbe", sel("b", ACC.beards, +L.beard || 0)) : "") + row("Lunettes", sel("gl", ["Sans lunettes", "Rondes dorées", "Rondes noires", "Carrées noires", "Solaires"], +L.gl || 0)) + row("Taches de rousseur", sel("fr", ["Aucune", "Quelques-unes", "Beaucoup"], +L.fr || 0)) + row("Boucles d'oreilles", sel("ea", ACC.ears, +L.ea || 0)),
     cheveux: row("Coupe", sel("hs", AV.hs.map(h => h.n), L.hs)) + row("Couleur", ddC("hc", AV.hc, L.hc, AV.hcN)),
     tenue: row("Haut", sel("t", AV.tops.map(t => t.n), L.top)) + row("Couleur", ddC("tc", AV.tc, L.tc)) + row("Bas", sel("bt", AV.bots.map(t => t.n), L.bot)) + row("Chaussures", sel("sh", AV.shoes.map(t => t.n), L.sh)),
-    accessoires: row("Couvre-chef", sel("hat", ACC.hats, +L.hat || 0)) + ((+L.hat || 0) ? row("Couleur", ddC("htc", ACC.hatC, +L.htc || 0)) : "") + row("Chaîne", sel("ch", ACC.chains, +L.ch || 0)) + row("Montre", sel("wa", ACC.watches, +L.wa || 0)) + row("Sac", sel("bg", ACC.bags, +L.bg || 0)) + row("Premium ✦", `<div class="avdd avddp"><button type="button" class="avddb prem"><span>${L.tryC ? ((COLL.costume || []).find(c => c.id === L.tryC) || {}).n || "Costumes" : "5 costumes de héros"}</span><b>▾</b></button><div class="avddl">${(COLL.costume || []).map(c => `<button type="button" class="avddo prem${L.tryC === c.id ? " sel" : ""}" data-prem="${c.id}"><img alt="" data-premimg="${c.id}"><span><b>🔒 ${c.n}</b><small>${c.d}</small></span></button>`).join("")}</div></div><div class="avprem" id="avPrem">${L.tryC ? "<b>Aperçu sur ton reflet</b> · Se débloque avec ta régularité (30 jours et toutes les missions) · bientôt aussi en boutique." : ""}</div>`) };
+    accessoires: row("Couvre-chef", sel("hat", ACC.hats, +L.hat || 0)) + ((+L.hat || 0) ? row("Couleur", ddC("htc", ACC.hatC, +L.htc || 0)) : "") + row("Chaîne", sel("ch", ACC.chains, +L.ch || 0)) + row("Montre", sel("wa", ACC.watches, +L.wa || 0)) + row("Sac", sel("bg", ACC.bags, +L.bg || 0)) + row("Premium ✦", `<div class="avdd avddp"><button type="button" class="avddb prem"><span>${L.tryC ? ((COLL.costume || []).find(c => c.id === L.tryC) || {}).n || "Costumes" : "5 costumes de héros"}</span><b>▾</b></button><div class="avddl"><button type="button" class="avddo prem${!L.tryC ? " sel" : ""}" data-prem=""><span><b>Aucune tenue premium</b><small>Ta tenue à toi</small></span></button>${(COLL.costume || []).map(c => `<button type="button" class="avddo prem${L.tryC === c.id ? " sel" : ""}" data-prem="${c.id}"><img alt="" data-premimg="${c.id}"><span><b>🔒 ${c.n}</b><small>${c.d}</small></span></button>`).join("")}</div></div><div class="avprem" id="avPrem">${L.tryC ? "<b>Aperçu sur ton reflet</b> · Se débloque avec ta régularité (30 jours et toutes les missions) · bientôt aussi en boutique." : ""}</div>`) };
   show(`<div class="panel avpanel av2 av3${createAvatar._mirror ? " miroir" : ""}"><div class="kicker avk"><i></i>Étape 1 sur 3</div><h2 class="avh">Crée ton <em>perso</em></h2>
     <div class="avstage"><div class="avframe${face ? " avface" : ""}"><img src="${big}" alt="Aperçu de ton perso" class="avprev" id="avImg"><img src="${big}" alt="" class="avrefl" id="avRefl"><i class="avfloor"></i>${goal ? `<div class="avgoal"><img src="${goal}" alt="Ton perso à l'objectif"><span>Ton objectif</span></div>` : ""}${tab === "accessoires" ? `<button type="button" class="avzoom" id="avZoom">${face ? "Voir en entier" : "Voir le visage"}</button>` : ""}</div></div>
     <div class="avgen"><button type="button" data-g="homme" class="${L.gender === "homme" ? "sel" : ""}">Homme</button><button type="button" data-g="femme" class="${L.gender === "femme" ? "sel" : ""}">Femme</button><i class="avgbar" style="transform:translateX(${L.gender === "femme" ? 100 : 0}%)"></i></div>
@@ -11570,11 +11579,11 @@ function createAvatar() {
   screen.querySelectorAll("[data-g]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.g; if (v === L.gender) return; L.gender = v; L.outfit = 0; L.hs = v === "femme" ? 2 : 1; L.beard = 0; if (v === "femme" && !L.ea) L.ea = 1; redo(); }));
   const setF = { s: v => L.skin = +v, hc: v => L.hc = +v, tc: v => L.tc = +v, hs: v => L.hs = +v, b: v => L.beard = +v, gl: v => L.gl = +v, fr: v => L.fr = +v, t: v => L.top = +v, bt: v => L.bot = +v, sh: v => L.sh = +v,
     ht: v => L.ht = +v, ea: v => L.ea = +v, hat: v => L.hat = +v, htc: v => L.htc = +v, ch: v => L.ch = +v, wa: v => L.wa = +v, bg: v => L.bg = +v };
-  screen.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => { if (createAvatar._tab === b.dataset.tab) return; createAvatar._tab = b.dataset.tab; createAvatar._st = 0; createAvatar._fz = b.dataset.tab === "accessoires" ? 1 : undefined; MIR.foc = b.dataset.tab === "visage" || b.dataset.tab === "cheveux" || b.dataset.tab === "accessoires" ? "f" : "b"; redo(); }));
+  screen.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => { if (createAvatar._tab === b.dataset.tab) return; if (b.dataset.tab === "tenue" && L.tryC && !CREATOR) { try { sfx.fail(); } catch (e) {} help("<b>Tenue premium en essai.</b> Choisis « Aucune tenue premium » dans Accessoires pour changer de tenue. Tu peux toujours régler le corps, le visage et les cheveux.", 4); return; } createAvatar._tab = b.dataset.tab; createAvatar._st = 0; createAvatar._fz = b.dataset.tab === "accessoires" ? 1 : undefined; MIR.foc = b.dataset.tab === "visage" || b.dataset.tab === "cheveux" || b.dataset.tab === "accessoires" ? "f" : "b"; redo(); }));
   on("avZoom", () => { createAvatar._fz = face ? 0 : 1; redo(); });
   const FOC = { ea: "f", hat: "f", htc: "f", gl: "f", fr: "f", b: "f", hs: "f", hc: "f", ch: "c", t: "c", tc: "c", wa: "c", bt: "l", sh: "p" }, focus = a => { MIR.foc = FOC[a] || "b"; };
   screen.querySelectorAll(".avsw").forEach(b => { const a = Object.keys(b.dataset)[0]; b.addEventListener("click", () => { focus(a); setF[a](b.dataset[a]); redo(); }); });
-  screen.querySelectorAll("[data-prem]").forEach(b => b.addEventListener("click", () => { L.tryC = L.tryC === b.dataset.prem ? undefined : b.dataset.prem; MIR.foc = "b"; stat("premium-essai"); redo(); }));
+  screen.querySelectorAll("[data-prem]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.prem; L.tryC = v ? v : undefined; MIR.foc = "b"; if (v) stat("premium-essai"); redo(); }));
   // ouverture des listes : au-dessus du panneau, jamais coupées, une seule à la fois
   /* les listes s'ouvrent dans un calque au-dessus du jeu (le panneau flouté coupait tout ce qui dépasse) */
   const portal = document.getElementById("avPortal") || (() => { const d = document.createElement("div"); d.id = "avPortal"; d.className = "avportal"; document.body.appendChild(d); return d; })(); portal.classList.remove("open"); portal.innerHTML = "";
@@ -11594,7 +11603,7 @@ function createAvatar() {
       hb.addEventListener("pointerdown", down); if (MIR.up) window.removeEventListener("pointerup", MIR.up); MIR.up = up; window.addEventListener("pointerup", up); hb.addEventListener("pointerleave", up); } }
   createAvatar._spin = setInterval(() => { if (!img || !img.isConnected) { clearInterval(createAvatar._spin); return; } if (frames.length < 2) return; fi = (fi + 1) % frames.length; if (fi === 0 && frames.length < NF) return; img.src = frames[fi]; if (refl) refl.src = frames[fi]; }, 160);
   const sc = screen.querySelector(".avscroll"); if (sc && createAvatar._st) sc.scrollTop = createAvatar._st; if (sc) sc.addEventListener("scroll", () => createAvatar._st = sc.scrollTop);
-  on("ok", () => { const m3 = !!createAvatar._mir3d; createAvatar._mir3d = false; createAvatar._mirror = false; if (m3) { try { hideScreen(); } catch (e) {} } /* V308.2 (Thomas, 21h28) : plus jamais l'ancien visuel du miroir après « C'est moi », on reste devant le vrai miroir pendant « Bienvenue », puis directement la suite */ createAvatar._st = 0; delete L.tryC; createAvatar._tab = "corps"; createAvatar._fz = undefined; clearInterval(createAvatar._spin); clearTimeout(createAvatar._gen); stat("perso-cree"); avatarReveal(() => { if (m3) mirrorEnd(); afterAvatar(); }); });
+  on("ok", () => { if (L.tryC && !CREATOR) { try { sfx.fail(); } catch (e) {} help("<b>Cette tenue premium n'est pas encore débloquée.</b> Elle se gagne avec ta régularité. Choisis « Aucune tenue premium » pour continuer.", 5); stat("premium-refus"); return; } if (L.tryC && CREATOR && P) { try { P.equip = P.equip || {}; P.equip.costume = L.tryC; } catch (e) {} } const m3 = !!createAvatar._mir3d; createAvatar._mir3d = false; createAvatar._mirror = false; if (m3) { try { hideScreen(); } catch (e) {} } /* V308.2 (Thomas, 21h28) : plus jamais l'ancien visuel du miroir après « C'est moi », on reste devant le vrai miroir pendant « Bienvenue », puis directement la suite */ createAvatar._st = 0; delete L.tryC; createAvatar._tab = "corps"; createAvatar._fz = undefined; clearInterval(createAvatar._spin); clearTimeout(createAvatar._gen); stat("perso-cree"); avatarReveal(() => { if (m3) mirrorEnd(); afterAvatar(); }); });
 }
 function xFlash(then) { // flash blanc-rose + souffle et impact, comme à l'arrivée sur le menu
   const f = document.createElement("div"); f.className = "xflash"; document.body.appendChild(f); try { flashback(); } catch (e) {} requestAnimationFrame(() => requestAnimationFrame(() => f.classList.add("on")));
@@ -11858,7 +11867,7 @@ function m3Want() { try { return localStorage.getItem("map3d") !== "0"; } catch 
 function m3Set(v) { try { localStorage.setItem("map3d", v ? "1" : "0"); } catch (e) {} }
 function openMap(zone) { if (m3Want() && !zone) openMap3D(); else openBigMap(zone); }
 function TOUCH_DEV() { return !(window.matchMedia && matchMedia("(pointer:fine)").matches); }
-const M3MAX = () => window.innerWidth < window.innerHeight ? 8200 : 4600; // V305.1 : on peut dézoomer jusqu'à voir tout le continent, sur téléphone aussi
+const M3MAX = () => window.innerWidth < window.innerHeight ? 9800 : 6800; /* V309.1 (Thomas : « on doit pouvoir dézoomer plus ») */ // V305.1 : on peut dézoomer jusqu'à voir tout le continent, sur téléphone aussi
 const M3OV = 1250; // au-delà, sur téléphone, vue d'ensemble légère (une image satellite du continent) au lieu de toute la 3D : pas de plantage
 function m3OvBuild() { if (M3.ovTex) return; const X0 = -2200, Z0 = -3600, W = 5200, hidden = [], hide = o => { if (o && o.visible) { o.visible = false; hidden.push(o); } };
   hide(sky); hide(sea); hide(FX.clouds); hide(WX.lines); hide(meMesh); (M3.beams || []).forEach(hide); (M3.tags || []).forEach(hide); scene.children.forEach(o => { if (o.isPoints || o.isSprite) hide(o); });
@@ -11914,7 +11923,7 @@ function map3dCam(dt) {
   M3.t += dt; if (GFIELD.im) GFIELD.im.visible = false; if ((M3.cf = (M3.cf || 0) + 1) % 6 === 0) cullChunks(); if (M3.dW != null) { M3.d += (M3.dW - M3.d) * Math.min(1, dt * 6); if (Math.abs(M3.dW - M3.d) < 1) M3.dW = null; } if (M3.yW != null) { M3.yaw += (M3.yW - M3.yaw) * Math.min(1, dt * 6); if (Math.abs(M3.yW - M3.yaw) < 0.002) M3.yW = null; }
   if (M3.tx != null) { const q = Math.min(1, dt * 9); M3.x += (M3.tx - M3.x) * q; M3.z += (M3.tz - M3.z) * q; M3.tx = clamp(M3.tx, -1800, 1800); M3.tz = clamp(M3.tz, -3350, 1500); if (Math.hypot(M3.tx - M3.x, M3.tz - M3.z) < 0.5) M3.tx = M3.tz = null; }
   if (M3.goX != null) { M3.x += (M3.goX - M3.x) * Math.min(1, dt * 3); M3.z += (M3.goZ - M3.z) * Math.min(1, dt * 3); if (Math.hypot(M3.goX - M3.x, M3.goZ - M3.z) < 2) M3.goX = null; }
-  M3.x = clamp(M3.x, -1800, 1800); M3.z = clamp(M3.z, -3350, 1500); M3.d = Math.min(M3.d, M3MAX()); m3Overview();
+  M3.x = clamp(M3.x, -2900, 2100); M3.z = clamp(M3.z, -3500, 2100); M3.d = Math.min(M3.d, M3MAX()); m3Overview();
   const pitch = 0.72 + 0.42 * clamp((M3.d - 110) / 1400, 0, 1), gy = Math.max(0, GH(M3.x, M3.z)), fx = Math.sin(M3.yaw), fz = Math.cos(M3.yaw), hz = M3.d * Math.cos(pitch);
   const P = new THREE.Vector3(M3.x - fx * hz, gy + M3.d * Math.sin(pitch), M3.z - fz * hz), T = new THREE.Vector3(M3.x, gy, M3.z);
   const e = M3.t < 1.9 ? (q => q < 0.5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2)(M3.t / 1.9) : 1; /* V287 : ouverture lente qui accélère puis se pose */ camera.position.copy(M3.from).lerp(P, e); camera.lookAt(T); if (e < 1) { const q = camera.quaternion.clone(); camera.quaternion.copy(M3.fromQ).slerp(q, e); }
@@ -12221,7 +12230,7 @@ const SHAKE = { k: 0, o: new THREE.Vector3() };
 function shakeAdd(k) { SHAKE.k = Math.min(1.2, Math.max(SHAKE.k, k)); }
 function renderFrame() {
   const sk = SHAKE.k; if (sk > 0.002 && camera) { const T = performance.now() / 1000; SHAKE.o.set(Math.sin(T * 61) * 0.09, Math.sin(T * 47 + 1) * 0.13, Math.sin(T * 53 + 2) * 0.07).multiplyScalar(sk); camera.position.add(SHAKE.o); SHAKE.k *= 0.86; } else SHAKE.o.set(0, 0, 0);
-  const hid = []; if (CINE.on && CINE.t > CINE_L7 - 1) { /* V309 : pendant le vol de drone, ni balise ni panneau « Ta voiture » au milieu de l'image */ try { [destBeacon, ownMark].forEach(o => { if (o && o.visible) { o.visible = false; hid.push(o); } }); } catch (e) {} }
+  const hid = []; if (CINE.on) { /* V309 : pendant le vol de drone, ni balise ni panneau « Ta voiture » au milieu de l'image */ try { [destBeacon, ownMark].forEach(o => { if (o && o.visible) { o.visible = false; hid.push(o); } }); } catch (e) {} }
   try { renderFrame0(); } finally { if (camera) camera.position.sub(SHAKE.o); hid.forEach(o => o.visible = true); } }
 // V305.1 : à l'accueil, la Constancy City est la SEULE voiture à l'écran (vérifié au moment même du rendu : trafic, voitures garées, locations, bus, deux-roues)
 const CARRE = /^(car_|bus|firetruck|ambulance|crewcar|taxi|police|tracteur|scooter|moto|truck|van)/;

@@ -7,3 +7,11 @@ CAPTURE DE RUSHES PAR LE MONTEUR (19/11, sans l'iMac)
 · capd.js (20/11, Jour et nuit b1) : Même chose que cap.js mais le jeu reste chargé. node capd.js <dossier_jobs> (avec VD et NODE_PATH), puis déposer des jobs JSON {out, w, h, shots, eval} : Le démon les exécute dans l'ordre et écrit <job>.done. Repérage en 540 × 960 en 20 s par image, rendu 1080 × 1920 en 3 à 5 s par image.
 · Jour → nuit au même angle dans un seul plan : Dans camjs, « const W=window.__W(); if(W.P){ W.P.dayT=(T<1.2857?360:840); } » (14h puis 22h, bascule instantanée). Cacher les feux d'artifice : window.__FW.pts.visible=false.
 · Repères : Grande roue (-575, 40, -56) · canal du centre z ≈ 130 · grande tour (28, -28) · tour de contrôle de l'aéroport x = -150.
+· 20/11 (monteur, Hélico b2 et Jour et nuit b4) : Lancer capd.js avec setsid et vérifier qu'UN SEUL node capd.js tourne (ps -C node). Un ancien démon dont la page est morte prend les jobs et répond « Target page, context or browser has been closed ». V308.7 se filme normalement.
+· Dans le js d'un plan, ne jamais écrire « const W = » (le démon a déjà W) : Utiliser W5, W6…
+· Aurores : Masquer le matériau qui a uniforms.uK (material.visible=false). Faisceaux du ciel : Meshes en AdditiveBlending de plus de 120 m de haut, et W.JW.beams.
+· Hélico : window.__HM = W.life.heli.mesh, remplacer W.life.heli.mesh par un Group vide, puis placer __HM dans camjs à chaque image (mkshots_helico_heli.py, mkshots_helico_plans.py). Nez vers +z quand rotation.y = 0.
+· Jour → nuit dans une seule prise : Image i du rush à T = (4 + i)/30. Bascule « W6.P.dayT=(T<seuil?360:840) » avec seuil au milieu de 2 images (mkshots_journuit_b4_*.py).
+· Grande roue : Plan de la roue face à ±x. « CONSTANCY WHEEL » se lit en entier caméra AU-DESSUS du moyeu (y ≈ 62 à 75, 60-70 m) : Les pieds en A passent sous l'enseigne.
+· Voitures garées où on veut (Devine le prix) : W.makeCar(W.CARS.find(c=>c.id=='hyper')), traffic masqué (mkshots_prix_voitures.py). Ids : citadine, coupe, suv, gt (orange), hyper (or), minuit, or, nacre. Rue de boutiques néon (VELOX) vers (-1, -48), nuit dayT 840.
+· Texte et coupes : render2 affiche un texte si between(t, début, fin) : Mettre les bornes au milieu entre 2 images (ex. 64,5/30) pour que le texte change pile sur la coupe. Temps forts sans 0 s dans un .json à part (pas d'éclair sur l'image 1).

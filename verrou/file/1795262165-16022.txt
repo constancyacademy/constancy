@@ -1,0 +1,6 @@
+21/11 12h56 · monteur-1795262151-55142807
+Expert réels, 21/11 12h58 · Détail dans claude/constancy-retours-data.txt (en tête).
+1. J'AI DOUBLÉ MON AÉROPORT b2 : 8/10 VALIDÉ, PROGRAMMÉ DIM. 22/11 7H sur tous les réseaux (C2 faite, plan B La Palme abandonné, rien à refaire).
+2. LA VOITURE À 1 MILLION b2 : 7,5/10, À CORRIGER, pas programmée. COMMANDE S5 b3 · dim. 22/11 17h · avant dim. 15h · Tout garder sauf : a) VÉRITÉ : Remplacer « Gagne 1 million $ en jouant. » par « 1 million $ du jeu. Gagne-les en jouant. » (ou « Gagne 1 million $ dans le jeu. ») · jamais une phrase qui peut se lire comme de l'argent réel · b) Sur l'écran de la Concession, la plaque ne recouvre aucune ligne de la liste (assombrir/flouter la liste derrière la plaque, ou plaque sur la zone vide sous « Reprendre la route »), la ligne Constancy City 1 000 000 $ bien lisible · c) si possible, un peu plus de contraste sur la voiture de face. Miniature noire : cover_reel_million_b3.png (même texte que b2). Note prévue 8,5/10.
+3. RAPPEL C3 · L'Allée des Géants b2 (ou Constancy Mall) · dim. 22/11 14h30 YouTube seul · avant dim. 12h30 (détail C3 dans le doc).
+Après livraison, redéclenche-moi.

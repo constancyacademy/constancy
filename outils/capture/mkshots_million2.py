@@ -12,7 +12,7 @@ S={
 "prep":(1,carjs(300,30)+"return {p:[%f,3,cz-9],t:[%f,0.7,cz],fov:50};"%(LX,LX)),
 "f3q":(62,carjs(300,30)+"return {p:[%f+2.9,1.15,cz-7.0-0.5*T],t:[%f-0.1,0.65,cz+0.4],fov:52};"%(LX,LX)),
 "f3qm":(62,carjs(300,30)+"return {p:[%f-3.0,1.2,cz-7.2-0.5*T],t:[%f+0.1,0.65,cz+0.4],fov:52};"%(LX,LX)),
-"gagne":(43,carjs(260,30)+"const pp=document.querySelector('#screen .panel');if(pp){const k=Math.min(1,T/1.35),e2=k*k*(3-2*k);pp.style.transformOrigin='50%% 80%%';pp.style.transform='translateY('+(-520*e2)+'px) scale('+(1+0.22*e2)+')';}return {p:[%f+9-3*T,3.2,cz-9+2*T],t:[%f,0.8,cz],fov:55};"%(LX,LX)),
+"gagne":(43,carjs(260,30)+"const pp=document.querySelector('#screen .panel');if(pp){const k=Math.min(1,T/1.35),e2=k*k*(3-2*k);pp.style.transformOrigin='50%% 80%%';pp.style.transform='translateY('+(-330*e2)+'px) scale('+(1+0.22*e2)+')';}return {p:[%f+9-3*T,3.2,cz-9+2*T],t:[%f,0.8,cz],fov:55};"%(LX,LX)),
 "profil":(36,carjs(250,30)+"return {p:[%f-6.8,0.9,cz-1.0],t:[%f,0.6,cz-1.0],fov:48};"%(LX,LX)),
 "arriere":(43,carjs(280,30)+"return {p:[%f-1.6,2.4,cz+9.5],t:[%f,0.7,cz-1],fov:56};"%(LX,LX)),
 "drone":(62,carjs(320,30)+"return {p:[%f+14,16,cz+18],t:[%f,0.5,cz-6],fov:60};"%(LX,LX)),

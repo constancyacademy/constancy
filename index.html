@@ -531,12 +531,12 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
 
 @media (max-width:600px){ /* V310.9 (Thomas, 21/11 13h07 : sur téléphone, l'argent déborde sur la mission, le talkie et les bandeaux recouvrent l'objectif) */
 .money{font-size:clamp(16px,4.4vw,20px)!important;padding:5px 11px 6px!important}
-.mission{max-width:calc(100vw - 250px)!important}.mission .t{font-size:19px!important}.mission .s{font-size:11px!important}.mission .k{font-size:9px!important;letter-spacing:.12em!important}
-#notes{left:12px!important;right:12px!important;width:auto!important;transform:none!important;top:calc(env(safe-area-inset-top,0px) + 62px)!important}body.tkon #notes{top:calc(env(safe-area-inset-top,0px) + 164px)!important}
-#talkie{max-width:calc(100vw - 24px)!important;top:calc(env(safe-area-inset-top,0px) + 76px)!important}
+.mission{max-width:calc(100vw - 40px)!important;top:calc(env(safe-area-inset-top,0px) + 56px)!important}.mission .t{font-size:19px!important}.mission .s{font-size:11px!important}.mission .k{font-size:9px!important;letter-spacing:.12em!important}
+#notes{left:12px!important;right:12px!important;width:auto!important;transform:none!important;top:calc(env(safe-area-inset-top,0px) + 112px)!important}body.tkon #notes{top:calc(env(safe-area-inset-top,0px) + 198px)!important}
+#talkie{max-width:calc(100vw - 24px)!important;top:calc(env(safe-area-inset-top,0px) + 112px)!important}
 body.tkon .tr .main,body.tkon #goals,body.tkon #mult,body.tkon #stars,body.tkon #lvlBadge,body.tkon #clock,body.tkon #delta,body.ntson .tr .main,body.ntson #goals,body.ntson #mult,body.ntson #stars,body.ntson #lvlBadge,body.ntson #clock,body.ntson #delta,body.zton .tr .main,body.zton #goals{opacity:0!important;transition:opacity .3s}
 #zoneT{top:24%!important}
-#joyHint{width:88px!important;height:88px!important;margin-left:-44px!important;left:calc(50% + 34px)!important;bottom:calc(30px + env(safe-area-inset-bottom,0px))!important}#joyHint span{font-size:8px!important}.bl{gap:8px!important}#quitBtn{font-size:10px!important;height:38px!important;min-width:0!important;padding:0 12px!important;letter-spacing:.12em!important;opacity:.85}}
+#joyHint{width:88px!important;height:88px!important;margin-left:-44px!important;left:calc(50% + 8px)!important;bottom:calc(30px + env(safe-area-inset-bottom,0px))!important}#joyHint span{font-size:8px!important}.bl{gap:8px!important}#quitBtn{font-size:10px!important;height:38px!important;min-width:0!important;padding:0 12px!important;letter-spacing:.12em!important;opacity:.85}}
 </style>
 
 <canvas id="game" aria-label="Ville de Constancy en 3D"></canvas><div id="cockpitTop" style="position:fixed;left:0;top:0;width:100%;display:none;pointer-events:none;z-index:0;background:linear-gradient(180deg,rgba(8,6,16,.72) 0%,rgba(10,8,20,.5) 60%,rgba(14,10,24,.62) 100%);box-shadow:inset 0 -3px 0 rgba(20,18,26,.95),inset 0 -5px 6px rgba(255,63,180,.35)"></div><img id="cockpitOv" alt="" src="assets/cockpit_nacre.webp" style="position:fixed;left:0;bottom:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;pointer-events:none;z-index:0;display:none;transform-origin:50% 100%">

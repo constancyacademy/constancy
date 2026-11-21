@@ -1044,7 +1044,10 @@ const isPlane = k => !!(RIDES[k] && RIDES[k].plane);
 /* ============ Mode créateur (bêta privée de Thomas) ============ */
 const CREATOR_KEY = "constancy-creator";
 /* V294 : reprise après plantage. Si la partie précédente s'est coupée (Safari qui ferme la page), on relance en mode léger : résolution plus basse, foules secondaires coupées */
+/* V310.7 (plantages iPhone, 21/11) : sur téléphone, moins de figurants animés et d'animaux loin du joueur (702 personnages et 160 animaux à squelette au démarrage, 54 000 objets 3D, environ 400 Mo de mémoire) */
+const PHONE = (() => { try { return !(window.matchMedia && matchMedia("(pointer:fine)").matches); } catch (e) { return false; } })();
 const LIGHT = (() => { let c = false; try { c = localStorage.getItem("cstBoot") === "1"; localStorage.setItem("cstBoot", "1"); } catch (e) {} return c; })();
+const LOWM = LIGHT || PHONE;
 setTimeout(() => { try { localStorage.setItem("cstBoot", "0"); } catch (e) {} }, 45000); addEventListener("pagehide", () => { try { localStorage.setItem("cstBoot", "0"); } catch (e) {} });
 let CREATOR = (() => { try { return localStorage.getItem(CREATOR_KEY) === "1"; } catch (e) { return false; } })();
 function creatorBoost() {
@@ -4754,7 +4757,7 @@ function buildGuinguettes() {
     // le barman et des petits groupes qui discutent autour des tables, verre à la main
     const people = [[-2.6, 0.6, true, -1], [-2.6, -1.8, false, -1]];
     tables.forEach(([a, b], ti) => { const n = ti % 3 === 0 ? 3 : 2; for (let q = 0; q < n; q++) { const ang = q / n * Math.PI * 2 + ti; people.push([a + Math.cos(ang) * 0.95, b + Math.sin(ang) * 0.95, ti < 2 && q === 0, [a, b]]); } });
-    people.forEach(([a, b, day, look], qi) => {
+    people.forEach(([a, b, day, look], qi) => { if (PHONE && qi > 1 && qi % 2) return;
       const f = (qi + si) % 2 === 0, h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x111114, 0x34e0ff, 0xf6c945, 0xeadfcf, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: f, shorts: qi % 3 === 0, sleeve: 0.25 }));
       const [x, z] = at(a, b); h.position.set(x, y0 + 0.3, z);
       if (look === -1) { const [bx, bz] = at(-4.6, b); h.position.set(bx, y0 + 0.3, bz); const [tx, tz] = at(0, b); h.rotation.y = Math.atan2(tx - bx, tz - bz); }
@@ -4762,7 +4765,7 @@ function buildGuinguettes() {
       scene.add(h); setClip(h, qi % 2 ? "Idle_Talking_Loop" : "Idle_Loop", 0.85 + Math.random() * 0.3); h.userData.manual = true; h.userData.day = !!day;
       if (look !== -1) giveDrink(h); h.visible = false; GUING.people.push(h);
     });
-    if (C.Dance_Loop) for (let q = 0; q < 4; q++) { const h = bodyVar(makeHuman({ shirt: pick([0xff6fb5, 0xffffff, 0x34e0ff, 0xf6c945, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: q % 2 === 0, shorts: q === 3, sleeve: 0.2 }));
+    if (C.Dance_Loop) for (let q = 0; q < (PHONE ? 2 : 4); q++) { const h = bodyVar(makeHuman({ shirt: pick([0xff6fb5, 0xffffff, 0x34e0ff, 0xf6c945, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: q % 2 === 0, shorts: q === 3, sleeve: 0.2 }));
       const [x, z] = at(-1.4 + (q % 2) * 1.5, -5.6 + Math.floor(q / 2) * 1.4 + (si % 2) * 9); h.position.set(x, y0 + 0.3, z); h.rotation.y = ry + q * 1.4; scene.add(h); setClip(h, "Dance_Loop", 0.85 + q * 0.08); h.userData.manual = true; h.userData.day = false; h.visible = false; GUING.people.push(h); }
   });
 }
@@ -4852,11 +4855,11 @@ function buildBeachLife() {
   const SW = [0xff2d55, 0x111114, 0x34e0ff, 0xffffff, 0xf6c945, 0x9b5cff, 0xff6b9a];
   const person = (o) => bodyVar(makeHuman(Object.assign({ shirt: pick(SW), pants: pick([0x111114, 0x2d5aa8, 0xff6b9a, 0xeadfcf]), skin: pick(SKINS), hair: pick(HAIRS), lite: true, sleeve: 0.2, shorts: true }, o)));
   // promeneurs et joggeurs sur le sable mouillé : allers-retours sur 120 à 260 m
-  for (let k = 0; k < 26; k++) { const side = k % 3, jog = k % 4 === 0, f = k % 2 === 0, h = person({ female: f, shirt: jog ? pick([0xff2d55, 0x34e0ff, 0xf6c945]) : pick(SW) });
+  for (let k = 0; k < (PHONE ? 14 : 26); k++) { const side = k % 3, jog = k % 4 === 0, f = k % 2 === 0, h = person({ female: f, shirt: jog ? pick([0xff2d55, 0x34e0ff, 0xf6c945]) : pick(SW) });
     const t0 = rand(-HALF + 30, HALF - 150), L = rand(120, 260), off = HALF + 31 + rand(-2.5, 2.5); scene.add(h); if (jog) try { joggerGear(h); } catch (e) {} setClip(h, jog ? "Jog_Fwd_Loop" : "Walk_Loop", jog ? 0.95 : 0.8 + Math.random() * 0.2); h.userData.manual = true;
     BEACH.walk.push({ h, side, t0, L, off, u: Math.random(), sp: (jog ? 3.4 : 1.25) / L, night: !jog && k % 3 === 1 }); }
   // nageurs : brasse tranquille parallèle à la plage
-  if (C.Swim_Fwd_Loop) for (let k = 0; k < 12; k++) { const side = k % 3, h = person({ female: k % 2 === 1 }); scene.add(h); setClip(h, k % 4 === 3 ? "Swim_Idle_Loop" : "Swim_Fwd_Loop", 0.8); h.userData.manual = true;
+  if (C.Swim_Fwd_Loop) for (let k = 0; k < (PHONE ? 6 : 12); k++) { const side = k % 3, h = person({ female: k % 2 === 1 }); scene.add(h); setClip(h, k % 4 === 3 ? "Swim_Idle_Loop" : "Swim_Fwd_Loop", 0.8); h.userData.manual = true;
     BEACH.swim.push({ h, side, t0: rand(-HALF + 40, HALF - 120), L: rand(50, 110), off: HALF + 52 + rand(0, 14), u: Math.random(), sp: (k % 4 === 3 ? 0 : 0.9) / 80 }); }
   // beach-volley : terrain, filet, quatre joueurs, le ballon passe d'un camp à l'autre
   const lineM = new THREE.MeshBasicMaterial({ color: 0xf5f0e6 }), poleM = new THREE.MeshLambertMaterial({ color: 0xe8e2d6 }), netTx = (() => { const c = document.createElement("canvas"); c.width = 256; c.height = 32; const g = c.getContext("2d"); g.strokeStyle = "rgba(20,20,24,.9)"; g.lineWidth = 2; for (let x = 0; x <= 256; x += 8) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 32); g.stroke(); } for (let y = 0; y <= 32; y += 8) { g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke(); } g.fillStyle = "#f5f0e6"; g.fillRect(0, 0, 256, 4); const t = new THREE.CanvasTexture(c); return t; })();
@@ -4981,7 +4984,7 @@ function buildFair() {
     if (C) { const fx = Math.sin(ry), fz = Math.cos(ry), v = bodyVar(makeHuman({ shirt: 0xffffff, pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k !== 1, sleeve: 0.25 })); v.position.set(x - fx * 1.6, Y, zz - fz * 1.6); v.rotation.y = ry; scene.add(v); setClip(v, "Idle_Talking_Loop", 0.9); v.userData.manual = true; FAIR.people.push(v);
       for (let q = 0; q < 2 + (k % 2); q++) { const cu = bodyVar(makeHuman({ shirt: pick([0xff6fb5, 0x34e0ff, 0xf6c945, 0xeadfcf, 0x111114]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: (k + q) % 2 === 0 }), q === 2); cu.position.set(x + fx * (2.4 + q * 1.1) + (q % 2 ? 0.4 : -0.3), Y, zz + fz * (2.4 + q * 1.1)); cu.rotation.y = ry + Math.PI; scene.add(cu); setClip(cu, q ? "Idle_Loop" : "Idle_Talking_Loop", 0.85 + Math.random() * 0.3); cu.userData.manual = true; if (q === 1) giveDrink(cu); FAIR.people.push(cu); } } });
   // promeneurs qui flânent dans l'allée
-  if (C) for (let k = 0; k < 48; k++) { const h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x111114, 0x34e0ff, 0xf6c945, 0x9b5cff, 0xeadfcf]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k % 2 === 0, shorts: k % 3 === 0, sleeve: 0.25 }), true);
+  if (C) for (let k = 0; k < (PHONE ? 18 : 48); k++) { const h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x111114, 0x34e0ff, 0xf6c945, 0x9b5cff, 0xeadfcf]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k % 2 === 0, shorts: k % 3 === 0, sleeve: 0.25 }), true);
     scene.add(h); setClip(h, "Walk_Loop", 0.9); h.userData.manual = true; if (k % 3 === 0) giveDrink(h); else if (k % 3 === 1) giveFood(h, k); FAIR.walkers.push({ h, u: Math.random(), sp: rand(0.012, 0.02) * (k % 2 ? 1 : -1), lane: rand(-3.5, 3.5) }); }
   // ======= la grande roue : 64 m de diamètre, néons qui partent du centre vers l'extérieur =======
   const R = 32, hubY = Y + R + 5, wx = PIER.x2 + 40, W = new THREE.Group(); W.position.set(wx, hubY, z0); scene.add(W); FAIR.wheel = W;
@@ -5011,7 +5014,7 @@ function buildFair() {
     [-1, 1].forEach(sd => { const bn = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.42, 1.6), gm); bn.position.set(sd * 0.72, -3.48, 0); g.add(bn); });
     for (let q = 0; q < 4; q++) { const a = q / 4 * 6.28 + 0.785, po = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.2, 5), steel); po.position.set(Math.cos(a) * 1.15, -2.6, Math.sin(a) * 1.15); g.add(po); }
     const gd = { g, a: k / 24 * Math.PI * 2, ppl: [] };
-    if (CF && CF.Sitting_Idle_Loop && k % 5 !== 2) { const n = k % 3 === 0 ? 2 : 1; for (let q = 0; q < n; q++) { const sd = q ? -1 : 1, h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x34e0ff, 0xf6c945, 0x111114, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: (k + q) % 2 === 0, sleeve: 0.25 }));
+    if (CF && CF.Sitting_Idle_Loop && k % 5 !== 2 && !(PHONE && k % 2)) { const n = k % 3 === 0 && !PHONE ? 2 : 1; for (let q = 0; q < n; q++) { const sd = q ? -1 : 1, h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x34e0ff, 0xf6c945, 0x111114, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: (k + q) % 2 === 0, sleeve: 0.25 }));
       h.position.set(sd * 0.62, -3.72, 0); h.rotation.y = sd > 0 ? -Math.PI / 2 : Math.PI / 2; h.scale.multiplyScalar(0.95); g.add(h); setClip(h, n === 2 ? "Sitting_Talking_Loop" : "Sitting_Idle_Loop", 0.8 + Math.random() * 0.3); h.userData.manual = true; gd.ppl.push(h); } } const roof = new THREE.Mesh(new THREE.SphereGeometry(1.35, 12, 6, 0, 6.28, 0, Math.PI / 2), steel); roof.position.y = -1.5; g.add(roof); const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.5, 5), steel); bar.position.y = -0.7; g.add(bar);
     mergeByMat(g); scene.add(g); FAIR.gond.push(gd); }
   mergeByMat(W); /* V306.6 : la grande roue passe de 356 pièces à 6 appels de dessin, chaque nacelle de 10 à 2 */
@@ -5171,7 +5174,7 @@ function buildCampfires() {
     const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(sp, 3)); const sparks = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffb050, size: 0.18, map: FIRES.tx, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); sparks.frustumCulled = false; g.add(sparks);
     FIRES.list.push({ g, flames, glow, sparks, sd, x: S.x, z: S.z });
     if (!C) return;
-    for (let q = 0; q < 4; q++) { const a = q / 4 * 6.28 + si, h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x111114, 0x34e0ff, 0xf6c945, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: (q + si) % 2 === 0, shorts: q % 2 === 0, sleeve: 0.25 }));
+    for (let q = 0; q < (PHONE ? 2 : 4); q++) { const a = q / (PHONE ? 2 : 4) * 6.28 + si, h = bodyVar(makeHuman({ shirt: pick([0xffffff, 0xff6fb5, 0x111114, 0x34e0ff, 0xf6c945, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: (q + si) % 2 === 0, shorts: q % 2 === 0, sleeve: 0.25 }));
       h.position.set(S.x + Math.cos(a) * 2.3, y0, S.z + Math.sin(a) * 2.3); h.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a)); scene.add(h); setClip(h, q % 2 ? "Idle_Talking_Loop" : "Idle_Loop", 0.8 + Math.random() * 0.3); h.userData.manual = true; if (q % 2 === 0) giveDrink(h); h.visible = false; FIRES.people.push(h); }
   });
 }
@@ -5431,7 +5434,7 @@ function updateRoofParties0(dt) {
     pick6.forEach(([cx, cz, h, w, d]) => { const g = new THREE.Group(); g.position.set(cx, h + 0.05, cz); scene.add(g); const ppl = [];
       const deck = new THREE.Mesh(new THREE.BoxGeometry(Math.min(w, 22) - 2, 0.1, Math.min(d, 22) - 2), new THREE.MeshLambertMaterial({ color: 0x2a2230 })); g.add(deck);
       const dj = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.05, 0.9), new THREE.MeshLambertMaterial({ color: 0x111114, emissive: 0xff3fb4, emissiveIntensity: 0.25 })); dj.position.set(0, 0.55, -3); g.add(dj);
-      for (let k = 0; k < 5; k++) { const hm = bodyVar(makeHuman({ shirt: pick([0xff6fb5, 0x34e0ff, 0xf6c945, 0xffffff, 0x111114, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k % 2 === 0, sleeve: 0.25 })); const a = k / 5 * Math.PI * 2;
+      for (let k = 0; k < (PHONE ? 3 : 5); k++) { const hm = bodyVar(makeHuman({ shirt: pick([0xff6fb5, 0x34e0ff, 0xf6c945, 0xffffff, 0x111114, 0x9b5cff]), pants: pick(PANTS), skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: k % 2 === 0, sleeve: 0.25 })); const a = k / 5 * Math.PI * 2;
         hm.position.set(Math.cos(a) * 2.4, 0.1, Math.sin(a) * 2.4 + 0.6); hm.rotation.y = Math.random() * 6.28; g.add(hm); setClip(hm, "Dance_Loop", 0.9 + Math.random() * 0.3); hm.userData.manual = true; if (k % 2) giveDrink(hm); ppl.push(hm); }
       const pos = [], col = [], W2 = Math.min(w, 22) / 2 - 1, D2 = Math.min(d, 22) / 2 - 1, C = [[1, 0.25, 0.7], [0.3, 0.9, 1], [1, 0.8, 0.3]];
       for (let i = 0; i < 48; i++) { const t = i / 48 * 4, side = Math.floor(t), f = t - side, x = side === 0 ? -W2 + f * 2 * W2 : side === 1 ? W2 : side === 2 ? W2 - f * 2 * W2 : -W2, z = side === 0 ? -D2 : side === 1 ? -D2 + f * 2 * D2 : side === 2 ? D2 : D2 - f * 2 * D2; pos.push(x, 2.4 - Math.sin(f * Math.PI) * 0.4, z); col.push(...C[i % 3]); }
@@ -5676,7 +5679,7 @@ function buildCountryLife() {
     const dust = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: 0xb89a6a, transparent: true, opacity: 0.35, depthWrite: false })); dust.scale.set(5, 3, 1); scene.add(dust);
     COUNTRY.tr.push({ g, dust, cx: best[0], cz: best[1], a, u: Math.random() * 2 - 1, dir: 1, lane: 0, sp: 3.2 + Math.random(), turn: 0, combine: COUNTRY.tr.length % 3 === 1 });
     // deux paysans : l'un fait des allers-retours le long de la clôture, l'autre travaille près des bottes de foin
-    const nF = fx < -450 ? 4 : fx < -100 ? 3 : 2; if (HQ.clips && HQ.clips.m) for (let q = 0; q < nF; q++) { const h = bodyVar(makeHuman({ shirt: shirt[(i + q + 2) % 5], pants: q % 2 ? 0x2b2b33 : 0x3a4a6a, skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: q % 2 === 1 && i % 2 === 0, sleeve: 0.5 }));
+    const nF = PHONE ? 1 : fx < -450 ? 4 : fx < -100 ? 3 : 2; if (HQ.clips && HQ.clips.m) for (let q = 0; q < nF; q++) { const h = bodyVar(makeHuman({ shirt: shirt[(i + q + 2) % 5], pants: q % 2 ? 0x2b2b33 : 0x3a4a6a, skin: pick(SKINS), hair: pick(HAIRS), lite: true, female: q % 2 === 1 && i % 2 === 0, sleeve: 0.5 }));
       const ht = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.3, 0.14, 10), hat); ht.position.y = 1.86; h.add(ht);
       const x0 = fx + 26 + [4, 20, -14, 30][q], z0 = fz + [21, 12, 30, -8][q]; h.position.set(x0, landH(x0, z0), z0); scene.add(h); const wk = q === 0 || q === 2; setClip(h, wk ? "Walk_Loop" : "Idle_Talking_Loop", wk ? 0.75 : 1); h.userData.manual = true;
       COUNTRY.folks.push({ h, x0, z0, walk: wk, u: Math.random() }); }
@@ -5687,7 +5690,7 @@ function buildCountryLife() {
       const S = 11 + (i % 3) * 2, h0 = landH(cx, cz), cs = Math.cos(a), sn = Math.sin(a), P = (u, v) => [cx + u * cs + v * sn, cz - u * sn + v * cs];
       for (let k = -4; k <= 4; k++) for (const [u, v, ry] of [[k * S / 4, -S, 0], [k * S / 4, S, 0], [-S, k * S / 4, Math.PI / 2], [S, k * S / 4, Math.PI / 2]]) { const [x, z] = P(u, v), y = landH(x, z); addGeo(wM, new THREE.BoxGeometry(0.18, 1.2, 0.18), x, y + 0.6, z); if (k < 4) { const [x2, z2] = P(u + (ry ? 0 : S / 8), v + (ry ? S / 8 : 0)); [0.45, 0.95].forEach(hy => addGeo(wM, new THREE.BoxGeometry(ry ? 0.08 : S / 4, 0.09, ry ? S / 4 : 0.08), x2, landH(x2, z2) + hy, z2, -a)); } }
       { const [x, z] = P(S * 0.6, 0); addGeo(trough, new THREE.BoxGeometry(2.4, 0.5, 0.7), x, landH(x, z) + 0.25, z, -a); }
-      const sheep = i % 2 === 0; for (let k = 0; k < 5 + (i % 3); k++) { const u = (Math.random() - 0.5) * S * 1.5, v = (Math.random() - 0.5) * S * 1.5, [x, z] = P(u, v), y = landH(x, z), ry = Math.random() * 6.28, c = Math.cos(ry), sv = Math.sin(ry);
+      const sheep = i % 2 === 0; for (let k = 0; k < (LOWM ? 2 : 5) + (i % 3); k++) { const u = (Math.random() - 0.5) * S * 1.5, v = (Math.random() - 0.5) * S * 1.5, [x, z] = P(u, v), y = landH(x, z), ry = Math.random() * 6.28, c = Math.cos(ry), sv = Math.sin(ry);
         /* V305.1 : de vrais moutons et cochons animés (squelette, ils respirent, bougent la tête) */ (COUNTRY.penA = COUNTRY.penA || []).push({ x, y, z, ry, sheep }); if (MODEL_DEFS.sheepq) continue;
         if (sheep) { addGeo(wool, new THREE.IcosahedronGeometry(0.55, 1), x, y + 0.75, z, ry, 1.35, 0.9, 1); addGeo(blk, new THREE.BoxGeometry(0.28, 0.32, 0.36), x + sv * 0.72, y + 0.95, z + c * 0.72, ry); [[-0.25, -0.35], [0.25, -0.35], [-0.25, 0.35], [0.25, 0.35]].forEach(([lx, lz]) => addGeo(blk, new THREE.BoxGeometry(0.1, 0.45, 0.1), x + lx * c + lz * sv, y + 0.22, z - lx * sv + lz * c)); }
         else { addGeo(pink, new THREE.SphereGeometry(0.5, 10, 8), x, y + 0.55, z, ry, 0.8, 0.75, 1.35); addGeo(pink, new THREE.CylinderGeometry(0.17, 0.2, 0.18, 10), x + sv * 0.72, y + 0.55, z + c * 0.72, ry, 1, 1, 1, Math.PI / 2); [[-0.22, -0.4], [0.22, -0.4], [-0.22, 0.4], [0.22, 0.4]].forEach(([lx, lz]) => addGeo(pink, new THREE.BoxGeometry(0.12, 0.3, 0.12), x + lx * c + lz * sv, y + 0.15, z - lx * sv + lz * c)); } }
@@ -6106,7 +6109,7 @@ function buildJFence(clear) {
     // point de vue des visiteurs : côté piste, plateforme en bois et petit groupe qui prend des photos
     const ga = Math.atan2(gt[1] - cz, gt[0] - cx), vx = cx + Math.cos(ga) * (R + 3.2), vz = cz + Math.sin(ga) * (R + 3.2), vy = GH(vx, vz);
     addGeo(new THREE.MeshLambertMaterial({ color: 0x7a5a3a }), new THREE.BoxGeometry(9, 0.25, 4), vx, vy + 0.12, vz, -ga + Math.PI / 2);
-    for (let v = 0; v < 4; v++) { const off = (v - 1.5) * 1.9, hx = vx + Math.cos(ga + Math.PI / 2) * off, hz = vz + Math.sin(ga + Math.PI / 2) * off;
+    for (let v = 0; v < (PHONE ? 2 : 4); v++) { const off = (v - 1.5) * 1.9, hx = vx + Math.cos(ga + Math.PI / 2) * off, hz = vz + Math.sin(ga + Math.PI / 2) * off;
       const h = makeHuman({ shirt: pick([0xeeeeea, 0x3d5a80, 0xc8b79a, 0x6b1f2a, 0x2f4f3a]), pants: pick([0x2a3a55, 0xb09e7c, 0x151515]), skin: pick(SKINS), hair: pick([0x111111, 0x5a3a20, 0xd9b26a]) });
       h.position.set(hx, vy + 0.25, hz); h.rotation.y = Math.atan2(cx - hx, cz - hz); scene.add(h); setClip(h, "Idle_Loop");
       const ph = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.01), wireM); ph.position.set(0.18, 1.45, 0.35); h.add(ph); h.visible = false; JUNGLE.visit.push({ h, ph, snap: v % 2 === 0 }); }
@@ -7239,12 +7242,12 @@ function buildInlandWater() { const lakeM = new THREE.MeshPhongMaterial({ color:
   for (let x = RIV.x0 - 6, k = 0; x <= RIV.x1 + 20; x += 6, k++) { const z = rivZ(x), w = rivW(x) + 3; V.push(x, -0.08, z - w, x, -0.08, z + w); if (k) { const a = (k - 1) * 2; I.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } }
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(V, 3)); g.setIndex(I); g.computeVertexNormals(); const rv = new THREE.Mesh(g, rM); rv.renderOrder = 1; scene.add(rv); }
 // faune des nouvelles terres : cerfs et renards dans les Hauts de Pins, flamants roses au bord de la rivière, virevoltants qui roulent dans le canyon
-function buildFauna(r) { try { buildLife4(r); } catch (e) { console.warn("vie", e); } try { jgNeonFence(); } catch (e) { console.warn("néons parc", e); } POI.fauna = []; if (MODELS.croc) for (let k = 0; k < (LIGHT ? 3 : 6); k++) { const x = 1380 + k * 52 + r() * 20, sd = k % 2 ? 1 : -1, z = rivZ(x) + sd * (rivW(x) + 1.5), c = modelInstance("croc"); if (!c) break; c.position.set(x, Math.max(0.2, GH(x, z)) - 0.1, z); c.rotation.y = sd > 0 ? Math.PI + (r() - 0.5) : (r() - 0.5); scene.add(c); POI.fauna.push({ g: c, x, z }); } // crocodiles qui se dorent sur les rives de la rivière de l'Est
+function buildFauna(r) { try { buildLife4(r); } catch (e) { console.warn("vie", e); } try { jgNeonFence(); } catch (e) { console.warn("néons parc", e); } POI.fauna = []; if (MODELS.croc) for (let k = 0; k < (LOWM ? 3 : 6); k++) { const x = 1380 + k * 52 + r() * 20, sd = k % 2 ? 1 : -1, z = rivZ(x) + sd * (rivW(x) + 1.5), c = modelInstance("croc"); if (!c) break; c.position.set(x, Math.max(0.2, GH(x, z)) - 0.1, z); c.rotation.y = sd > 0 ? Math.PI + (r() - 0.5) : (r() - 0.5); scene.add(c); POI.fauna.push({ g: c, x, z }); } // crocodiles qui se dorent sur les rives de la rivière de l'Est
  const put = (key, x, z, ry, sc) => { if (!MODELS[key]) return; const h = GH(x, z); if (h < 1.6) return; const m = modelInstance(key); if (!m) return; const g = new THREE.Group(); g.add(m); g.scale.setScalar(sc); g.position.set(x, h, z); g.rotation.y = ry; scene.add(g); POI.fauna.push({ g, x, z }); };
-  const [lx, lz] = REGL.wl; for (let k = 0; k < (LIGHT ? 3 : 7); k++) { const a = r() * 6.28, d = 160 + r() * 120; put(k % 3 ? "w_deer" : "w_stag", lx + Math.cos(a) * d, lz + Math.sin(a) * d, r() * 6.28, 1.1); }
+  const [lx, lz] = REGL.wl; for (let k = 0; k < (LOWM ? 3 : 7); k++) { const a = r() * 6.28, d = 160 + r() * 120; put(k % 3 ? "w_deer" : "w_stag", lx + Math.cos(a) * d, lz + Math.sin(a) * d, r() * 6.28, 1.1); }
   for (let k = 0; k < 3; k++) put("w_fox", -1250 + r() * 200, -1600 + r() * 300, r() * 6.28, 1);
-  for (let k = 0; k < (LIGHT ? 4 : 9); k++) { const x = 1250 + k * 28 + r() * 10, z = rivZ(x) + (k % 2 ? 1 : -1) * (rivW(x) + 6); if (MODELS.flamingo) { const m = modelInstance("flamingo"); if (m) { const h = Math.max(0.1, GH(x, z)); m.position.set(x, h, z); m.rotation.y = r() * 6.28; scene.add(m); POI.fauna.push({ g: m, x, z }); } } }
-  const tw = new THREE.MeshLambertMaterial({ color: 0x9a7a4a, wireframe: true }); POI.tumble = []; for (let k = 0; k < (LIGHT ? 3 : 7); k++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.7, 1), tw); scene.add(m); POI.tumble.push({ m, x: 900 + r() * 400, z: -1200 + r() * 400, a: r() * 6.28, sp: 3 + r() * 3 }); } }
+  for (let k = 0; k < (LOWM ? 4 : 9); k++) { const x = 1250 + k * 28 + r() * 10, z = rivZ(x) + (k % 2 ? 1 : -1) * (rivW(x) + 6); if (MODELS.flamingo) { const m = modelInstance("flamingo"); if (m) { const h = Math.max(0.1, GH(x, z)); m.position.set(x, h, z); m.rotation.y = r() * 6.28; scene.add(m); POI.fauna.push({ g: m, x, z }); } } }
+  const tw = new THREE.MeshLambertMaterial({ color: 0x9a7a4a, wireframe: true }); POI.tumble = []; for (let k = 0; k < (LOWM ? 3 : 7); k++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.7, 1), tw); scene.add(m); POI.tumble.push({ m, x: 900 + r() * 400, z: -1200 + r() * 400, a: r() * 6.28, sp: 3 + r() * 3 }); } }
 /* V305 : le parc des dinosaures façon Jurassic World · grande clôture néon (poteaux noirs, barres lumineuses roses et cyan) tout autour du parc, ouverte là où passe la piste */
 function jgNeonFence() { /* V305.2 : vraie enceinte façon Jurassic World · murs de 6 m (poteaux béton, panneaux d'acier, néons rose et cyan) qui partent du portique Constancy Park et font tout le tour */
   const G0 = JUNGLE.gate || null, lvl = G0 ? clamp(jgMask(G0[0], G0[1]), 0.55, 0.95) : 0.82, pts = [], st = 7; let prev = null;
@@ -7867,16 +7870,16 @@ function buildWild(r) {
   };
   const pick = (hmin, hmax) => { for (let i = 0; i < 80; i++) { const an = r() * 6.283, d = Math.sqrt(r()) * MT.R * 0.92, x = MT.x + Math.cos(an) * d, z = MT.z + Math.sin(an) * d, h = mtnH(x, z); if (h > hmin && h < hmax && nearMRoad(x, z) > 12) return [x, z]; } return null; };
   const DEER = ["Eating", "Idle", "Idle_Headlow", "Eating", "Idle_2"], CAN = ["Idle", "Idle_2", "Idle_2_HeadLow", "Eating"];
-  for (let k = 0; k < 9; k++) { const p = pick(3, 75); if (!p) continue; const n = 3 + Math.floor(r() * 4);
+  for (let k = 0; k < (LOWM ? 4 : 9); k++) { const p = pick(3, 75); if (!p) continue; const n = (LOWM ? 2 : 3) + Math.floor(r() * (LOWM ? 3 : 4));
     for (let j = 0; j < n; j++) spawn(j === 0 ? "w_stag" : r() < 0.25 ? "w_stag" : "w_deer", p[0] + (r() - .5) * 16, p[1] + (r() - .5) * 16, { spd: 1.3, run: 10, R: 30, shy: 24, idle: DEER }); }
-  for (let k = 0; k < 4; k++) { const p = pick(35, 140); if (!p) continue; for (let j = 0; j < 3 + (k % 2); j++) spawn("w_wolf", p[0] + (r() - .5) * 10, p[1] + (r() - .5) * 10, { spd: 2.1, run: 9, R: 70, shy: 13, idle: CAN }); }
-  for (let k = 0; k < 12; k++) { const p = pick(2, 100); if (p) spawn("w_fox", p[0], p[1], { spd: 2.2, run: 8.5, R: 35, shy: 15, idle: CAN }); }
+  for (let k = 0; k < (LOWM ? 2 : 4); k++) { const p = pick(35, 140); if (!p) continue; for (let j = 0; j < 3 + (k % 2); j++) spawn("w_wolf", p[0] + (r() - .5) * 10, p[1] + (r() - .5) * 10, { spd: 2.1, run: 9, R: 70, shy: 13, idle: CAN }); }
+  for (let k = 0; k < (LOWM ? 5 : 12); k++) { const p = pick(2, 100); if (p) spawn("w_fox", p[0], p[1], { spd: 2.2, run: 8.5, R: 35, shy: 15, idle: CAN }); }
   // V304 : faune sur tout le continent · hardes de cerfs, renards, loups au fond des forêts ; plus on s'éloigne de la ville, plus il y en a
   { const pickC = (ok, tries = 70) => { for (let i = 0; i < tries; i++) { const x = -1750 + r() * 3500, z = -3300 + r() * 2750, h = landH(x, z); if (h < 2.2 || h > 125) continue; const d = Math.hypot(x, z + 250); if (r() > sstep(450, 2600, d)) continue; if (ok && !ok(x, z, h)) continue; return [x, z]; } return null; };
     const forest = (x, z) => { const w = bioWeights(x, z); let f = 0; w.forEach(([i, v]) => { f += BIO[i].t[1] * v; }); return f > 0.45; };
-    for (let k = 0; k < (LIGHT ? 6 : 14); k++) { const p = pickC(forest); if (!p) continue; const n = 2 + Math.floor(r() * 4); for (let j = 0; j < n; j++) spawn(j === 0 && r() < 0.6 ? "w_stag" : "w_deer", p[0] + (r() - .5) * 18, p[1] + (r() - .5) * 18, { spd: 1.3, run: 10, R: 34, shy: 24, idle: DEER }); }
-    for (let k = 0; k < (LIGHT ? 5 : 12); k++) { const p = pickC(); if (p) spawn("w_fox", p[0], p[1], { spd: 2.2, run: 8.5, R: 40, shy: 15, idle: CAN }); }
-    for (let k = 0; k < (LIGHT ? 2 : 4); k++) { const p = pickC((x, z) => forest(x, z) && Math.hypot(x, z + 250) > 1700); if (!p) continue; for (let j = 0; j < 3; j++) spawn("w_wolf", p[0] + (r() - .5) * 10, p[1] + (r() - .5) * 10, { spd: 2.1, run: 9, R: 80, shy: 13, idle: CAN }); } }
+    for (let k = 0; k < (LOWM ? 6 : 14); k++) { const p = pickC(forest); if (!p) continue; const n = 2 + Math.floor(r() * 4); for (let j = 0; j < n; j++) spawn(j === 0 && r() < 0.6 ? "w_stag" : "w_deer", p[0] + (r() - .5) * 18, p[1] + (r() - .5) * 18, { spd: 1.3, run: 10, R: 34, shy: 24, idle: DEER }); }
+    for (let k = 0; k < (LOWM ? 5 : 12); k++) { const p = pickC(); if (p) spawn("w_fox", p[0], p[1], { spd: 2.2, run: 8.5, R: 40, shy: 15, idle: CAN }); }
+    for (let k = 0; k < (LOWM ? 2 : 4); k++) { const p = pickC((x, z) => forest(x, z) && Math.hypot(x, z + 250) > 1700); if (!p) continue; for (let j = 0; j < 3; j++) spawn("w_wolf", p[0] + (r() - .5) * 10, p[1] + (r() - .5) * 10, { spd: 2.1, run: 9, R: 80, shy: 13, idle: CAN }); } }
   // vélociraptors autour de la clairière des dinos (easter egg)
   const dc = [MT.x, MT.z - MT.R * 0.55];
   for (let j = 0; j < 3; j++) spawn("w_raptor", dc[0] + (r() - .5) * 40, dc[1] + (r() - .5) * 40, { spd: 2.6, run: 11, R: 45, shy: 0, walk: "Velociraptor_Walk", runClip: "Velociraptor_Run", idle: ["Velociraptor_Idle"] });
@@ -8623,7 +8626,7 @@ function giveDrink(h) {
   cup.visible = false; h.userData.cup = cup; return cup;
 }
 function buildPeds() {
-  for (let k = 0; k < 50; k++) {
+  for (let k = 0; k < (PHONE ? 34 : 50); k++) {
     const opt = { skin: pick(SKINS), shirt: pick(SHIRTS), pants: pick(PANTS), hair: pick(HAIRS), lite: true, female: Math.random() < .5 }, h = bodyVar(makeHuman(opt)); scene.add(h); lodFor(h, opt);
     const i = Math.floor(rand(0, NB)); let j = Math.floor(rand(0, NB)); if (j === RIVER_J) j = RIVER_J - 1;
     peds.push({ mesh: h, i, j, t: rand(0, 144), speed: rand(1.3, 2.2) * (Math.random() < .5 ? 1 : -1), dodge: 0, nh: k % 5 < 3, cup: k % 5 >= 3 && k % 2 === 0 ? giveDrink(h) : null });
@@ -8783,7 +8786,7 @@ function buildLife() {
   if (MODELS.shark) for (let k = 0; k < 5; k++) { const sh = new THREE.Group(); const m = modelInstance("shark"); sh.add(m); m.position.y = -MODELS.shark.size.y * 0.72; scene.add(sh); life.sharks.push({ mesh: sh, a: rand(0, 6.28), r: SHORE + rand(140, 260), s: rand(0.012, 0.02) * (k % 2 ? 1 : -1) }); }
   if (MODELS.dolphin) for (let pod = 0; pod < 3; pod++) { const a0 = rand(0, 6.28), r0 = SHORE + rand(200, 270), s0 = rand(0.024, 0.032) * (pod % 2 ? -1 : 1);
     for (let k = 0; k < 3; k++) { const dl = new THREE.Group(); dl.add(modelInstance("dolphin")); scene.add(dl); life.dolphins.push({ mesh: dl, a: a0 + k * 0.012, r: r0 + (k - 1) * 4, s: s0, pod, wait: rand(1, 6) + k * 0.35, jt: -1, dur: rand(1.05, 1.3), hgt: rand(2.2, 3.6) }); } }
-  if (MODELS.dog) peds.slice(0, 18).forEach(p => { const dg = new THREE.Group(); dg.add(modelInstance("dog")); scene.add(dg); life.dogs.push({ mesh: dg, ped: p }); });
+  if (MODELS.dog) peds.slice(0, LOWM ? 8 : 18).forEach(p => { const dg = new THREE.Group(); dg.add(modelInstance("dog")); scene.add(dg); life.dogs.push({ mesh: dg, ped: p }); });
   if (MODELS.cat) for (let k = 0; k < 10; k++) { const i = Math.floor(rand(0, NB)), j = (k * 5) % NB === RIVER_J ? 2 : (k * 5) % NB; const c = modelInstance(MODELS.cat3 ? "cat3" : "cat"); c.position.set(bMin(i) + rand(1, 3), 0.25, bC(j) + rand(-12, 12)); c.rotation.y = rand(0, 6.28); scene.add(c); }
   if (MODELS.flamingo) for (let k = 0; k < 10; k++) { const g = new THREE.Group(), f = modelInstance("flamingo"); g.add(f); scene.add(g); const [x, z, a] = beachSpot(rand(8, 16)); life.beach.push({ kind: "flam", mesh: g, x, z, a, h: rand(0, 6.28), st: "idle", t: rand(1, 6), y: 0 }); }
   if (MODELS.gull) for (let k = 0; k < 12; k++) { const g = new THREE.Group(), m = modelInstance("gull"); m.scale.multiplyScalar(0.8); g.add(m); scene.add(g); const [x, z, a] = beachSpot(rand(14, 30)); life.beach.push({ kind: "gull", mesh: g, x, z, a, h: rand(0, 6.28), st: "idle", t: rand(1, 6), y: 0 }); }

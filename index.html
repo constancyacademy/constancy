@@ -528,6 +528,15 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
   #screen .panel .choices{grid-template-columns:repeat(4,1fr)}
   .tl .help{bottom:calc(98px + env(safe-area-inset-bottom,0px))!important;max-width:min(440px,52vw)!important;font-size:12px}
 }
+
+@media (max-width:600px){ /* V310.9 (Thomas, 21/11 13h07 : sur téléphone, l'argent déborde sur la mission, le talkie et les bandeaux recouvrent l'objectif) */
+.money{font-size:clamp(16px,4.4vw,20px)!important;padding:5px 11px 6px!important}
+.mission{max-width:calc(100vw - 250px)!important}.mission .t{font-size:19px!important}.mission .s{font-size:11px!important}.mission .k{font-size:9px!important;letter-spacing:.12em!important}
+#notes{left:12px!important;right:12px!important;width:auto!important;transform:none!important;top:calc(env(safe-area-inset-top,0px) + 62px)!important}body.tkon #notes{top:calc(env(safe-area-inset-top,0px) + 164px)!important}
+#talkie{max-width:calc(100vw - 24px)!important;top:calc(env(safe-area-inset-top,0px) + 76px)!important}
+body.tkon .tr .main,body.tkon #goals,body.tkon #mult,body.tkon #stars,body.tkon #lvlBadge,body.tkon #clock,body.tkon #delta,body.ntson .tr .main,body.ntson #goals,body.ntson #mult,body.ntson #stars,body.ntson #lvlBadge,body.ntson #clock,body.ntson #delta,body.zton .tr .main,body.zton #goals{opacity:0!important;transition:opacity .3s}
+#zoneT{top:24%!important}
+#quitBtn{font-size:10px!important;height:38px!important;min-width:0!important;padding:0 12px!important;letter-spacing:.12em!important;opacity:.85}}
 </style>
 
 <canvas id="game" aria-label="Ville de Constancy en 3D"></canvas><div id="cockpitTop" style="position:fixed;left:0;top:0;width:100%;display:none;pointer-events:none;z-index:0;background:linear-gradient(180deg,rgba(8,6,16,.72) 0%,rgba(10,8,20,.5) 60%,rgba(14,10,24,.62) 100%);box-shadow:inset 0 -3px 0 rgba(20,18,26,.95),inset 0 -5px 6px rgba(255,63,180,.35)"></div><img id="cockpitOv" alt="" src="assets/cockpit_nacre.webp" style="position:fixed;left:0;bottom:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;pointer-events:none;z-index:0;display:none;transform-origin:50% 100%">
@@ -3610,11 +3619,16 @@ const TALKIE = { t: 75, card: null, i: -1, hideT: 0, lines: [
 function talkieCrackle(d = 0.35) { const c = SND.ctx; if (!c || !SND.on) return; noiseHit(0.08, 1800, 0.7, d); const t = c.currentTime, o = c.createOscillator(), g = c.createGain(); o.type = "square"; o.frequency.value = 1240; g.gain.setValueAtTime(0.025, t); g.gain.exponentialRampToValueAtTime(0.0005, t + 0.09); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.1); }
 function talkieSay(txt) {
   if (!TALKIE.card) { const d = document.createElement("div"); d.id = "talkie"; d.innerHTML = '<svg viewBox="0 0 24 40" class="ti"><rect x="4" y="9" width="16" height="29" rx="3" fill="#18181b" stroke="#f4f1ea" stroke-width="1.4"/><rect x="15" y="1" width="2.6" height="9" rx="1.2" fill="#f4f1ea"/><rect x="7" y="13" width="10" height="7" rx="1" fill="#ff2d55"/><g fill="#f4f1ea">' + [0, 1, 2].map(k => `<rect x="7" y="${24 + k * 3.6}" width="10" height="1.4" rx=".7"/>`).join("") + '</g></svg><div class="tx"><b>Thomas · Canal 1</b><span></span></div>'; document.body.appendChild(d); TALKIE.card = d; }
-  TALKIE.card.querySelector("span").textContent = txt; { const it = collEq("talkie"); TALKIE.card.style.setProperty("--tk", "#" + new THREE.Color(it.a).getHexString()); TALKIE.card.classList.toggle("neon", !!it.neon); } TALKIE.card.classList.add("on"); TALKIE.hideT = 4.5 + txt.length * 0.055; talkieCrackle(0.4);
-  const n = TALKIE.lines.indexOf(txt), a = new Audio(`assets/voix/talkie_${n + 1}.mp3`); a.volume = 0.9; a.onerror = () => {}; if (SND.on) a.play().catch(() => {});
+  TALKIE.card.querySelector("span").textContent = txt; { const it = collEq("talkie"); TALKIE.card.style.setProperty("--tk", "#" + new THREE.Color(it.a).getHexString()); TALKIE.card.classList.toggle("neon", !!it.neon); } TALKIE.card.classList.add("on"); document.body.classList.add("tkon"); TALKIE.hideT = 4.5 + txt.length * 0.055; talkieCrackle(0.4);
+  const n = TALKIE.lines.indexOf(txt), url = `assets/voix/talkie_${n + 1}.mp3`; if (!SND.on) return;
+  /* V310.9 (Thomas, 21/11 : « dans le talkie, on ne m'entend pas sur téléphone ») : sur iPhone, un son lancé sans toucher de l'écran est bloqué · la voix passe maintenant par le moteur audio du jeu (déjà débloqué au premier toucher), avec un léger filtre radio */
+  const c = SND.ctx; if (c) { const play = d => { try { if (c.state === "suspended") c.resume(); const s = c.createBufferSource(), g = c.createGain(), bp = c.createBiquadFilter(); s.buffer = d; bp.type = "bandpass"; bp.frequency.value = 1700; bp.Q.value = 0.55; g.gain.value = 1.35; s.connect(bp); bp.connect(g); g.connect(c.destination); s.start(); } catch (e) {} };
+    fetch(url).then(r => r.arrayBuffer()).then(b => c.decodeAudioData(b, play, () => {})).catch(() => {}); return; }
+  const a = new Audio(url); a.volume = 0.9; a.onerror = () => {}; a.play().catch(() => {});
 }
 function updateTalkie(dt) {
-  if (TALKIE.hideT > 0) { TALKIE.hideT -= dt; if (TALKIE.hideT <= 0 && TALKIE.card) { TALKIE.card.classList.remove("on"); talkieCrackle(0.18); } }
+  { const on = !!(TALKIE.card && TALKIE.card.classList.contains("on")); if (on !== document.body.classList.contains("tkon")) document.body.classList.toggle("tkon", on); const ne = TALKIE.ne || (TALKIE.ne = document.getElementById("notes")), nn = !!(ne && ne.childElementCount); if (nn !== document.body.classList.contains("ntson")) document.body.classList.toggle("ntson", nn); }
+  if (TALKIE.hideT > 0) { TALKIE.hideT -= dt; if (TALKIE.hideT <= 0 && TALKIE.card) { TALKIE.card.classList.remove("on"); document.body.classList.remove("tkon"); talkieCrackle(0.18); } }
   if (!P || !P.talkie || G.mode !== "play" || CINE.on || G.inside === "club") return; TALKIE.t -= dt; if (TALKIE.t > 0) return; TALKIE.t = 150 + Math.random() * 110;
   const seen = P.talkieSeen || (P.talkieSeen = []); let pool = TALKIE.lines.map((_, i) => i).filter(i => !seen.includes(i)); if (!pool.length) { P.talkieSeen = []; pool = TALKIE.lines.map((_, i) => i); }
   const i = pool[Math.floor(Math.random() * pool.length)]; P.talkieSeen.push(i); talkieSay(TALKIE.lines[i]); stat("talkie-message");
@@ -7518,8 +7532,8 @@ function zoneName(x, z) { if (G.inside) return ""; if (CLUB.x != null && nightK 
 function updateZoneTitle(dt) { if (G.mode !== "play" || DREAM.on) return; /* V308 : pas de « Tu es à… » pendant le rêve */ const o = target(); if (!o) return; ZT.t -= dt;
   if (!ZT.el) { ZT.el = document.createElement("div"); ZT.el.id = "zoneT"; ZT.el.style.cssText = "position:fixed;left:0;right:0;top:15%;text-align:center;pointer-events:none;z-index:40;opacity:0;transition:opacity .9s ease;font-family:'EB Garamond',Georgia,serif;color:#fff;text-shadow:0 2px 18px rgba(0,0,0,.7),0 0 2px rgba(0,0,0,.9)"; document.body.appendChild(ZT.el); }
   const n = zoneName(o.x, o.z); if (n !== ZT.cand) { ZT.cand = n; ZT.ct = 0; } else ZT.ct += dt;
-  if (n && n !== ZT.cur && ZT.ct > 1.2) { ZT.cur = n; ZT.t = 3.6; const [a, b] = n.split(" · "); ZT.el.innerHTML = `<div style="font-size:12px;letter-spacing:.42em;text-transform:uppercase;font-family:Inter,Arial,sans-serif;opacity:.85;margin-bottom:6px">Tu es à</div><div style="font-size:clamp(30px,8vw,54px);font-style:italic;line-height:1">${a}</div>${b ? `<div style="font-size:clamp(15px,3.6vw,22px);margin-top:6px;letter-spacing:.06em">${b}</div>` : ""}`; ZT.el.style.opacity = 1; }
-  if (ZT.t <= 0 && ZT.el.style.opacity !== "0") ZT.el.style.opacity = 0; }
+  if (n && n !== ZT.cur && ZT.ct > 1.2) { ZT.cur = n; ZT.t = 3.6; const [a, b] = n.split(" · "); ZT.el.innerHTML = `<div style="font-size:12px;letter-spacing:.42em;text-transform:uppercase;font-family:Inter,Arial,sans-serif;opacity:.85;margin-bottom:6px">Tu es à</div><div style="font-size:clamp(30px,8vw,54px);font-style:italic;line-height:1">${a}</div>${b ? `<div style="font-size:clamp(15px,3.6vw,22px);margin-top:6px;letter-spacing:.06em">${b}</div>` : ""}`; ZT.el.style.opacity = 1; document.body.classList.add("zton"); }
+  if (ZT.t <= 0 && ZT.el.style.opacity !== "0") ZT.el.style.opacity = 0; document.body.classList.remove("zton"); }
 // aurores boréales au-dessus du Mont Constancy la nuit : grands rideaux verts et roses qui ondulent (plus fortes quand tu es près de la montagne)
 const AUR = { m: null, u: null };
 function updateAurora(dt) { if (!AUR.m) { AUR.u = { uT: { value: 0 }, uK: { value: 0 } };

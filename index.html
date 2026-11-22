@@ -10249,8 +10249,12 @@ function updateGarage(dt) {
   const o = target(), d = Math.hypot(o.x - GARAGE.x, o.z - GARAGE.z), slow = G.onFoot || Math.abs(G.car.v) < 4;
   if (d < 7 && slow && !GARAGE.cool) { GARAGE.t += dt; if (GARAGE.t > 0.5) { GARAGE.t = 0; GARAGE.cool = 30; if (G.gpsDest === "garage") G.gpsDest = null; setMode("menu"); phoneShop(); help("<b>Garage.</b> Choisis ta voiture : elle sort tout de suite.", 4); } } else if (d > 9) GARAGE.t = 0;
 }
+/* V310.25 · tâche 5 de l'expert (Thomas 16h14 : « faire bouger les gens ») : des passants 3D qui marchent sur les trottoirs autour de l'appartement de départ, là où passent les 1res missions · construits une fois en jeu, jamais avant « Touchez pour entrer » */
+function homeWalkers() { if (G.homeWalk || !HQ.ready || G.mode !== "play") return; G.homeWalk = 1; try { const hb = LM.home.b, r = mulberry(5150), per = PHONE ? 3 : 5; let n0 = WALKERS.length; G.homeWalk0 = n0;
+  [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [1, -1]].forEach(([di, dj]) => { const i = hb[0] + di, j = hb[1] + dj; if (i < 0 || j < 0 || i >= NB || j >= NB || j === RIVER_J) return; const x0 = bMin(i) + 1.8, z0 = bMin(j) + 1.8, L = BLOCK - 3.6; addWalkers([[x0, z0], [x0 + L, z0], [x0 + L, z0 + L], [x0, z0 + L], [x0, z0]], per, r, { w: 1.4, y: 0.25 }); });
+  stat("passants-3d-depart-" + (WALKERS.length - n0)); } catch (e) { console.warn("passants", e); } }
 function updateGpsTrail(dt) {
-  try { updateRouteBills(dt); j1Tick(); } catch (e) {}
+  try { updateRouteBills(dt); j1Tick(); if (!G.homeWalk) homeWalkers(); } catch (e) {}
   if (!GTRAIL.mesh) {
     const sh = new THREE.Shape(); sh.moveTo(0, 0.95); sh.lineTo(0.75, -0.35); sh.lineTo(0.42, -0.35); sh.lineTo(0, 0.32); sh.lineTo(-0.42, -0.35); sh.lineTo(-0.75, -0.35); sh.closePath();
     const geo = new THREE.ShapeGeometry(sh); geo.rotateX(-Math.PI / 2);

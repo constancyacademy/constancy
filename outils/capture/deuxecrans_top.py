@@ -15,7 +15,7 @@ def block(lines,fsz,hl,cy=394):
     for j,(w,k) in enumerate(ln):
       s=w+(' ' if j<len(ln)-1 else '')
       col=PINK if k and k in hl else WHITE
-      d.text((x,y),w,font=f,fill=col)
+      d.text((x,y),w.replace('6','6'),font=f,fill=col)
       x+=d.textlength(s,font=f)
   return im
 if __name__=='__main__':
@@ -25,9 +25,9 @@ if __name__=='__main__':
     t=(i+0.5)/30; st=None
     for s in cfg['states']:
       if s[0]<=t<s[1]: st=s; break
-    key=json.dumps(st[2:]) if st else 'none'
+    key=json.dumps(st[2:]) if st and len(st)>2 else 'none'
     if key not in cache:
-      if st is None or st[2] is None:
+      if st is None or len(st)<3 or st[2] is None:
         im=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(im); d.rectangle((0,0,W,HT-1),fill=(0,0,0,255)); d.rectangle((0,HT-3,W,HT+1),fill=(255,63,164,255))
       else: im=block(st[2],st[3],set(st[4]))
       p=f'{out}/k{len(cache)}.png'; im.save(p); cache[key]=p

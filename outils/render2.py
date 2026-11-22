@@ -47,8 +47,8 @@ def text_png(txt,path,sub=None,emoji=None):
         font=ImageFont.truetype(FG,fsz); lh=int(fsz*1.08)
         lines=wrap(d,txt,font,960)
         if len(lines)<=2: break
-    fs=ImageFont.truetype(FG6,52) if sub else None
-    total=lh*len(lines)+(70 if sub else 0)
+    fs=ImageFont.truetype(FG6,spec.get('sub_fsz',52)) if sub else None
+    total=lh*len(lines)+((spec.get('sub_fsz',52)+18) if sub else 0)
     y0=int(H*0.205)-total//2
     items=[]
     for i,l in enumerate(lines):

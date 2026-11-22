@@ -1476,12 +1476,14 @@ function cullSmallList() { const L = [], cs = new Set(CHUNKS), big = new Set(cul
   scene.traverse(o => { if (!(o.isMesh || o.isSprite) || o.isSkinnedMesh || o.isInstancedMesh || o === sea || o === sky || cs.has(o) || big.has(o) || o.frustumCulled === false || (o.userData && (o.userData.dyn || o.userData.keepDraw))) return;
     const ms = Array.isArray(o.material) ? o.material : [o.material]; if (ms.some(m => !m || m.fog === false || m.transparent && m.blending === THREE.AdditiveBlending)) return;
     const g = o.geometry; if (!g || !g.attributes || !g.attributes.position) return; if (!g.boundingSphere) { if (!g.attributes.position.array || !g.attributes.position.array.length) return; g.computeBoundingSphere(); } const bs = g.boundingSphere; if (!bs || !isFinite(bs.radius) || bs.radius > 400) return;
+    o.userData.csmPx = !o.isSprite && !ms.some(m => m.isMeshBasicMaterial || m.isShaderMaterial || m.isPointsMaterial || m.emissive && m.emissive.getHex() !== 0 || m.emissiveMap); /* lumières, néons, écrans : jamais retirés pour leur petite taille (un point lumineux se voit même minuscule) */
     L.push(o); }); CSM.list = L; CSM.t = performance.now(); CSM.n = L.length; }
 function cullSmall(cp, lim) { if (!scene.fog && lim === Infinity) return; const now = performance.now(); if (!CSM.list || now - CSM.t > 9000) cullSmallList();
+  const kk = renderer && camera && camera.isPerspectiveCamera ? renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360)) : 0; /* V310.29 : un objet qui fait moins de 0,7 pixel à l'écran n'est pas dessiné non plus (mesuré dans le rêve : 60 à 115 appels de moins, image identique au pixel près) */
   for (let i = 0; i < CSM.list.length; i++) { const o = CSM.list[i], bs = o.geometry.boundingSphere, e = o.matrixWorld.elements, c = bs.center;
     const x = e[0] * c.x + e[4] * c.y + e[8] * c.z + e[12], y = e[1] * c.x + e[5] * c.y + e[9] * c.z + e[13], z = e[2] * c.x + e[6] * c.y + e[10] * c.z + e[14];
     const sc = Math.sqrt(Math.max(e[0] * e[0] + e[1] * e[1] + e[2] * e[2], e[4] * e[4] + e[5] * e[5] + e[6] * e[6], e[8] * e[8] + e[9] * e[9] + e[10] * e[10]));
-    const d = Math.hypot(x - cp.x, y - cp.y, z - cp.z) - bs.radius * sc; const m = o.layers.mask; if (d > lim) { if (m & 1) o.layers.mask = (m & ~1) | 128; } else if (m & 128) o.layers.mask = (m | 1) & ~128; }
+    const dc = Math.hypot(x - cp.x, y - cp.y, z - cp.z), d = dc - bs.radius * sc, m = o.layers.mask; if (d > lim || (kk && o.userData.csmPx !== false && dc > 1 && 2 * bs.radius * sc / dc * kk < 0.7)) { if (m & 1) o.layers.mask = (m & ~1) | 128; } else if (m & 128) o.layers.mask = (m | 1) & ~128; }
   CSM.cam = { x: cp.x, y: cp.y, z: cp.z }; }
 /* V304 : mémoire · une fois envoyées à la carte graphique, les grandes géométries fixes (ville, terrains, routes, décors) ne gardent plus de copie en mémoire vive.
    Safari sur iPhone fermait la page (« un problème récurrent est survenu ») : plus de 450 Mo de géométries étaient gardés deux fois */

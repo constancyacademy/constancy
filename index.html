@@ -4651,8 +4651,8 @@ function buildDistrictBlock(i, j, cx, cz, F, dist, r, M) {
       towerDetail(x0, z0, w, d, h, base, round, M.glassMats.includes(mat));
       let top = h;
       if (!round) for (let t = 0; t < (tall ? 2 : 1); t++) { const s2 = 0.72 - t * 0.18, h2 = h * (0.18 - t * 0.05); addGeo(mat, boxUV(w * s2, h2, d * s2), x0, top + h2 / 2 + base, z0); top += h2; }
-      addGeo(M.roofM, new THREE.BoxGeometry(w * 0.5, 0.5, d * 0.5), x0, top + base + 0.25, z0); boxes[boxes.length - 1][4] = top + base + (tall ? 20 : 2);
-      if (tall && r() < .6) { addGeo(M_POLE, new THREE.CylinderGeometry(.15, .35, 18, 6), x0, top + base + 9, z0); AVL.push([x0, top + base + 18.3, z0]); }
+      addGeo(M.roofM, new THREE.BoxGeometry(w * 0.5, 0.5, d * 0.5), x0, top + base + 0.25, z0); boxes[boxes.length - 1][4] = top + base + (tall ? 20 : 2); { const bx = boxes[boxes.length - 1]; bx[5] = top + base + 0.5; bx[6] = round ? 0 : tall ? 0.54 : 0.72; bx[7] = 0; } /* V310.17 : vrai toit (hauteur, retrait du dernier étage) pour les piscines et fêtes sur les toits, la boîte de collision garde ses 20 m de marge */
+      if (tall && r() < .6) { boxes[boxes.length - 1][7] = 1; addGeo(M_POLE, new THREE.CylinderGeometry(.15, .35, 18, 6), x0, top + base + 9, z0); AVL.push([x0, top + base + 18.3, z0]); }
       else if (tall) { AVL.push([x0 - w * 0.3, top + base + 0.8, z0 - d * 0.3]); AVL.push([x0 + w * 0.3, top + base + 0.8, z0 + d * 0.3]); }
       addGeo(r() < .55 && DM.shopRow2 ? DM.shopRow2 : DM.shopRow, shopBox(w + 0.1, 5, d + 0.1), x0, base + 2.5, z0);
       // couronne lumineuse et marquise du hall
@@ -5568,9 +5568,11 @@ function updateMurmur(dt) { if (!SND.ctx || !SND.on) return; const o = target();
 const ROOFP = { list: null, t: 0, beatT: 0 };
 /* V293 : piscines à débordement sur les toits des tours (eau qui ondule, transats, parasols, baigneurs, garde-corps en verre, lumière turquoise la nuit) */
 const RPOOL = { list: null, u: null };
+/* V310.17 (Monteur, commit 0de9c5d : « un toit flottant d'un immeuble coupé par la distance ») : les piscines et les fêtes sur les toits restaient affichées jusqu'à 420-480 m alors que l'immeuble qui les porte disparaît dès la limite du brouillard (cullChunks) · elles suivent maintenant la même limite que lui */
+function roofFar() { const cp = camera.position; if (cp.y > 60) return PHONE ? Math.min(1350, 520 + cp.y * 1.7) - 25 : 1e9; return (scene.fog ? scene.fog.far : 700) * 1.06 + 20 - 25; }
 function updateRoofPools(dt) {
   if (!RPOOL.list) { if (!ROOFP.list || !HQ.clips || !HQ.clips.m || !BLOCK_BOXES.size) return; RPOOL.list = [];
-    const cand = []; BLOCK_BOXES.forEach(L => L.forEach(b => { const w = b[2] - b[0], d = b[3] - b[1], h = b[4] || 12, cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2; if (w > 15 && d > 15 && h > 34 && h < 150 && Math.hypot(cx, cz) < HALF * 0.85 && ROOFP.list.every(p => Math.hypot(p.x - cx, p.z - cz) > 40) && Math.hypot(cx - TOWER.x, cz - TOWER.z) > 40) cand.push([cx, cz, h, w, d]); }));
+    const cand = []; BLOCK_BOXES.forEach(L => L.forEach(b => { if (b[5] != null && (!b[6] || b[7])) return; const rs = b[5] != null ? b[6] : 1, w = (b[2] - b[0]) * rs, d = (b[3] - b[1]) * rs, h = b[5] != null ? b[5] : (b[4] || 12), cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2; if (w > 15 && d > 15 && h > 34 && h < 150 && Math.hypot(cx, cz) < HALF * 0.85 && ROOFP.list.every(p => Math.hypot(p.x - cx, p.z - cz) > 40) && Math.hypot(cx - TOWER.x, cz - TOWER.z) > 40) cand.push([cx, cz, h, w, d]); }));
     cand.sort((a, b) => b[2] - a[2]); const pk = []; for (const c of cand) { if (pk.every(q => Math.hypot(q[0] - c[0], q[1] - c[1]) > 150)) pk.push(c); if (pk.length >= 4) break; }
     RPOOL.u = { uT: { value: 0 }, nk: { value: 0 } };
     const water = new THREE.ShaderMaterial({ uniforms: RPOOL.u, transparent: true, depthWrite: false,
@@ -5596,11 +5598,11 @@ function updateRoofPools(dt) {
       { const hm = mk({}, "Idle_Loop"); hm.position.set(PW * 0.15, -0.95, pz); hm.rotation.y = 0.6; }
       RPOOL.list.push({ g, ppl, x: cx, z: cz, y: h }); }); }
   RPOOL.u.uT.value += dt; RPOOL.u.nk.value = nightK; const cam = camera.position;
-  RPOOL.list.forEach(p => { const vis = Math.hypot(p.x - cam.x, p.z - cam.z) < 480; if (p.g.visible !== vis) { p.g.visible = vis; p.ppl.forEach(h => h.visible = vis); } }); }
+  const rf = roofFar(); RPOOL.list.forEach(p => { const vis = Math.hypot(p.x - cam.x, p.z - cam.z) < Math.min(480, rf); if (p.g.visible !== vis) { p.g.visible = vis; p.ppl.forEach(h => h.visible = vis); } }); }
 function updateRoofParties(dt) { if (!LIGHT) updateRoofPools(dt); updateRoofParties0(dt); }
 function updateRoofParties0(dt) {
   if (!ROOFP.list) { if (!HQ.clips || !HQ.clips.m || !BLOCK_BOXES.size) return; ROOFP.list = [];
-    const cand = []; BLOCK_BOXES.forEach(L => L.forEach(b => { const w = b[2] - b[0], d = b[3] - b[1], h = b[4] || 12, cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2; if (w > 13 && d > 13 && h > 16 && h < 70 && Math.hypot(cx, cz) < HALF * 0.75) cand.push([cx, cz, h, w, d]); }));
+    const cand = []; BLOCK_BOXES.forEach(L => L.forEach(b => { if (b[5] != null && (!b[6] || b[7])) return; const rs = b[5] != null ? b[6] : 1, w = (b[2] - b[0]) * rs, d = (b[3] - b[1]) * rs, h = b[5] != null ? b[5] : (b[4] || 12), cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2; if (w > 13 && d > 13 && h > 16 && h < 70 && Math.hypot(cx, cz) < HALF * 0.75) cand.push([cx, cz, h, w, d]); }));
     cand.sort((a, b) => (Math.sin(a[0] * 12.9 + a[1] * 7.7) % 1) - (Math.sin(b[0] * 12.9 + b[1] * 7.7) % 1)); const pick6 = [];
     for (const c of cand) { if (pick6.every(q => Math.hypot(q[0] - c[0], q[1] - c[1]) > 140)) pick6.push(c); if (pick6.length >= 5) break; }
     pick6.forEach(([cx, cz, h, w, d]) => { const g = new THREE.Group(); g.position.set(cx, h + 0.05, cz); scene.add(g); const ppl = [];
@@ -5614,7 +5616,7 @@ function updateRoofParties0(dt) {
       const pts = new THREE.Points(pg, new THREE.PointsMaterial({ size: 0.9, map: glowTexture(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); g.add(pts);
       ROOFP.list.push({ g, ppl, pts, x: cx, z: cz, y: h }); }); }
   const nk = nightK, cam = camera.position; let near = 1e9; ROOFP.t += dt;
-  ROOFP.list.forEach(p => { const d = Math.hypot(p.x - cam.x, p.z - cam.z); const vis = nk > 0.35 && d < 420; if (p.g.visible !== vis) { p.g.visible = vis; p.ppl.forEach(h => h.visible = vis); } if (!vis) return; near = Math.min(near, Math.hypot(d, p.y - cam.y)); p.pts.material.opacity = 0.6 + 0.4 * Math.abs(Math.sin(ROOFP.t * 4.4 + p.x)); });
+  const rf = roofFar(); ROOFP.list.forEach(p => { const d = Math.hypot(p.x - cam.x, p.z - cam.z); const vis = nk > 0.35 && d < Math.min(420, rf); if (p.g.visible !== vis) { p.g.visible = vis; p.ppl.forEach(h => h.visible = vis); } if (!vis) return; near = Math.min(near, Math.hypot(d, p.y - cam.y)); p.pts.material.opacity = 0.6 + 0.4 * Math.abs(Math.sin(ROOFP.t * 4.4 + p.x)); });
   const c = SND.ctx; if (!c || !SND.on || near > 90) return; ROOFP.beatT -= dt; if (ROOFP.beatT > 0) return; ROOFP.beatT = 60 / 124; const v = 0.16 * Math.pow(1 - near / 90, 1.4), t = c.currentTime, o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
   o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.18); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3); lp.type = "lowpass"; lp.frequency.value = 220; o.connect(lp); lp.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.32); }
 function barkHit(k) {

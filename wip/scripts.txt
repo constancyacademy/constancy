@@ -1,0 +1,547 @@
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; cp constancy-beta.html constancy-beta.pre-carte.html; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read(); n0=len(s)
+def R(a,b,c=1):
+    global s
+    k=s.count(a); assert k==c,(k,a[:80]); s=s.replace(a,b)
+# 1. étendue de la vue d'ensemble : archipel et aéroport entiers
+R('function m3OvBuild() { if (M3.ovTex) return; const X0 = -2200, Z0 = -3600, W = 5200,',
+  '/* V310.20 (Thomas, 22/11 16h19 : « évitons de mettre dans l\'ombre l\'archipel et toute la zone d\'aéroport ») : la photo de la vue d\'ensemble s\'arrêtait au milieu de La Palme et de la piste, et le fondu en cercle les assombrissait · cadre élargi qui contient toute la terre, fondu seulement sur les 5 % du bord (de la mer) */\nconst OV = { x0: -2700, z0: -3750, w: 5600 };\nfunction satEdgeFade(c) { const g = c.getContext("2d"), n = c.width, f = Math.round(n * 0.05); g.globalCompositeOperation = "destination-out"; [[0, 0, f, 0], [n, 0, n - f, 0], [0, 0, 0, f], [0, n, 0, n - f]].forEach(([x0, y0, x1, y1]) => { const gr = g.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, "rgba(0,0,0,1)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(0, 0, n, n); }); g.globalCompositeOperation = "source-over"; }\nfunction m3OvBuild() { if (M3.ovTex) return; const X0 = OV.x0, Z0 = OV.z0, W = OV.w,')
+a=s.index('{ /* V305.2 : bords fondus en cercle')
+b=s.index('const tx = new THREE.CanvasTexture(c); tx.anisotropy = 4; M3.ovTex = tx;')
+s=s[:a]+'satEdgeFade(c); '+s[b:]
+R('[[-2200, -3600, 5200], [-MO, -MO, MAPW], [-(SHORE + 130), -(SHORE + 130), (SHORE + 130) * 2]].forEach(([x0, z0, w]) => { const k = satKey(x0, z0, w), im = new Image(); im.decoding = "async"; im.src = "assets/sat_" + k + ".jpg"; SATIMG[k] = im; });',
+  '[[OV.x0, OV.z0, OV.w], [-MO, -MO, MAPW], [-(SHORE + 130), -(SHORE + 130), (SHORE + 130) * 2]].forEach(([x0, z0, w]) => satLoad(satKey(x0, z0, w) + satSfx()));')
+R('function satPreload() {', '/* V310.20 (Thomas, 22/11 16h19 : « quand on dézoome, elle se met en mode jour ») : de vraies photos de nuit (rendues à 23 h, néons, fenêtres et réverbères allumés) remplacent la photo de jour teintée · chargée seulement quand il fait nuit */\nfunction satSfx() { return nightK > 0.5 ? "_n" : ""; }\nfunction satLoad(k) { if (SATIMG[k]) return SATIMG[k]; const im = new Image(); im.decoding = "async"; im.src = "assets/sat_" + k + ".jpg"; SATIMG[k] = im; return im; }\nfunction satPreload() {')
+R('satPreload(); const SI = SATIMG[satKey(x0, z0, w)];\n  if (TOUCH_DEV() || (w > 3000 && SI && SI.complete && SI.naturalWidth)) { const im = SATIMG[satKey(x0, z0, w)], c = document.createElement("canvas"); c.width = c.height = px; const g = c.getContext("2d"); if (im && im.complete && im.naturalWidth) { g.drawImage(im, 0, 0, px, px); if (nightK > 0.5) satNight(g, x0, z0, w, px); }',
+  'satPreload(); const SI = window.__satForce ? null : satLoad(satKey(x0, z0, w) + satSfx());\n  if (!window.__satForce && (TOUCH_DEV() || (w > 3000 && SI && SI.complete && SI.naturalWidth))) { const im = SI, c = document.createElement("canvas"); c.width = c.height = px; const g = c.getContext("2d"); if (im && im.complete && im.naturalWidth) { g.drawImage(im, 0, 0, px, px); }')
+R('if (window.__satCap) window.__satCap.push({ k: satKey(x0, z0, w), px,', 'if (window.__satCap) window.__satCap.push({ k: satKey(x0, z0, w) + satSfx(), px,')
+open(p,'w').write(s); print(len(s)-n0)
+EOF
+grep -n "SATIMG.go && Object.values" constancy-beta.html | cut -c1-80
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b,c=1):
+    global s
+    k=s.count(a); assert k==c,(k,a[:90]); s=s.replace(a,b)
+R('''  const gp = navigator.getGamepads ? Array.from(navigator.getGamepads()).find(g => g && g.connected) : null; if (!gp) { GPAD.state = null; return; }
+  const dz = v => Math.abs(v) < 0.16 ? 0 : (v - Math.sign(v) * 0.16) / 0.84, b = i => gp.buttons[i] ? gp.buttons[i].value : 0, pressed = i => b(i) > 0.5 && !(GPAD.prev[i] > 0.5);
+  const lx = dz(gp.axes[0] || 0), ly = dz(gp.axes[1] || 0), rx = dz(gp.axes[2] || 0), ry = dz(gp.axes[3] || 0), r2 = b(7), l2 = b(6);
+  if (!GPAD.on && (lx || ly || rx || ry || gp.buttons.some(x => x.pressed))) {''',
+'''  /* V310.20 (Thomas, 22/11 16h15 et 16h22 : « la voiture avance toute seule », « le turbo s'active tout seul ») : un appareil vu comme une manette (casque, volant, boîtier non standard) dont un axe ou un bouton reste au repos à fond pilotait la voiture et le turbo sans que personne y touche · on mémorise l'état de repos de chaque appareil, il ne prend la main qu'après un vrai geste, et un axe ou un bouton bloqué au repos est ignoré */
+  const all = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(g => g && g.connected) : [], gp = all.find(g => g.mapping === "standard") || all[0] || null; if (!gp) { GPAD.state = null; G.padTurbo = false; return; }
+  GPAD.rest = GPAD.rest || {}; let RS = GPAD.rest[gp.index + "|" + gp.id]; if (!RS) RS = GPAD.rest[gp.index + "|" + gp.id] = { ax: gp.axes.map(v => v || 0), bt: gp.buttons.map(x => x.value > 0.5), moved: false };
+  if (!RS.moved && (gp.axes.some((v, i) => Math.abs((v || 0) - (RS.ax[i] || 0)) > 0.35) || gp.buttons.some((x, i) => x.value > 0.5 && !RS.bt[i]))) RS.moved = true;
+  const stuckA = i => Math.abs(RS.ax[i] || 0) > 0.5, ax = i => stuckA(i) ? 0 : (gp.axes[i] || 0);
+  const dz = v => Math.abs(v) < 0.16 ? 0 : (v - Math.sign(v) * 0.16) / 0.84, b = i => gp.buttons[i] && !RS.bt[i] ? gp.buttons[i].value : 0, pressed = i => b(i) > 0.5 && !(GPAD.prev[i] > 0.5);
+  const lx = dz(ax(0)), ly = dz(ax(1)), rx = dz(ax(2)), ry = dz(ax(3)), r2 = b(7), l2 = b(6);
+  if (!RS.moved) { GPAD.state = null; G.padTurbo = false; GPAD.prev = gp.buttons.map(x => x.value); return; }
+  if (!GPAD.on && (lx || ly || rx || ry || gp.buttons.some((x, i) => x.pressed && !RS.bt[i]))) {''')
+R('window.addEventListener("gamepadconnected", () => { GPAD.on = false; });','window.addEventListener("gamepadconnected", () => { GPAD.on = false; GPAD.rest = {}; });')
+R('  if (GPAD.state && (GPAD.state.fwd || GPAD.state.side || GPAD.state.brake)) return GPAD.state;','  if (GPAD.on && GPAD.state && (GPAD.state.fwd || GPAD.state.side || GPAD.state.brake)) return GPAD.state;')
+R('''["pointerdown"].forEach(ev => $("turboBtn").addEventListener(ev, e => { e.preventDefault(); G.turbo = true; }));
+["pointerup", "pointercancel", "pointerleave"].forEach(ev => $("turboBtn").addEventListener(ev, () => { G.turbo = false; }));''',
+'''["pointerdown"].forEach(ev => $("turboBtn").addEventListener(ev, e => { e.preventDefault(); G.turbo = true; G.tbPtr = e.pointerId; }));
+["pointerup", "pointercancel", "pointerleave"].forEach(ev => $("turboBtn").addEventListener(ev, () => { G.turbo = false; G.tbPtr = null; }));
+/* V310.20 (Thomas, 22/11 16h22 : turbo qui reste allumé) : le doigt levé ailleurs que sur le bouton (ou le bouton caché pendant l'appui) laissait le turbo allumé pour toujours */
+["pointerup", "pointercancel"].forEach(ev => window.addEventListener(ev, e => { if (G.tbPtr != null && e.pointerId === G.tbPtr) { G.turbo = false; G.tbPtr = null; } }, true));''')
+R('window.addEventListener("blur", () => { keys.clear(); G.joy = null;','window.addEventListener("blur", () => { keys.clear(); G.turbo = false; G.padTurbo = false; G.tbPtr = null; G.joy = null;')
+R('document.addEventListener("visibilitychange", () => { if (document.hidden && G.mode === "play") { saveNow(); openMenu(); } });','document.addEventListener("visibilitychange", () => { if (document.hidden) { keys.clear(); G.turbo = false; G.padTurbo = false; G.tbPtr = null; } if (document.hidden && G.mode === "play") { saveNow(); openMenu(); } });')
+open(p,'w').write(s)
+EOF
+grep -n "G.padTurbo = b(5)" constancy-beta.html | cut -c1-60
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+a='''  { const word = "CONSTANCY", x0 = 40, z0 = A.z1 - 28; for (let i = 0; i < word.length; i++) { const t = neonText(word[i], i % 2 ? "#34e0ff" : "#ff3fa4", 7, 8, 900); t.position.set(x0 + i * 7.6, 4.2, z0); t.rotation.y = Math.PI; scene.add(t); addGeo(white, new THREE.BoxGeometry(6.4, 0.6, 1.2), x0 + i * 7.6, 0.3, z0 + 0.4); } }'''
+b='''  /* V310.20 (Thomas, 22/11 16h14 : « le néon Constancy au bord de la grande plage, on le voit à l'envers… qu'il soit aussi de l'autre côté ») : chaque lettre était une seule plaque vue des deux côtés, le mot se lisait YCNATSNOC d'un côté et en miroir de l'autre · deux rangées de lettres dos à dos, chacune dans le bon ordre pour son côté */
+  { const word = "CONSTANCY", N = word.length, x0 = 40, z0 = A.z1 - 28; for (let i = 0; i < N; i++) { const col = i % 2 ? "#34e0ff" : "#ff3fa4";
+      const tf = neonText(word[i], col, 7, 8, 900); tf.material.side = THREE.FrontSide; tf.position.set(x0 + (N - 1 - i) * 7.6, 4.2, z0 - 0.06); tf.rotation.y = Math.PI; scene.add(tf); /* lu depuis la ville (côté nord) */
+      const tb = neonText(word[i], col, 7, 8, 900); tb.material.side = THREE.FrontSide; tb.position.set(x0 + i * 7.6, 4.2, z0 + 0.06); scene.add(tb); /* lu depuis la mer (côté sud) */
+      addGeo(white, new THREE.BoxGeometry(6.4, 0.6, 1.2), x0 + i * 7.6, 0.3, z0 + 0.4); } }'''
+assert s.count(a)==1; s=s.replace(a,b); open(p,'w').write(s)
+EOF
+echo ok
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+a='window.__W = () => ({ AURA, FXR,'
+assert s.count(a)==1
+s=s.replace(a,'window.__W = () => ({ updateCar, updateMe, keys, input, RDX, DK, skyDeckH, roadH, isWater, zoneName, newLandAt, AURA, FXR,')
+open(p,'w').write(s)
+EOF
+grep -n "^const GK\|GK = \[" constancy-beta.html | cut -c1-300; grep -n "^const RDX\|RDX = {" constancy-beta.html | cut -c1-300
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+s=s.replace('window.__W = () => ({ updateCar, updateMe,','window.__W = () => ({ AP_OLD, updateCar, updateMe,',1); open(p,'w').write(s)
+EOF
+cat > /tmp/pc/zoneprobe.js <<'EOF'
+// V310.20 · Recette « tous les lieux doivent marcher » (Thomas 22/11 16h14-16h15) : voiture qui part seule, murs invisibles, échangeurs/autoroutes où l'on ne monte pas
+const { chromium } = require('playwright'); const path = require('path'); const fs = require('fs');
+(async () => { const page = path.resolve(process.argv[2]), out = process.argv[3] || '/tmp/pc/zp_';
+  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--allow-file-access-from-files', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--mute-audio'] });
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true, isMobile: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
+  await ctx.route(/^https?:/, r => r.abort()); await ctx.addInitScript(() => { Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false }); try { sessionStorage.setItem('cst-relance', '1'); } catch (e) {} });
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message.slice(0, 200)));
+  await p.goto('file://' + page + '?nostat=1&s=ig&autostart=1&noprologue=1&noreve=1'); await p.waitForSelector('#quick', { timeout: 900000 });
+  await p.click('#quick', { force: true, noWaitAfter: true, timeout: 600000 });
+  for (let k = 0; k < 400; k++) { await p.waitForTimeout(1500); const st = await p.evaluate(() => ({ mode: window.__W && window.__W().G.mode, em: !!document.getElementById('em'), choice: !!document.querySelector('.choice'), ok: !!document.getElementById('ok') }));
+    if (st.ok) await p.evaluate(() => { const o = document.getElementById('ok'); if (o && o.offsetParent) o.click(); });
+    if (st.em) { await p.evaluate(() => { const e = document.getElementById('em'); if (e) { e.value = 'constancy.zones.test.2211@gmail.com'; e.dispatchEvent(new Event('input')); } }); await p.waitForTimeout(800); await p.evaluate(() => { const g = document.getElementById('emGo'); if (g) g.click(); }); }
+    if (st.choice) await p.evaluate(() => { const c = document.querySelector('.choice'); if (c) c.click(); });
+    if (st.mode === 'play' && !st.em && !st.choice) break; }
+  console.log('EN JEU', await p.evaluate(() => window.__W().G.mode));
+  await p.waitForFunction(() => window.__zonesPretes, null, { timeout: 900000, polling: 1000 });
+  await p.evaluate(() => { const W = window.__W(); try { if (W.G.inside && W.leaveHome) W.leaveHome(); } catch (e) {} });
+  await p.waitForTimeout(3000);
+  // monter en voiture
+  for (let k = 0; k < 60; k++) { const s = await p.evaluate(() => { const W = window.__W(), G = W.G; if (G.onFoot && !G.entering) { const c = G.car; G.me.x = c.x + 1.5; G.me.z = c.z; try { W.toggleCar(); } catch (e) {} } return { foot: G.onFoot, ent: !!G.entering, mesh: !!W.carMesh }; }); if (!s.foot && !s.ent && s.mesh) break; await p.waitForTimeout(1500); }
+  console.log('EN VOITURE', await p.evaluate(() => !window.__W().G.onFoot));
+  const res = await p.evaluate(() => { const W = window.__W(), G = W.G, K = W.keys, dt = 1 / 30, R = { idle: [], drive: [], decks: [], walk: [] };
+    const zn = (x, z) => { try { return W.zoneName(x, z) || '?'; } catch (e) { return '?'; } };
+    const place = (x, z, h) => { const c = G.car; c.x = x; c.z = z; c.h = h || 0; c.v = 0; c.s = 0; c.jy = null; c.jv = 0; c.air = 0; c._lx = x; c._lz = z; G.turbo = false; K.clear(); };
+    const run = (n, ctl) => { const T = []; for (let i = 0; i < n; i++) { if (ctl) ctl(i); try { W.updateCar(dt); } catch (e) { T.err = e.message; break; } const c = G.car; T.push([c.x, c.z, c.v, c.jy, c.h]); } K.clear(); return T; };
+    const S = W.REG[4], ST = W.SUDX || {}, A = W.ARCH, AO = W.AP_OLD;
+    const PTS = { centre: [0, 0], archipelTronc: [A.t0[0] - 60, A.t0[1]], archipelPlace: [A.C[0] + 50, A.C[1] + 4], archipelCouronne: [A.C[0], A.C[1] - A.cr], esplanade: [0, (AO.zg + AO.z1) / 2], esplanadeNeon: [70, AO.z1 - 40], aeroport: [0, W.AP.zg + 30], sud: [S.cx, S.cz], stade: ST.st ? [ST.st[0] + 160, ST.st[1]] : [S.cx, S.cz + 100], mall: ST.mall ? [ST.mall[0], ST.mall[1] + 120] : [S.cx + 100, S.cz] };
+    for (const k in PTS) { const [x, z] = PTS[k]; place(x, z, 0); const T = run(90); const L = T[T.length - 1]; R.idle.push({ k, x: Math.round(x), z: Math.round(z), zone: zn(x, z), dep: +Math.hypot(L[0] - x, L[1] - z).toFixed(2), vmax: +Math.max(...T.map(q => Math.abs(q[2]))).toFixed(2), turbo: G.tbOn, err: T.err }); }
+    for (const k in PTS) { const [x, z] = PTS[k]; for (let a = 0; a < 8; a++) { const h = a * Math.PI / 4; place(x, z, h); const T = run(240, () => K.add('ArrowUp')); let blk = null; for (let i = 45; i < T.length; i++) { if (Math.abs(T[i][2]) < 1.5 && Math.hypot(T[i][0] - T[i - 15][0], T[i][1] - T[i - 15][1]) < 1) { blk = T[i]; break; } } const L = T[T.length - 1];
+        const ahead = blk ? [blk[0] + Math.sin(blk[4]) * 4, blk[1] + Math.cos(blk[4]) * 4] : null;
+        R.drive.push({ k, a, dist: Math.round(Math.hypot(L[0] - x, L[1] - z)), blk: blk ? { x: Math.round(blk[0]), z: Math.round(blk[1]), zone: zn(blk[0], blk[1]), eau: W.isWater(ahead[0], ahead[1]), route: W.roadH(blk[0], blk[1]) != null } : null, err: T.err }); } }
+    // échangeurs et autoroutes suspendues : on monte par le début de chaque tablier et on suit la route
+    (W.DK.decks || []).forEach((D, di) => { const Sx = D.S; if (Sx.length < 6) return; [0, 1].forEach(rev => { const P = rev ? Sx.slice().reverse() : Sx; const p0 = P[0], p1 = P[3]; place(p0[0] - (p1[0] - p0[0]) * 2, p0[1] - (p1[1] - p0[1]) * 2, Math.atan2(p1[0] - p0[0], p1[1] - p0[1])); let j = 0, under = 0, on = 0, n = 0, hiMax = 0;
+        const T = run(1500, () => { const c = G.car; while (j < P.length - 1 && Math.hypot(P[j][0] - c.x, P[j][1] - c.z) < 14) j++; const q = P[Math.min(P.length - 1, j)], th = Math.atan2(q[0] - c.x, q[1] - c.z); let e = th - c.h; while (e > Math.PI) e -= 2 * Math.PI; while (e < -Math.PI) e += 2 * Math.PI; K.clear(); K.add('ArrowUp'); if (e > 0.06) K.add('ArrowLeft'); else if (e < -0.06) K.add('ArrowRight'); const dh = P[Math.min(P.length - 1, j)][2]; if (dh > 4) { n++; if (c.jy < dh - 2.5) under++; else on++; } hiMax = Math.max(hiMax, c.jy || 0); });
+        const L = T[T.length - 1]; R.decks.push({ di, name: D.name, rev, pts: P.length, fin: j, hmax: Math.round(Math.max(...P.map(q => q[2]))), hiCar: Math.round(hiMax), sur: on, dessous: under, x: Math.round(L[0]), z: Math.round(L[1]), err: T.err }); }); });
+    return R; });
+  console.log('IDLE'); res.idle.forEach(r => console.log(' ', JSON.stringify(r)));
+  console.log('DRIVE bloqués'); res.drive.filter(r => r.blk).forEach(r => console.log(' ', JSON.stringify(r)));
+  console.log('DRIVE ok', res.drive.filter(r => !r.blk).length, '/', res.drive.length);
+  console.log('DECKS'); res.decks.forEach(r => console.log(' ', JSON.stringify(r)));
+  fs.writeFileSync(out + 'res.json', JSON.stringify(res));
+  console.log('ERR', errs.length ? errs.slice(0, 3).join(' | ') : 'none'); await b.close(); })().catch(e => { console.log('ERREUR', e.message.slice(0, 300)); process.exit(1); });
+EOF
+echo ok; cat /tmp/pc/sat52.log; tail -2 /tmp/pc/chain69.log
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; grep -n 'G.gpsDest = "pin"' constancy-beta.html | cut -c1-120; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b,c=None):
+    global s
+    k=s.count(a); assert k>0 and (c is None or k==c),(k,a[:80]); s=s.replace(a,b); return k
+print(R('G.gpsDest = bt.dataset.d || null;','G.gpsDest = bt.dataset.d || null; G.gpsUser = G.gpsDest ? 1 : 0;'))
+print(R('if (a.id === "penthouse") G.gpsDest = "tower"; else { G.pin = { x: p.x, z: p.z }; G.gpsDest = "pin"; }','if (a.id === "penthouse") G.gpsDest = "tower"; else { G.pin = { x: p.x, z: p.z }; G.gpsDest = "pin"; } G.gpsUser = 1;',1))
+print(R('G.gpsDest = "pin";','G.gpsDest = "pin"; G.gpsUser = 1;'))
+print(R('on("goGarage", () => { G.gpsDest = "garage";','on("goGarage", () => { G.gpsDest = "garage"; G.gpsUser = 1;',1))
+print(R('on("goShop", () => { G.gpsDest = "shop";','on("goShop", () => { G.gpsDest = "shop"; G.gpsUser = 1;',1))
+# rappels et nouvelle mission : ne remplacent plus une destination choisie par le joueur
+print(R('''  if (k) { const st = STORY_STEPS[k]; if (st.gps) G.gpsDest = st.gps; notify("blue", `<b>N'oublie pas ta mission :</b> ${st.t}. Le GPS est réglé, suis le trait sur la carte.`, 8); }''',
+'''  /* V310.20 (Thomas, 22/11 16h26 : « GPS réglé sur la tour… ça reste sur la plage, sur mon ancienne destination ») : le rappel de mission remettait de force le GPS sur la mission toutes les 50 s · une destination choisie par le joueur n'est plus jamais écrasée */
+  if (k) { const st = STORY_STEPS[k], mine = G.gpsUser && G.gpsDest; if (st.gps && !mine) G.gpsDest = st.gps; notify("blue", `<b>N'oublie pas ta mission :</b> ${st.t}.` + (mine ? "" : " Le GPS est réglé, suis le trait sur la carte."), 8); }''',1))
+print(R('  if (st.gps) { G.gpsDest = st.gps; }\n','  if (st.gps && !(G.gpsUser && G.gpsDest)) { G.gpsDest = st.gps; }\n',1))
+print(R('if (Math.hypot(t.x - o.x, t.z - o.z) < 14) { if (G.gpsDest) { G.gpsDest = null;','if (Math.hypot(t.x - o.x, t.z - o.z) < 14) { if (G.gpsDest) { G.gpsDest = null; G.gpsUser = 0;',1))
+open(p,'w').write(s)
+EOF
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+a='''function startGuide(force) {
+  if (!P || (P.guided && !force)) return;
+'''
+b='''function startGuide(force) {
+  /* V310.20 (Thomas, 22/11 16h26 : « quand on passe au jour 2, on remet le guide… il ne faut pas le faire répéter ») : le guide n'était marqué vu qu'à sa dernière page · il est marqué vu dès qu'il s'ouvre, et jamais remontré à quelqu'un qui a déjà livré ou qui revient un autre jour */
+  if (!P || ((P.guided || P.guideSeen || (P.day > 1 && (P.deliveries || 0) > 0)) && !force)) { if (P && !force && !P.guided) { P.guided = true; try { saveNow(); } catch (e) {} } return; }
+  P.guideSeen = 1; try { saveNow(); } catch (e) {}
+'''
+assert s.count(a)==1; s=s.replace(a,b); open(p,'w').write(s)
+EOF
+grep -n "P.guided" constancy-beta.html | cut -c1-200 | head
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+a='const go = () => { if (!P.guided) startGuide(); else if (restDay()) restBrief(); else if (storyStep()) storyStart(); };'
+b='const go = () => { if (!P.guided) startGuide(); if (P.guided && !document.getElementById("guide")) { if (restDay()) restBrief(); else if (storyStep()) storyStart(); } };'
+assert s.count(a)==1; s=s.replace(a,b); open(p,'w').write(s)
+EOF
+cat /tmp/pc/sat52.log; tail -3 /tmp/pc/chain69.log
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b):
+    global s
+    assert s.count(a)==1,(s.count(a),a[:80]); s=s.replace(a,b)
+R('''  mic.position.set(0.12, 1.42, 0.33); mic.rotation.set(-0.5, 0, -0.35); grp.add(mic);
+  const cam = new THREE.PerspectiveCamera(32, 512 / 640, 0.1, 30); cam.position.set(1.15, 1.62, 1.6); cam.lookAt(0.05, 1.56, 0);''',
+'''  mic.position.set(0.12, 1.42, 0.33); mic.rotation.set(-0.5, 0, -0.35); grp.add(mic);
+  const cam = new THREE.PerspectiveCamera(32, 512 / 640, 0.1, 30); cam.position.set(1.15, 1.62, 1.6); cam.lookAt(0.05, 1.56, 0);
+  /* V310.20 (Thomas, 22/11 16h26 : « il faut qu'on voie toute ma tête… le haut du corps, avec un micro sous la bouche… un interligne suffisant entre le haut de l'écran et mes cheveux ») : le cadrage visait 1,56 m quelle que soit la taille de l'avatar (on voyait le torse) · il se cale sur la vraie tête : cheveux à 20 % sous le haut de l'image, épaules et haut du buste en bas, micro sous la bouche */
+  try { grp.updateMatrixWorld(true); let hb = null; if (th) th.traverse(o => { if (!hb && o.isBone && o.name === HQ_BONES.head) hb = o; }); const hp = new THREE.Vector3();
+    if (hb) hb.getWorldPosition(hp); else if (th) { const bb = new THREE.Box3().setFromObject(th); hp.set((bb.min.x + bb.max.x) / 2, bb.max.y - 0.13, (bb.min.z + bb.max.z) / 2); }
+    if (th && hp.y > 0.5) { const fy = th.rotation.y, fx = Math.sin(fy), fz = Math.cos(fy); const hy = hp.y + 0.04; /* centre de la tête (os à la base du crâne) */
+      mic.position.set(hp.x + fx * 0.17 + fz * 0.03, hy - 0.15, hp.z + fz * 0.17 - fx * 0.03); mic.rotation.set(-0.55, fy, -0.2);
+      const dx = 0.584, dz = 0.812; cam.position.set(hp.x + dx * 1.75, hy - 0.06, hp.z + dz * 1.75); cam.lookAt(hp.x, hy - 0.17, hp.z); ITV.headY = hy; } } catch (e) {}''')
+# voix + durée
+R('''  ITV.from = camera.position.clone(); ITV.line = TALKIE.lines[Math.floor(Math.random() * TALKIE.lines.length)];''',
+'''  ITV.from = camera.position.clone(); const li = Math.floor(Math.random() * TALKIE.lines.length); ITV.line = TALKIE.lines[li]; ITV.dur = 4.7; cityVoice(`assets/voix/talkie_${li + 1}.mp3`, d => { ITV.dur = Math.min(11, Math.max(4.7, d + 2.1)); });''')
+R('''k = E(T / 1.4) * (1 - E((T - 4.1) / 0.6)), n = new THREE.Vector3(0, 0, 1)''','''D = ITV.dur || 4.7, k = E(T / 1.4) * (1 - E((T - (D - 0.6)) / 0.6)), n = new THREE.Vector3(0, 0, 1)''')
+R('''    if (T > 4.7) itvEnd(); return; }''','''    if (T > (ITV.dur || 4.7)) itvEnd(); return; }''')
+R('''function itvBuild() {''','''/* V310.20 (Thomas, 22/11 16h26 : « on ne m'entend pas… faire résonner comme si on m'entendait dans toute la ville ») : l'interview des écrans géants n'avait aucune voix · sa voix passe par le moteur audio du jeu (débloqué au premier toucher, iPhone compris) avec la sono de la ville : réverbération longue de grand espace et écho entre les tours */
+function cityIR(c) { if (SND.cityIR) return SND.cityIR; const L = Math.floor(c.sampleRate * 2.6), b = c.createBuffer(2, L, c.sampleRate); for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < L; i++) { const t = i / c.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / L, 2.2) * (t < 0.012 ? t / 0.012 : 1) * 0.55; } } SND.cityIR = b; return b; }
+function cityVoice(url, onDur) { const c = SND.ctx; if (!c || SND.on === false) return; try { if (c.state === "suspended") c.resume(); } catch (e) {}
+  fetch(url).then(r => r.arrayBuffer()).then(buf => c.decodeAudioData(buf, d => { try { if (!ITV.on) return; const s = c.createBufferSource(); s.buffer = d; const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 130; const pr = c.createBiquadFilter(); pr.type = "peaking"; pr.frequency.value = 2800; pr.gain.value = 4; pr.Q.value = 0.8;
+      const dry = c.createGain(); dry.gain.value = 1.25; const rv = c.createConvolver(); rv.buffer = cityIR(c); const wet = c.createGain(); wet.gain.value = 0.7; const dl = c.createDelay(1); dl.delayTime.value = 0.21; const fb = c.createGain(); fb.gain.value = 0.32; const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2400; const ew = c.createGain(); ew.gain.value = 0.42;
+      s.connect(hp); hp.connect(pr); pr.connect(dry); dry.connect(c.destination); pr.connect(rv); rv.connect(wet); wet.connect(c.destination); pr.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(ew); ew.connect(c.destination);
+      s.start(c.currentTime + 0.9); ITV.src = s; if (onDur) onDur(d.duration); } catch (e) {} }, () => {})).catch(() => {}); }
+function itvBuild() {''')
+R('''function itvEnd() { ITV.on = false;''','''function itvEnd() { ITV.on = false; try { if (ITV.src) ITV.src.stop(); } catch (e) {} ITV.src = null;''')
+open(p,'w').write(s)
+EOF
+grep -n "ITV.src\|ITV.dur" constancy-beta.html | wc -l; ls /home/claude/constancy/assets/voix/ | head -40 | tr '\n' ' '
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+s=s.replace('window.__W = () => ({ AP_OLD,','window.__W = () => ({ planes, AP_OLD,',1); open(p,'w').write(s)
+EOF
+python3 - <<'EOF'
+p='/tmp/pc/zoneprobe.js'; s=open(p).read()
+a="  fs.writeFileSync(out + 'res.json', JSON.stringify(res));"
+b=a+r"""
+  // captures : avions du ciel (de côté et de face), lettres CONSTANCY des deux côtés de nuit, interview sur l'écran géant
+  await p.evaluate(() => window.__W().creatorSetHour(22)); await p.waitForTimeout(3000);
+  const shots = await p.evaluate(() => { const W = window.__W(), R = W.renderer, out = {}; const cam = new THREE.PerspectiveCamera(50, 390 / 844, 0.5, 6000);
+    const snap = (n, px, py, pz, tx, ty, tz) => { cam.position.set(px, py, pz); cam.lookAt(tx, ty, tz); cam.updateMatrixWorld(); R.render(W.scene, cam); out[n] = R.domElement.toDataURL('image/jpeg', 0.85); };
+    W.planes.forEach((pl, i) => { if (i > 2) return; const m = pl.mesh.position, h = pl.mesh.rotation.y, fx = Math.sin(h), fz = Math.cos(h), L = pl.y > 200 ? 140 : 45; snap('avion' + i + '_cote', m.x + fz * L, m.y + 6, m.z - fx * L, m.x, m.y, m.z); snap('avion' + i + '_avant', m.x + fx * L * 1.4, m.y + 8, m.z + fz * L * 1.4, m.x, m.y, m.z); });
+    const A = W.AP_OLD, z0 = A.z1 - 28, x = 40 + 4 * 7.6; snap('neon_ville', x, 4, z0 - 28, x, 4, z0); snap('neon_mer', x, 4, z0 + 26, x, 4, z0); return out; });
+  for (const k in shots) fs.writeFileSync(out + k + '.jpg', Buffer.from(shots[k].split(',')[1], 'base64'));
+  await p.evaluate(() => { try { window.__interview(); } catch (e) {} }); await p.waitForTimeout(4000);
+  const itv = await p.evaluate(() => { const F = window.__F(), I = F.ITV, R = window.__W().renderer; if (!I.studio) return null; const rt = I.rt; R.setRenderTarget(rt); R.render(I.studio, I.cam); const w = rt.width, h = rt.height, buf = new Uint8Array(w * h * 4); R.readRenderTargetPixels(rt, 0, 0, w, h, buf); R.setRenderTarget(null); const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'), im = g.createImageData(w, h); for (let y = 0; y < h; y++) im.data.set(buf.subarray((h - 1 - y) * w * 4, (h - y) * w * 4), y * w * 4); g.putImageData(im, 0, 0); return { img: c.toDataURL('image/jpeg', 0.9), dur: I.dur, headY: I.headY, src: !!I.src }; });
+  if (itv) { fs.writeFileSync(out + 'interview.jpg', Buffer.from(itv.img.split(',')[1], 'base64')); console.log('INTERVIEW', JSON.stringify({ dur: itv.dur, headY: itv.headY, voix: itv.src })); }
+  await p.screenshot({ path: out + 'interview_ecran.png' });"""
+assert s.count(a)==1; s=s.replace(a,b); open(p,'w').write(s)
+EOF
+echo ok
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+for p in ['constancy-beta.html','constancy-beta.c20.html']:
+    s=open(p).read()
+    a='function satNight(g, x0, z0, w, px) { g.globalCompositeOperation = "multiply"; g.fillStyle = "rgb(150,160,215)"; g.fillRect(0, 0, px, px); g.globalCompositeOperation = "lighter";'
+    b='function satNight(g, x0, z0, w, px, lightsOnly) { if (!lightsOnly) { g.globalCompositeOperation = "multiply"; g.fillStyle = "rgb(150,160,215)"; g.fillRect(0, 0, px, px); } g.globalCompositeOperation = "lighter";'
+    assert s.count(a)==1; s=s.replace(a,b)
+    a='if (im && im.complete && im.naturalWidth) { g.drawImage(im, 0, 0, px, px); }'
+    b='if (im && im.complete && im.naturalWidth) { g.drawImage(im, 0, 0, px, px); if (nightK > 0.5) satNight(g, x0, z0, w, px, true); /* réverbères, fenêtres et lumières de l\'archipel par-dessus la vraie photo de nuit */ }'
+    assert s.count(a)==1; s=s.replace(a,b)
+    open(p,'w').write(s)
+EOF
+cp /tmp/pc/sat52/*.jpg assets/; ls -la assets/sat_*; cd t && SRC=../constancy-beta.c20.html OUT=n53.html sh /tmp/mkfrom.sh; echo ok
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; diff <(sed 's/x/x/' constancy-beta.c20.html) constancy-beta.html | head -5; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b):
+    global s
+    assert s.count(a)==1,(s.count(a),a[:80]); s=s.replace(a,b)
+R('if (nightK > 0.5) satNight(g, x0, z0, w, px, true);','if (nightK > 0.5 && !TOUCH_DEV()) satNight(g, x0, z0, w, px, true); /* V310.20 (Thomas, 22/11 16h32 : carte figée 10 à 15 s sur téléphone) : sur téléphone, plus aucun dessin de lumières un par un (des milliers de halos), la photo de nuit les contient déjà */')
+# fermeture : descente en vol vers le joueur, dans le rendu de la carte (sûr à chaque altitude), puis courte transition vers la caméra de jeu
+R('function m3Clean() {','''/* V310.20 (Thomas, 22/11 16h32 : « quand je mets Fermer… on n'a pas le souffle qui nous emmène vers notre personnage… il faut qu'on garde cette transition ») : la caméra redescend vers le joueur EN RESTANT dans le rendu de la carte (le même qu'en zoomant à la main, déjà sûr à chaque altitude, téléphone compris), puis rejoint la caméra de jeu à quelques mètres du joueur · plus de vol où toute l'île se rallume d'un coup */
+function m3Close() { if (!G.map3d || M3.closing) return; const o = target(); M3.closing = { t: 0, x0: M3.x, z0: M3.z, d0: Math.max(30, M3.d), y0: M3.yaw, y1: (G.onFoot ? G.me.h : G.car.h) || 0, o }; M3.dW = M3.yW = M3.tx = M3.tz = M3.goX = null; hideScreen(); ["pad", "tools", "hint"].forEach(k => { if (M3[k]) { M3[k].remove(); M3[k] = null; } }); if (M3.beams) M3.beams.forEach(b => b.visible = false); if (M3.tags) M3.tags.forEach(t => t.visible = false); try { m3Whoosh(); } catch (e) {} }
+function m3Clean() {''')
+R('if (TOUCH_DEV()) { /* V310.18','if (M3.low) { M3.low = false; M3.outP = camera.position.clone(); M3.outQ = camera.quaternion.clone(); M3.outT = 0.55; M3.recull = 3; } else if (TOUCH_DEV()) { /* V310.18')
+R('function map3dCam(dt) {\n','''function map3dCam(dt) {
+  if (M3.closing) { const C = M3.closing; C.t += dt; const q = clamp(C.t / 1.25, 0, 1), e = q < 0.5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2; M3.x = C.x0 + (C.o.x - C.x0) * e; M3.z = C.z0 + (C.o.z - C.z0) * e; M3.d = C.d0 * Math.pow(16 / C.d0, e); let dy = C.y1 - C.y0; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI; M3.yaw = C.y0 + dy * e;
+    if (q >= 1) { M3.closing = null; M3.low = true; setTimeout(() => { if (G.mode === "map") resume(); }, 0); } }
+''')
+open(p,'w').write(s)
+EOF
+grep -n 'on("close", resume); m3Whoosh();' constancy-beta.html | cut -c1-80
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b):
+    global s
+    assert s.count(a)==1,(s.count(a),a[:80]); s=s.replace(a,b)
+R('  on("close", resume); m3Whoosh();','  on("close", m3Close); m3Whoosh();')
+R('M3.outT -= dt; const q = clamp(1 - M3.outT / 1.1, 0, 1)','M3.outT -= dt; const q = clamp(1 - M3.outT / (M3.outD || 1.1), 0, 1)')
+R('M3.outT = 0.55; M3.recull = 3; }','M3.outT = M3.outD = 0.55; M3.recull = 3; }')
+R('M3.outQ = camera.quaternion.clone(); M3.outT = 1.1; } }','M3.outQ = camera.quaternion.clone(); M3.outT = M3.outD = 1.1; } }')
+open(p,'w').write(s)
+EOF
+grep -n "M3.outT = 1.1\|M3.outD" constancy-beta.html | cut -c1-120
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+a='  setMode("map"); G.map3d = true; /* V294'
+assert s.count(a)==1; s=s.replace(a,'  M3.closing = null; M3.low = false; setMode("map"); G.map3d = true; /* V294'); open(p,'w').write(s)
+import re
+m=max(re.findall(r'<script>(.*?)</script>',s,re.S),key=len); open('/tmp/chk.mjs','w').write(m)
+EOF
+node --check /tmp/chk.mjs && cp constancy-beta.html constancy-beta.c20.html && cd t && SRC=../constancy-beta.c20.html OUT=n53.html sh /tmp/mkfrom.sh && echo OK; grep -n "m3close\|fermer" /tmp/pc/mapnight.js | head -3
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+mod=open('/tmp/pc/py/apt.js').read()
+# porte du penthouse : devant la façade de la Tour, à côté de l'ascenseur ; sens de sortie propre à chaque porte
+mod=mod.replace('''    if (a.id === "penthouse") { const k = Math.atan2(0 - TOWER.x, 0 - TOWER.z), R = (TOWER.F || 30) / 2 + 2.2; dw = [TOWER.x + Math.sin(k) * R, TOWER.z + Math.cos(k) * R]; E.g = new THREE.Group(); E.g.position.set(dw[0], 0, dw[1]); E.g.rotation.y = k + Math.PI; E.dl = null; }
+    else dw = aptToW(sp, dl[0], dl[1]);''','''    let outH = sp.ry + Math.PI; if (a.id === "penthouse") { dw = [TOWER.x + 7, TOWER.z + (TOWER.F || 30) / 2 + 1.4]; outH = 0; E.g = null; }
+    else dw = aptToW(sp, dl[0], dl[1]);''')
+mod=mod.replace('dg.position.set(dw[0], gy, dw[1]); dg.rotation.y = a.id === "penthouse" ? E.g.rotation.y : sp.ry + Math.PI; scene.add(dg);','dg.position.set(dw[0], gy, dw[1]); dg.rotation.y = outH; scene.add(dg);')
+mod=mod.replace('E.door = { x: dw[0], z: dw[1], h: dg.rotation.y };','E.door = { x: dw[0], z: dw[1], h: outH };')
+assert 'outH' in mod and 'E.g.rotation' not in mod
+a='function startVisit(a) {'
+assert s.count(a)==1; s=s.replace(a, mod+a)
+def R(a,b):
+    global s
+    assert s.count(a)==1,(s.count(a),a[:80]); s=s.replace(a,b)
+R('''  if (G.inside === "home") { me.x = clamp(me.x, HX - HRW + 0.8, HX + HRW - 0.8); me.z = clamp(me.z, HZ - HD + 0.8, HZ + HD - 0.8); pushOutBoxes(me, 0.45, HOME_OBST); }
+  else if (G.inside === "club")''','''  if (G.inside === "home") { me.x = clamp(me.x, HX - HRW + 0.8, HX + HRW - 0.8); me.z = clamp(me.z, HZ - HD + 0.8, HZ + HD - 0.8); pushOutBoxes(me, 0.45, HOME_OBST); }
+  else if (G.inside === "apt") { if (APTW.on) aptCollide(me); }
+  else if (G.inside === "club")''')
+R('meMesh.position.set(me.x, G.inside ? 0 : water','meMesh.position.set(me.x, G.inside === "apt" ? APTW.y + (me.jy || 0) : G.inside ? 0 : water')
+R('base = G.inside ? 0 : G.swimming ? -0.6 : GH(me.x, me.z) + 0.25;','base = G.inside === "apt" ? APTW.y : G.inside ? 0 : G.swimming ? -0.6 : GH(me.x, me.z) + 0.25;')
+R('gy = G.inside || onBoat ? 0 : GH(o.x, o.z); let cy = up + (onBoat ? 0.6 : 0) + Math.max(gy, G.inside || onBoat ? 0 : GH(tx, tz));','gy = G.inside === "apt" ? APTW.y : G.inside || onBoat ? 0 : GH(o.x, o.z); let cy = up + (onBoat ? 0.6 : 0) + Math.max(gy, G.inside || onBoat ? gy : GH(tx, tz));')
+R('    if (G.inside) checkInterior(); else { checkZones(); updatePolice(dt); }','    if (G.inside) checkInterior(); else { checkZones(); updatePolice(dt); try { aptDoorCheck(); } catch (e) {} }')
+R('function collideBlocks(o, rad, swim) {\n  let hit = false;','function collideBlocks(o, rad, swim) {\n  let hit = false; if (APTX.boxes.length && aptExtPush(o, rad)) hit = true; /* V310.21 : résidences de l\'Agence solides */')
+open(p,'w').write(s)
+EOF
+grep -n 'G.inside === "apt"' constancy-beta.html | wc -l; grep -n "^function checkInterior" constancy-beta.html
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b,c=1):
+    global s
+    assert s.count(a)==c,(s.count(a),a[:80]); s=s.replace(a,b)
+R('function checkInterior() {\n','function checkInterior() {\n  if (G.inside === "apt") return;\n')
+R('if (!DEFER.q.length) { DEFER.done = DEFER.veilDone = true; window.__zonesPretes = true; dedupePalms(); }','if (!DEFER.q.length) { DEFER.done = DEFER.veilDone = true; window.__zonesPretes = true; dedupePalms(); try { buildAptExteriors(); } catch (e) { console.warn("résidences", e); } }')
+# Agence : Visiter = entrer pour de vrai ; Y aller = GPS sur la porte
+R('if (b.dataset.near === "1") { startVisit(a); return; } const p = a.at();','const E = APTX.list.find(q => q.a.id === a.id); if (b.dataset.near === "1") { if (E) enterApt(E); else startVisit(a); return; } const p = E ? { x: E.door.x, z: E.door.z } : a.at();')
+R('if (a.id === "penthouse") G.gpsDest = "tower"; else { G.pin','if (a.id === "penthouse" && !E) G.gpsDest = "tower"; else { G.pin')
+open(p,'w').write(s)
+EOF
+grep -n "^function startPlay" constancy-beta.html | cut -c1-200; grep -n "const own = !a.price || P.homes.includes(a.id), k = own ? 1 : clamp(P.cash / a.price, 0, 1), p = a.at()" constancy-beta.html | cut -c1-60
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b,c=1):
+    global s
+    assert s.count(a)==c,(s.count(a),a[:80]); s=s.replace(a,b)
+R('function checkInterior() {\n','function checkInterior() {\n  if (G.inside === "apt") return;\n')
+R('window.__zonesPretes = true; try { dedupePalms(); } catch (e) {} }','window.__zonesPretes = true; try { dedupePalms(); } catch (e) {} try { buildAptExteriors(); } catch (e) { console.warn("résidences", e); } }')
+R('if (b.dataset.near === "1") { startVisit(a); return; } const p = a.at();','const E = APTX.list.find(q => q.a.id === a.id); if (b.dataset.near === "1") { if (E) enterApt(E); else startVisit(a); return; } const p = E ? { x: E.door.x, z: E.door.z } : a.at();')
+R('if (a.id === "penthouse") G.gpsDest = "tower"; else { G.pin','if (a.id === "penthouse" && !E) G.gpsDest = "tower"; else { G.pin')
+# « près » = près de la porte
+R('const own = !a.price || P.homes.includes(a.id), k = own ? 1 : clamp(P.cash / a.price, 0, 1), p = a.at() || { x: 0, z: 0 },','const own = !a.price || P.homes.includes(a.id), k = own ? 1 : clamp(P.cash / a.price, 0, 1), EX = APTX.list.find(q => q.a.id === a.id), p = (EX && EX.door) || a.at() || { x: 0, z: 0 },')
+open(p,'w').write(s)
+EOF
+sed -n '12751,12753p' constancy-beta.html | cut -c1-300
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+a='''function startPlay() {
+'''
+b='''function startPlay() {
+  if (!DEFER.on || DEFER.done) setTimeout(() => { try { buildAptExteriors(); } catch (e) {} }, 3000);
+'''
+assert s.count(a)==1; s=s.replace(a,b)
+s=s.replace('window.__W = () => ({ planes,','window.__W = () => ({ APTX, APTW, enterApt, leaveApt, aptToW, planes,',1)
+open(p,'w').write(s)
+import re
+m=max(re.findall(r'<script>(.*?)</script>',s,re.S),key=len); open('/tmp/chk.mjs','w').write(m)
+EOF
+node --check /tmp/chk.mjs && echo SYNTAXE_OK; tail -5 /tmp/pc/chain71.log; tail -3 /tmp/pc/chain69.log
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; for f in constancy-beta.html constancy-beta.c20.html; do python3 - "$f" <<'EOF'
+import sys
+p=sys.argv[1]; s=open(p).read()
+a='mic.position.set(hp.x + fx * 0.17 + fz * 0.03, hy - 0.15, hp.z + fz * 0.17 - fx * 0.03); mic.rotation.set(-0.55, fy, -0.2);'
+b='mic.position.set(hp.x + fx * 0.2 + fz * 0.02, hy - 0.11, hp.z + fz * 0.2 - fx * 0.02); mic.rotation.set(-0.7, fy, -0.15);'
+assert s.count(a)==1; s=s.replace(a,b)
+a='cam.position.set(hp.x + dx * 1.75, hy - 0.06, hp.z + dz * 1.75); cam.lookAt(hp.x, hy - 0.17, hp.z);'
+b='cam.position.set(hp.x + dx * 1.75, hy - 0.02, hp.z + dz * 1.75); cam.lookAt(hp.x, hy - 0.11, hp.z);'
+assert s.count(a)==1; s=s.replace(a,b); open(p,'w').write(s)
+EOF
+done; echo ok
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b):
+    global s
+    assert s.count(a)==1,(s.count(a),a[:80]); s=s.replace(a,b)
+R('''  const g1 = new THREE.BoxGeometry(2, 0.85, 4.4); g1.translate(0, 0.5, 0); const g2 = new THREE.BoxGeometry(1.8, 0.6, 2.3); g2.translate(0, 1.2, 0); const g = THREE.BufferGeometryUtils ? THREE.BufferGeometryUtils.mergeBufferGeometries([g1, g2]) : g1;
+  const box = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ color: 0xffffff }), n);''',
+'''  /* V310.21 (Thomas, 22/11 16h14 et 16h26 : « les voitures, c'est toujours des cubes… il faut qu'on les voie suffisamment de loin ») : au-delà des vraies voitures, une silhouette de voiture (caisse, vitres teintées, 4 roues noires) au lieu de deux cubes */
+  const vc = (g, k) => { const n = g.attributes.position.count, a = new Float32Array(n * 3).fill(k); g.setAttribute("color", new THREE.BufferAttribute(a, 3)); if (g.index) { const q = g.toNonIndexed(); q.setAttribute("color", new THREE.BufferAttribute(new Float32Array(q.attributes.position.count * 3).fill(k), 3)); return q; } return g; };
+  const g1 = new THREE.BoxGeometry(1.9, 0.62, 4.3); g1.translate(0, 0.62, 0); const g1b = new THREE.BoxGeometry(1.86, 0.2, 4.4); g1b.translate(0, 0.98, 0.1); const g2 = new THREE.BoxGeometry(1.62, 0.5, 2.1); g2.translate(0, 1.33, -0.25); const wins = new THREE.BoxGeometry(1.66, 0.36, 2.16); wins.translate(0, 1.32, -0.25);
+  const whl = []; [[-0.93, 1.35], [0.93, 1.35], [-0.93, -1.35], [0.93, -1.35]].forEach(([x, z]) => { const w = new THREE.CylinderGeometry(0.36, 0.36, 0.26, 10); w.rotateZ(Math.PI / 2); w.translate(x, 0.36, z); whl.push(vc(w, 0.06)); });
+  const g = THREE.BufferGeometryUtils ? THREE.BufferGeometryUtils.mergeBufferGeometries([vc(g1, 1), vc(g1b, 1), vc(g2, 1), vc(wins, 0.12), ...whl]) : g1;
+  const box = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true }), n);''')
+R('const NT = (LOWM ? 72 : 180) * (P3.grp === "lux" ? 0.8 : 1) | 0;','const NT = (LOWM ? 110 : 180) * (P3.grp === "lux" ? 0.8 : 1) | 0;')
+R('p.d < (LOWM ? 220 * 220 : 300 * 300)','p.d < (LOWM ? 260 * 260 : 300 * 300)')
+open(p,'w').write(s)
+EOF
+echo ok
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; sed -n '6450p' constancy-beta.html | cut -c1-300; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b):
+    global s
+    assert s.count(a)==1,(s.count(a),a[:80]); s=s.replace(a,b)
+R('if (key !== "trex") { try { rexHybrid(g, mi, bb, sz); } catch (e) { console.warn("rex", e); } }',
+  'let pw = null, yt = null; if (key === "trex") try { pw = rexWalk(mi); yt = rexGroundTable(g, mi, pw); } catch (e) { console.warn("rex marche", e); pw = null; yt = null; } try { rexHybrid(g, mi, bb, sz, !!pw || key === "trex"); } catch (e) { console.warn("rex", e); }')
+R('rex: true, callT: 4, key, bones, yOff: 0, yT: 0 }; JUNGLE.dinos.push(REX.d); }',
+  '''rex: true, callT: 4, key, mi, pw, yt, ph: 0, bones: pw ? null : bones, yOff: 0, yT: 0 }; JUNGLE.dinos.push(REX.d); }
+/* V310.20 (expert jeu, correctif du 22/11 16h40 · Thomas 16h27 : « aucune synchronisation, les articulations ne bougent pas ») · la marche « Walk » livrée avec le Rex Tripo est cassée (bassin qui monte de presque toute la hauteur, corps couché à plat ventre) · on garde la pose debout et le jeu anime 10 os (cuisses en opposition, genoux qui plient au retour, pieds, bassin, buste, cou, tête), puis une table de 24 hauteurs pose le pied d'appui sur le sol à chaque image */
+function rexWalk(mi) { const act = mi.userData.act; if (act) { act.stop(); const k = ANIMATED.indexOf(mi); if (k >= 0) ANIMATED.splice(k, 1); } mi.traverse(o => { if (o.isSkinnedMesh) o.skeleton.pose(); }); mi.updateMatrixWorld(true);
+  const X = new THREE.Vector3(1, 0, 0), Y = new THREE.Vector3(0, 1, 0), pq = new THREE.Quaternion(), q = new THREE.Quaternion(), J = {}; let n = 0;
+  [["L_Thigh", X], ["R_Thigh", X], ["L_Calf", X], ["R_Calf", X], ["L_Foot", X], ["R_Foot", X], ["Waist", Y], ["Spine01", Y], ["NeckTwist01", X], ["Head", X]].forEach(([nm, ax]) => { const b = mi.getObjectByName(nm); if (!b || !b.parent) return; b.parent.getWorldQuaternion(pq); J[nm] = { b, r: b.quaternion.clone(), a: ax.clone().applyQuaternion(pq.invert()).normalize() }; n++; });
+  if (n < 6) return null; const set = (j, ang) => { if (!j) return; q.setFromAxisAngle(j.a, ang); j.b.quaternion.copy(q).multiply(j.r); };
+  return { update(ph) { const s = Math.sin(ph), c = Math.cos(ph); set(J.L_Thigh, 0.38 * s); set(J.R_Thigh, -0.38 * s); set(J.L_Calf, -0.35 * Math.max(0, c)); set(J.R_Calf, -0.35 * Math.max(0, -c)); set(J.L_Foot, 0.25 * Math.max(0, c) - 0.1 * s); set(J.R_Foot, 0.25 * Math.max(0, -c) + 0.1 * s); set(J.Waist, 0.06 * s); set(J.Spine01, -0.04 * s); set(J.NeckTwist01, 0.05 * Math.sin(2 * ph)); set(J.Head, -0.04 * Math.sin(2 * ph + 0.6)); } }; }
+function rexGroundTable(g, mi, pw) { if (!pw) return null; const sk = []; mi.traverse(o => { if (o.isSkinnedMesh) sk.push(o); }); if (!sk.length) return null; const N = 24, out = [], v = new THREE.Vector3(), p0 = g.position.clone(), r0 = g.rotation.y; g.position.set(0, 0, 0); g.rotation.y = 0;
+  for (let i = 0; i < N; i++) { pw.update(i / N * Math.PI * 2); g.updateMatrixWorld(true); let mn = 1e9; sk.forEach(o => { o.skeleton.update(); const pa = o.geometry.attributes.position, st = Math.max(1, Math.floor(pa.count / 1500)); for (let j = 0; j < pa.count; j += st) { v.fromBufferAttribute(pa, j); o.boneTransform(j, v); v.applyMatrix4(o.matrixWorld); if (v.y < mn) mn = v.y; } }); out.push(mn / (g.scale.y || 1)); }
+  pw.update(0); g.position.copy(p0); g.rotation.y = r0; g.updateMatrixWorld(true); return out; }
+function rexStep(d, dt) { d.ph = (d.ph + dt * 2.4) % (Math.PI * 2); d.pw.update(d.ph); const yt = d.yt; if (!yt) return; const n = yt.length, f = d.ph / (Math.PI * 2) * n, i = Math.floor(f) % n, j = (i + 1) % n, w = f - Math.floor(f); d.mi.position.y = 0.15 / (d.g.scale.y || 1) - (yt[i] * (1 - w) + yt[j] * w); }''')
+R('d.g.position.set(x, gy - 0.15 + (d.yOff || 0), z);','d.g.position.set(x, gy - 0.15 + (d.yOff || 0), z); if (d.pw) rexStep(d, dt);')
+open(p,'w').write(s)
+EOF
+grep -n "^function rexHybrid" constancy-beta.html | cut -c1-120
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b):
+    global s
+    assert s.count(a)==1,(s.count(a),a[:80]); s=s.replace(a,b)
+R('function rexHybrid(g, mi, bb, sz0) { let sz = sz0;','function rexHybrid(g, mi, bb, sz0, ownArms) { let sz = sz0;')
+R('  [-1, 1].forEach(sd => { const zs = z0 + Lz * 0.71, ys = y0 + H * 0.5,','  if (!ownArms) [-1, 1].forEach(sd => { const zs = z0 + Lz * 0.71, ys = y0 + H * 0.5,')
+open(p,'w').write(s)
+import re
+m=max(re.findall(r'<script>(.*?)</script>',s,re.S),key=len); open('/tmp/chk.mjs','w').write(m)
+EOF
+node --check /tmp/chk.mjs && echo SYNTAXE_OK; grep -c "userData.act = \|userData.act=" constancy-beta.html; grep -n "const ANIMATED\|ANIMATED = \[" constancy-beta.html | head -2 | cut -c1-80
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b):
+    global s
+    assert s.count(a)==1,(s.count(a),a[:80]); s=s.replace(a,b)
+R('''  if (!q) { const a = envInfo().app; q = { Instagram: "ig", TikTok: "tt", Facebook: "fb", YouTube: "yt", X: "x", Snapchat: "snap", LinkedIn: "li" }[a] || "direct"; }''',
+r'''  if (!q) { const a = envInfo().app; q = { Instagram: "ig", TikTok: "tt", Facebook: "fb", YouTube: "yt", X: "x", Snapchat: "snap", LinkedIn: "li", app: "app" }[a] || ""; }
+  /* Cap du 22/11 (point 8, recette de l'expert jeu) : sans ?s= ni appli reconnue, la source vient du référent (lien de bio ouvert dans Safari, recherche Google…), sinon « direct » */
+  if (!q) { const r = (document.referrer || "").toLowerCase(); q = /instagram\./.test(r) ? "ig" : /tiktok\./.test(r) ? "tt" : /youtube\.|youtu\.be/.test(r) ? "yt" : /facebook\.|fb\.me/.test(r) ? "fb" : /threads\./.test(r) ? "th" : /\/\/(t\.co|x\.com|twitter\.)/.test(r) ? "x" : /snapchat\./.test(r) ? "snap" : /linktr\.ee|beacons\.ai/.test(r) ? "bio" : /google\.|bing\.|duckduckgo\.|qwant\.|ecosia\./.test(r) ? "seo" : r && !/constancy\.fr/.test(r) ? "autre" : "direct"; }''')
+a='  addEventListener("pagehide", ldHide); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") ldHide(); else ldMark(); });'
+i=s.index(a); j=s.index('\n',i)
+ins='''
+  /* Mesure « depart-<étape> » (expert jeu, cap du 22/11, point 8) : quand le joueur ferme ou passe en arrière-plan, l'étape où il était, une fois par étape et par ouverture, avec la source (depart-<étape>-<source>). Aucune donnée personnelle, rien de chargé en plus. */
+  const depStep = () => { try { if (!bootReady) return "chargement"; if (bootP.isConnected && bootP.classList.contains("gate")) return "entree"; if (DREAM.on) return DREAM.waking ? "reveil" : "reve"; if (MIR.on) return "avatar"; if (G.emailGate) return "mur"; if (CINE.on) return "cinematique"; if (!G.started) return G.saveAt ? "apres-mur-ecran" : document.getElementById("quick") || document.getElementById("cont") ? "accueil" : "menu"; if (!G.saveAt) return "jeu"; const t = (Date.now() - G.saveAt) / 1000; return "apres-mur-" + (t < 30 ? "0-30s" : t < 60 ? "30-60s" : t < 180 ? "1-3min" : t < 300 ? "3-5min" : "5min-plus"); } catch (e) { return "inconnu"; } };
+  const depHide = () => { const k = depStep(); depHide.s = depHide.s || {}; if (depHide.s[k]) return; depHide.s[k] = 1; ldS("depart-" + k); }; window.__depStep = depStep;
+  addEventListener("pagehide", depHide); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") depHide(); });'''
+s=s[:j]+ins+s[j:]
+open(p,'w').write(s)
+import re
+m=max(re.findall(r'<script>(.*?)</script>',s,re.S),key=len); open('/tmp/chk.mjs','w').write(m)
+EOF
+node --check /tmp/chk.mjs && echo SYNTAXE_OK; grep -n "function ldS\|const ldS =\|ldS = " constancy-beta.html | head -2 | cut -c1-200; grep -n "G.saveAt =" constancy-beta.html | head -2 | cut -c1-120
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b):
+    global s
+    assert s.count(a)==1,(s.count(a),a[:80]); s=s.replace(a,b)
+R('B(S.W + 1.4, 0.6, S.D + 1.4, conc, 0, H + S.H + 0.3, 0);','E.hide = [B(S.W + 1.4, 0.6, S.D + 1.4, conc, 0, H + S.H + 0.3, 0)];')
+R('''      B(S.W + 1, S.H, S.D + 1, new THREE.MeshLambertMaterial({ color: 0x2b3a4a, emissive: 0xffd6a0, emissiveIntensity: 0.25, transparent: true, opacity: 0.82 }), 0, H + S.H / 2, 0);''','''      E.hide.push(B(S.W + 1, S.H, S.D + 1, new THREE.MeshLambertMaterial({ color: 0x2b3a4a, emissive: 0xffd6a0, emissiveIntensity: 0.25, transparent: true, opacity: 0.82 }), 0, H + S.H / 2, 0));''')
+R('''const y = sp.y; B(S.W + 0.6, S.H, S.D + 0.6, new THREE.MeshLambertMaterial({ color: 0xf7f3ec, emissive: 0xffe2b0, emissiveIntensity: 0.18 }), 0, y + S.H / 2, 0); B(S.W + 1.2, 0.4, S.D + 1.2, wood, 0, y + S.H + 0.2, 0);''','''const y = sp.y; E.hide = [B(S.W + 0.6, S.H, S.D + 0.6, new THREE.MeshLambertMaterial({ color: 0xf7f3ec, emissive: 0xffe2b0, emissiveIntensity: 0.18 }), 0, y + S.H / 2, 0), B(S.W + 1.2, 0.4, S.D + 1.2, wood, 0, y + S.H + 0.2, 0)];''')
+R('if (E.g && a.id !== "penthouse") E.g.visible = false; // la coque vue de dehors laisse la place à l\'intérieur','(E.hide || []).forEach(m => { m.visible = false; }); // la coque vue de dehors laisse la place à l\'intérieur (la tour reste dessous)')
+R('const E = A.E; if (E && E.g) E.g.visible = true;','const E = A.E; if (E) (E.hide || []).forEach(m => { m.visible = true; });')
+open(p,'w').write(s)
+import re
+m=max(re.findall(r'<script>(.*?)</script>',s,re.S),key=len); open('/tmp/chk.mjs','w').write(m)
+EOF
+node --check /tmp/chk.mjs && echo OK && cd t && SRC=../constancy-beta.html OUT=n54.html sh /tmp/mkfrom.sh
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+a='const isWater = (x, z) => !(Math.abs(x) < HALF + 12 && Math.abs(z) < HALF + 12 && !inRiverBand(z)) && !onAirport(x, z) &&'
+b='const isWater = (x, z) => !(Math.abs(x) < HALF + 12 && Math.abs(z) < HALF + 12 && !inRiverBand(z)) && !onAirport(x, z) && !inAP(x, z + 5) /* V310.21 (tests/lieux : mur invisible à l\'entrée de l\'aéroport) : une couture d\'eau de 0 m entre Constancy Sud et la plateforme bloquait la route du parking */ &&'
+assert s.count(a)==1; s=s.replace(a,b); open(p,'w').write(s)
+EOF
+grep -n "^const inAP" constancy-beta.html | cut -c1-60
+
+#######
+
+cd /tmp/claude-0/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49/scratchpad; grep -n "(isWater(c.x, c.z) || onPonton(c.x, c.z)) && !isWater(wx0, wz0))" constancy-beta.html | cut -c1-80; python3 - <<'EOF'
+p='constancy-beta.html'; s=open(p).read()
+def R(a,b):
+    global s
+    assert s.count(a)==1,(s.count(a),a[:80]); s=s.replace(a,b)
+R('function skyDeckH(x, z, y) { // hauteur de la route suspendue sous (x, z) la plus proche de la hauteur y, sinon null\n  if (!DK.ready) return null; let best = null, bd = 3.6;',
+  'function skyDeckH(x, z, y, minH = 0.6) { // hauteur de la route suspendue sous (x, z) la plus proche de la hauteur y, sinon null\n  if (!DK.ready) return null; let best = null, bd = 3.6;')
+R('const h = a[2] + (b[2] - a[2]) * t; if (h < 0.6) continue;','const h = a[2] + (b[2] - a[2]) * t; if (h < minH) continue;')
+R('(isWater(c.x, c.z) || onPonton(c.x, c.z)) && !isWater(wx0, wz0))','(isWater(c.x, c.z) || onPonton(c.x, c.z)) && !isWater(wx0, wz0) && !(DK.ready && skyDeckH(c.x, c.z, c.jy || 0, 0) != null) /* V310.21 (Thomas 16h14 : « impossible de rouler sur l\'autoroute ») : le pied d\'une bretelle posé sur le sable ou l\'eau bloquait la voiture comme un rivage (entrée de l\'A10 depuis la ville) */)')
+# F10 : l'extrémité ouest finissait dans l'eau, elle se pose sur l'île de l'archipel
+R('K: [[-830, 812, 0], [-720, 810, 8],','K: [[-905, 800, 0], [-830, 810, 4], [-720, 810, 8], /* V310.21 : plus de pont qui finit dans l\'eau, la F10 se pose sur l\'île de l\'archipel */')
+open(p,'w').write(s)
+EOF
+echo ok
+
+#######
+
+mkdir -p /home/claude/work && cd /home/claude/work && cp /home/claude/constancy/index.html src.html && python3 - <<'EOF'
+import json
+J='/root/.claude/projects/-home-claude/eeab1a7d-3b04-525d-b13f-99dcd6fcac49.jsonl'
+n=0
+out=[]
+for line in open(J):
+    try: d=json.loads(line)
+    except: continue
+    m=d.get('message',{})
+    if m.get('role')!='assistant': continue
+    for c in m.get('content',[]):
+        if c.get('type')=='tool_use' and c.get('name')=='Bash':
+            cmd=c['input'].get('command','')
+            if "python3 - " in cmd and ("R(" in cmd or "s.replace" in cmd) and 'constancy-beta' in cmd:
+                n+=1; out.append(cmd)
+open('scripts.txt','w').write('\n\n#######\n\n'.join(out)); print(n)
+EOF
+grep -c "" scripts.txt

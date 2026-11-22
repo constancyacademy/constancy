@@ -3868,6 +3868,12 @@ function routeBills() { routeBillsClear(); if (!coupeGoalOn() && !(P && P.day ==
 function updateRouteBills(dt) { if (!RBILL.grp) return; if (!G.mission && !G.r3Goal) { routeBillsClear(); return; } const c = G.onFoot ? G.me : G.car, tt = performance.now() / 1000;
   for (const b of RBILL.list) { if (b.got) continue; b.m.quaternion.copy(camera.quaternion); b.m.rotateZ(Math.sin(tt * 1.7 + b.ph) * 0.18); b.m.scale.set(0.3 + 0.7 * Math.abs(Math.cos(tt * 3.1 + b.ph)), 1, 1); b.m.position.y = b.hl.position.y = b.y0 + Math.sin(tt * 2.2 + b.ph) * 0.18;
     if (!G.onFoot && Math.hypot(b.x - c.x, b.z - c.z) < 4) { b.got = true; b.m.visible = b.hl.visible = false; RBILL.n++; addCash(50); try { navigator.vibrate && navigator.vibrate(12); } catch (e) {} } } }
+/* V310.26 · réserve R2 de l'expert : LE DÉFI ÉCLAIR · après l'achat de la coupé néon (au Jour 1), « Livraison express · 60 s · ×2. » se lance toute seule, réussie = gain doublé, ratée = « Presque ! Encore une ? » sans punition, et ainsi de suite · placé après la coupé pour ne pas raccourcir les 4 à 5 min du plan */
+function eclairArm() { if (P && (P.day || 1) === 1) G.eclairArm = performance.now(); }
+function eclairTick() { if (!G.eclairArm || G.mode !== "play" || G.mission || G.inside || CINE.on || G.j1Arm || performance.now() - G.eclairArm < 4500) return; if ((P.day || 1) !== 1) { G.eclairArm = 0; return; } G.eclairArm = 0;
+  const c = G.onFoot ? G.me : G.car; let x, z, k = 0, d = 0; do { x = rc(Math.floor(rand(1, NB))); z = rc(Math.floor(rand(1, NB))); d = Math.hypot(x - c.x, z - c.z); k++; } while ((d < 240 || d > 340) && k < 80);
+  G.eclN = (G.eclN || 0) + 1; G.mission = { type: "livraison", r3: true, chain: 100 + G.eclN, eclair: { t: 60 }, dx: x, dz: z, time: 0 }; destBeacon.position.set(x, 0, z); destBeacon.visible = true; try { sfx.ping(); } catch (e) {}
+  help("<b>Livraison express · 60 s · ×2.</b>", 5); stat(G.eclN > 1 ? "eclair-encore" : "eclair-lance"); }
 function j1Arm() { if (P && (P.day || 1) === 1 && !(P.cars || []).includes("coupe")) G.j1Arm = performance.now(); }
 function j1Tick() { if (!G.j1Arm || G.mode !== "play" || G.mission || G.inside || CINE.on || performance.now() - G.j1Arm < 3500) return; if (!coupeGoalOn()) { G.j1Arm = 0; return; } G.j1Arm = 0; G.r3Goal = null;
   const c = G.onFoot ? G.me : G.car; let x, z, k = 0, d = 0; do { x = rc(Math.floor(rand(1, NB))); z = rc(Math.floor(rand(1, NB))); d = Math.hypot(x - c.x, z - c.z); k++; } while ((d < 220 || d > 340) && k < 80);
@@ -9948,7 +9954,7 @@ function coupePhone() { if (G.mode !== "play") { setTimeout(rdvCard, 400); retur
   let done = false; const end = skip => { if (done) return; done = true; stat(skip ? "telephone-voitures-passe" : "telephone-voitures-fin"); resume(); setTimeout(rdvCard, 500); };
   setTimeout(() => { const sc = screen.querySelector(".cppr"); if (sc) sc.classList.add("go"); }, 400); setTimeout(() => end(false), 7600);
   setTimeout(() => { screen.addEventListener("click", () => end(true), { once: true }); }, 600); on("phBack", () => end(true)); }
-function rdvCard() { if (!P) return; stat("rdv-vu"); const d = document.createElement("div"); d.className = "chestc rdvc"; const ios = /iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone, canInst = !!installEvt || ios;
+function rdvCard() { if (!P) return; stat("rdv-vu"); eclairArm(); const d = document.createElement("div"); d.className = "chestc rdvc"; const ios = /iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone, canInst = !!installEvt || ios;
   d.innerHTML = `<div class="ck">Jour 1 ✓ · Jour 1 sur 7</div><div class="ct">Demain : <b>Jour 2 · Ton coffre</b></div><div class="cr">+3 000 $</div><button class="rdvb" id="rdvShare" type="button">Montre ta coupé néon à un pote</button><div class="cw">+1 000 $ chacun quand il crée sa sauvegarde.</div>${canInst ? '<button class="rdvb alt" id="rdvInst" type="button">Ajouter à l\'écran d\'accueil</button>' : ""}<button class="rdvx" id="rdvX" type="button" aria-label="Fermer">×</button>`;
   document.body.appendChild(d); requestAnimationFrame(() => d.classList.add("in")); if (canInst) stat("ecran-accueil-propose");
   const close = () => { d.classList.remove("in"); setTimeout(() => d.remove(), 700); };
@@ -9999,7 +10005,7 @@ function updateHud(dt) {
   $("quitBtn").classList.toggle("hidden", !M);
   if (M) {
     box.classList.remove("hidden");
-    const mk = M.type + Math.ceil(M.time) + Math.round(M.catch || 0) + "|" + (M.i || 0) + "|" + Math.round(M.prog || 0) + "|" + (M.stage || 0) + "|" + (M.done || 0) + (M.carry ? "c" : "");
+    const mk = M.type + Math.ceil(M.time) + (M.eclair ? "e" + Math.max(0, Math.ceil(M.eclair.t)) : "") + Math.round(M.catch || 0) + "|" + (M.i || 0) + "|" + Math.round(M.prog || 0) + "|" + (M.stage || 0) + "|" + (M.done || 0) + (M.carry ? "c" : "");
     if (mk !== lastMissionKey) {
       lastMissionKey = mk;
       box.innerHTML = M.type === "voisin" ? `<div class="k">Mission · aider un voisin</div><div class="t">${M.carry ? "vers sa porte" : "prends un carton"}</div><div class="s">Carton ${Math.min(M.done + 1, 3)} sur 3 · à pied</div>`
@@ -10007,7 +10013,7 @@ function updateHud(dt) {
         : M.type === "run" ? `<div class="k">Mission · routine du matin</div><div class="t">à ton rythme</div><div class="s">Point ${Math.min(M.i + 1, M.pts.length)} sur ${M.pts.length} · à pied</div>`
         : M.type === "club" ? `<div class="k">Mission · club de course</div><div class="t">cours avec eux</div><div class="s">Reste près du groupe</div><div class="catch"><i style="width:${clamp(M.prog / 40 * 100, 0, 100)}%"></i></div>`
         : M.type === "livraison"
-        ? `<div class="k">Mission · ${M.chain ? "livraison" : M.r3 ? "ta première livraison" : M.kebab ? "livraison du kebab" : M.courses ? "courses de Mamie" : "livraison"}</div><div class="t">${M.r3 ? "+600 $" : M.time > 0 ? "bonus " + Math.ceil(M.time) + " s" : "à ton rythme"}</div><div class="s">${M.r3 ? "Un client t'attend · Suis le point violet" : "Livre le colis au point violet"}</div>`
+        ? `<div class="k">Mission · ${M.eclair ? "livraison express" : M.chain ? "livraison" : M.r3 ? "ta première livraison" : M.kebab ? "livraison du kebab" : M.courses ? "courses de Mamie" : "livraison"}</div><div class="t">${M.eclair ? (M.eclair.t > 0 ? "⏱ " + Math.ceil(M.eclair.t) + " s · ×2" : "+600 $") : M.r3 ? "+600 $" : M.time > 0 ? "bonus " + Math.ceil(M.time) + " s" : "à ton rythme"}</div><div class="s">${M.r3 ? "Un client t'attend · Suis le point violet" : "Livre le colis au point violet"}</div>`
         : `<div class="k">Mission · Mamie en danger</div><div class="t">colle-le</div><div class="s">Colle le voleur pour récupérer le sac</div><div class="catch"><i style="width:${clamp(M.catch / 2.5 * 100, 0, 100)}%"></i></div>`;
     }
   } else box.classList.add("hidden");
@@ -10250,11 +10256,10 @@ function updateGarage(dt) {
   if (d < 7 && slow && !GARAGE.cool) { GARAGE.t += dt; if (GARAGE.t > 0.5) { GARAGE.t = 0; GARAGE.cool = 30; if (G.gpsDest === "garage") G.gpsDest = null; setMode("menu"); phoneShop(); help("<b>Garage.</b> Choisis ta voiture : elle sort tout de suite.", 4); } } else if (d > 9) GARAGE.t = 0;
 }
 /* V310.25 · tâche 5 de l'expert (Thomas 16h14 : « faire bouger les gens ») : des passants 3D qui marchent sur les trottoirs autour de l'appartement de départ, là où passent les 1res missions · construits une fois en jeu, jamais avant « Touchez pour entrer » */
-function homeWalkers() { if (G.homeWalk || !HQ.ready || G.mode !== "play") return; G.homeWalk = 1; try { const hb = LM.home.b, r = mulberry(5150), per = PHONE ? 3 : 5; let n0 = WALKERS.length; G.homeWalk0 = n0;
+function homeWalkers() { if (G.homeWalk || !HQ.ready || G.mode !== "play" || DREAM.on || MIR.on || G.emailGate || !P || !(P.r3 || (P.day || 1) > 1 || P.deliveries > 0)) return; G.homeWalk = 1; try { const hb = LM.home.b, r = mulberry(5150), per = PHONE ? 3 : 5; let n0 = WALKERS.length; G.homeWalk0 = n0;
   [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [1, -1]].forEach(([di, dj]) => { const i = hb[0] + di, j = hb[1] + dj; if (i < 0 || j < 0 || i >= NB || j >= NB || j === RIVER_J) return; const x0 = bMin(i) + 1.8, z0 = bMin(j) + 1.8, L = BLOCK - 3.6; addWalkers([[x0, z0], [x0 + L, z0], [x0 + L, z0 + L], [x0, z0 + L], [x0, z0]], per, r, { w: 1.4, y: 0.25 }); });
   stat("passants-3d-depart-" + (WALKERS.length - n0)); } catch (e) { console.warn("passants", e); } }
 function updateGpsTrail(dt) {
-  try { updateRouteBills(dt); j1Tick(); if (!G.homeWalk) homeWalkers(); } catch (e) {}
   if (!GTRAIL.mesh) {
     const sh = new THREE.Shape(); sh.moveTo(0, 0.95); sh.lineTo(0.75, -0.35); sh.lineTo(0.42, -0.35); sh.lineTo(0, 0.32); sh.lineTo(-0.42, -0.35); sh.lineTo(-0.75, -0.35); sh.closePath();
     const geo = new THREE.ShapeGeometry(sh); geo.rotateX(-Math.PI / 2);
@@ -11984,6 +11989,7 @@ function endMission(ok) {
   if (ok && P.daily && P.daily.k === "propre" && G.dailyM === M && (G.bumps || 0) === G.dailyB) setTimeout(() => dailyAdd("propre", 1), 1200);
   if (ok) setTimeout(() => feedPost(pick(["kebab", "lea", "tom", "mamie"]), pick(["Le livreur du quartier vient encore de frapper. Toujours à l'heure. 🔥", "Je l'ai vu passer, il ne s'arrête jamais celui-là.", "Livré chaud, livré à l'heure. Qui est ce gars ?", "Un jour de plus pour le nouveau. Il tient. 👀"]), { toast: true }), 2500);
   if (M.type === "livraison" && M.r3 && ok) { destBeacon.visible = false; addCash(600); P.deliveries++; P.counts.livraison = (P.counts.livraison || 0) + 1; addXP(120); sfx.win();
+    if (M.eclair) { const ok2 = M.eclair.t > 0; if (ok2) { addCash(600); stat("eclair-reussi"); help(`<b>Express réussi.</b> <b style="color:var(--cash)">+1 200 $ · ×2</b>`, 5); } else { stat("eclair-rate"); help("<b>Presque ! Encore une ?</b>", 5); } G.mission = null; saveNow(); eclairArm(); return; }
     if (M.chain) { help(`<b>Livré.</b> <b style="color:var(--cash)">+600 $ · ×3</b>`, 5); G.mission = null; saveNow(); j1Arm(); return; } stat("mission-guidee-cash-fin"); j1Arm();
     help(`<b>Livré.</b> Le client te remercie. <b style="color:var(--cash)">+600 $</b> · Ta première livraison.`, 7); const sa = P.saveAt || G.saveAt, sec = sa ? Math.round((Date.now() - sa) / 1000) : -1; /* l'objectif choisi après la sauvegarde recrée la partie : l'heure de la sauvegarde est aussi gardée pour la session */ stat("livraison-1"); stat("livraison-1-" + (sec < 0 ? "inconnu" : sec <= 60 ? "60s" : sec <= 90 ? "90s" : sec <= 180 ? "3min" : "plus")); P.l1Sec = sec;
     G.mission = null; if (storyStep() === "kebab") storyCheck(true); saveNow(); setTimeout(() => { try { chestCard(); } catch (e) {} }, 2600); setTimeout(() => { if (G.mode === "play" && P && !P.guided && !G.mission && !coupeGoalOn()) startGuide(); }, 10500); return; } /* V310.23 : au Jour 1, pas de tutoriel par-dessus l'enchaînement des missions */
@@ -12470,6 +12476,8 @@ const NOSTAT = (() => { try { const u = new URL(location.href); if (u.searchPara
 if (onWeb && GC_CODE && !NOSTAT) { const sc = document.createElement("script"); sc.async = true; sc.src = "https://gc.zgo.at/count.js"; sc.dataset.goatcounter = `https://${GC_CODE}.goatcounter.com/count`; document.head.appendChild(sc); }
 /* V306.3 : source du joueur (?s=ig, tt, yt, x, th, fb · sinon utm_source · sinon l'appli détectée · sinon « direct »), gardée (première source seulement) et suivie jusqu'à la sauvegarde.
    Les étapes clés sont doublées avec la source (« jouer-tt »…). Les statistiques attendent dans une file tant que GoatCounter n'est pas chargé (4G lente). Aucune donnée personnelle. */
+/* V310.27 · R4 (expert jeu) : un joueur qui arrive d'un réseau (Instagram, TikTok, YouTube, Facebook, Threads, X, Snapchat, navigateur intégré), sans partie sur cet appareil, passe de « Touchez pour jouer » directement au rêve, sans l'écran d'accueil · l'accueil reste tel quel pour les autres */
+const SOCIAL_DIRECT = () => { try { if (CREATOR || /noreve|autostart|accueil/.test(location.search) && !/direct/.test(location.search)) return false; if (store.load()) return false; } catch (e) { return false; } return ["ig", "tt", "yt", "fb", "th", "x", "snap", "app"].includes(SRC); };
 const SRC = (() => { try { const u = new URL(location.href); let q = (u.searchParams.get("s") || u.searchParams.get("utm_source") || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
   if (u.searchParams.has("s")) { u.searchParams.delete("s"); history.replaceState(null, "", u.pathname + (u.search.length > 1 ? u.search : "") + u.hash); }
   if (!q) { const a = envInfo().app; q = { Instagram: "ig", TikTok: "tt", Facebook: "fb", YouTube: "yt", X: "x", Snapchat: "snap", LinkedIn: "li", app: "app" }[a] || ""; }
@@ -13480,6 +13488,7 @@ function loop(now) {
     updateDoorClose(dt);
     if (G.inside) checkInterior(); else { checkZones(); updatePolice(dt); try { aptDoorCheck(); } catch (e) {} }
     updateMission(dt); if (G.mode === "play") checkGoal();
+    try { updateRouteBills(dt); j1Tick(); eclairTick(); if (G.mission && G.mission.eclair && G.mode === "play") G.mission.eclair.t -= dt; if (!G.homeWalk) homeWalkers(); } catch (e) {} /* V310.26 : le Jour 1 (billets, enchaînement, défi éclair, passants) tourne à chaque image, indépendamment de la guinguette */
     if (ownMark) { const pk = G.parked, cm = pk && pk.mesh; ownMark.visible = !!pk && !G.inside && !!cm && cm.visible && cm.parent != null && Math.hypot(cm.position.x - pk.x, cm.position.z - pk.z) < 8; if (pk) ownMark.position.set(pk.x, GH(pk.x, pk.z), pk.z); } // « Ta voiture » seulement si la voiture est bien là
     if (G.inside === true || G.inside === "gym") updateGymFolks(dt);
     if (gymDoor) { const o = target(), open = !G.inside && Math.hypot(o.x - gymDoor.userData.x0, o.z - gymDoor.position.z) < 9; gymDoor.position.x += ((gymDoor.userData.x0 + (open ? 4.8 : 0)) - gymDoor.position.x) * Math.min(1, dt * 6); }
@@ -13645,9 +13654,9 @@ if (!renderer || typeof THREE === "undefined" || !THREE.BufferGeometryUtils) {
   // la ville se construit pendant l'écran « Touchez pour entrer » : après le toucher, plus rien de lourd, l'intro reste fluide
   const introPlayed = gate.then(() => new Promise(ok => setTimeout(ok, 3100)));
   const built = Promise.all([loadHumans(), loadMedia(), fontsReady]).then(() => new Promise(ok => requestAnimationFrame(() => setTimeout(ok, 30)))).then(() => { buildWorld(); try { prepStatic(); } catch (e) { console.warn("mémoire", e); } farFogAll(); drawMapBase(); buildCockpit(); buildPlaneCockpit(); envInit(); fxInit(); resize(); try { renderer.compile(scene, camera); } catch (e) {} });
-  built.then(() => { bootReady = true; ldS("splash-" + ldB(performance.now() / 1000)); if (document.visibilityState !== "hidden") ldMark(); if (!bootP.isConnected) return; bootP.classList.remove("wait"); bootP.classList.add("ready"); const t = bootP.querySelector(".bgT"); if (t) t.textContent = "Touchez pour entrer"; if (bootPend && window.__bootGo) setTimeout(() => window.__bootGo(), 30); });
+  built.then(() => { bootReady = true; ldS("splash-" + ldB(performance.now() / 1000)); if (document.visibilityState !== "hidden") ldMark(); if (!bootP.isConnected) return; bootP.classList.remove("wait"); bootP.classList.add("ready"); const t = bootP.querySelector(".bgT"); if (t) t.textContent = SOCIAL_DIRECT() ? "Touchez pour jouer" : "Touchez pour entrer"; if (bootPend && window.__bootGo) setTimeout(() => window.__bootGo(), 30); });
   Promise.all([built, introPlayed]).then(() => new Promise(ok => setTimeout(ok, 60)))
-    .then(() => { const go = () => { titleScreen(); requestAnimationFrame(loop); { let sv0 = false; try { sv0 = !!store.load(); } catch (e) {} if (sv0 || navigator.webdriver || /noreve/.test(location.search)) runDeferred("all"); else DEFER.idleT = setTimeout(() => runDeferred("all"), 45000); } setTimeout(loadLateModels, 5000); let rp = false; try { rp = sessionStorage.getItem("cst-reprise") === "1"; sessionStorage.removeItem("cst-reprise"); } catch (e) {} if (rp) setTimeout(() => { const c = $("cont"); if (c) c.click(); }, 400); }; if (autoGo) return go();
+    .then(() => { const go = () => { titleScreen(); requestAnimationFrame(loop); if (SOCIAL_DIRECT()) { stat("debut-direct"); stat("debut-direct-" + SRC); const sec = performance.now() / 1000; stat("debut-lance-" + (sec < 10 ? "10s" : sec < 15 ? "15s" : sec < 20 ? "20s" : sec < 30 ? "30s" : "plus")); setTimeout(() => { const q = document.getElementById("quick"); if (q && G.mode === "title") q.click(); }, 30); } /* V310.27 · réserve R4 de l'expert : venu d'un réel, pas d'accueil, le rêve part au toucher */ { let sv0 = false; try { sv0 = !!store.load(); } catch (e) {} if (sv0 || navigator.webdriver || /noreve/.test(location.search)) runDeferred("all"); else DEFER.idleT = setTimeout(() => runDeferred("all"), 45000); } setTimeout(loadLateModels, 5000); let rp = false; try { rp = sessionStorage.getItem("cst-reprise") === "1"; sessionStorage.removeItem("cst-reprise"); } catch (e) {} if (rp) setTimeout(() => { const c = $("cont"); if (c) c.click(); }, 400); }; if (autoGo) return go();
       const f = document.createElement("div"); f.className = "xflash"; document.body.appendChild(f); flashback(); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.add("on")));
       /* V308 (Thomas : « le VFX coupe sans images clés à la fin ») · le flash ne s'efface qu'une fois les premières images de l'accueil vraiment affichées, puis fondu long, crépitement de fin de feu d'artifice et petit bouquet */
       setTimeout(() => { go(); let n = 0; const wait = () => { if (++n < 4) return requestAnimationFrame(wait); setTimeout(() => { f.classList.add("fin"); setTimeout(() => f.remove(), 2000); /* V308.1 (Thomas 21h19) : bouquet et crépitement retirés, on garde le fondu long */ }, 120); }; requestAnimationFrame(wait); }, 260); });

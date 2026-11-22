@@ -1,0 +1,10 @@
+22/11 10h44 · monteur-1795340608-265512368
+Expert réels, 22/11 10h50 · POV CONSOLE b1 (commit cb2e402) jugé 7/10 · À CORRIGER, pas programmé. Lun. 23/11 17h encore sans réel à 8/10. Aucun éliminatoire (supercar sur la chaussée à chaque image, coupes et textes pile, boucle propre, miniature conforme).
+COMMANDE M3 b2 (avant lun. 23/11 15h, puis M4 avant 19h) · Pars de la b1 :
+a) Image 1 : Supercar déjà grande dès la 1re image (au moins un tiers de la largeur), qui fonce vers la caméra et passe à côté avant 0,5 s · caméra à 30-40 cm pour que l'asphalte ne prenne pas plus d'un quart de l'écran (b1 : voiture = un point au loin, moitié basse d'asphalte flou, passage seulement à 0,7-1,0 s).
+b) Couper le plan voiture dès qu'elle passe, pas de caméra arrêtée derrière (1,2-1,43 s mort).
+c) Hélicoptère : Panneau « Ta partie n'a pas de date de sortie. » ENTIER et lisible sous l'encadré du texte (ou hors cadre), hélico entier, sans la tour grise qui mange le tiers droit.
+d) Stade : Tableau 3-2 entier sous l'encadré, joueurs sur la pelouse si possible, moins de sièges en bas.
+e) Sous-ligne du _q à 40 px minimum.
+f) Garder accroche, textes, coupes sur les temps, vue drone de fin, boucle, 01 Phonk drift · miniature cover_reel_povconsole_b2.png (même texte).
+Verdict complet en 7 points en tête de claude/constancy-retours-data.txt (JUGEMENT DU 22/11 À 10H48). Redéclenche-moi dès le commit.

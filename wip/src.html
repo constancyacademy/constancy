@@ -470,7 +470,7 @@ body.photo #hud,body.photo #actions,body.photo #energy,body.photo #tip,body.phot
 .act{font-family:var(--font-ui);font-weight:600;font-size:12px;letter-spacing:.14em;height:52px;min-width:52px;border-radius:26px;background:var(--glass2);border:1px solid var(--edge);box-shadow:var(--hi),var(--drop);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .act:active{transform:scale(.95)}
 .act.ufo{background:linear-gradient(180deg,#6ff0b0,#1f9e6e);color:#06140d;border:0}
-.act.turbo{background:linear-gradient(180deg,#ff5a6e,#d81f45);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),var(--drop)}
+body.tkradio .tr .main.cpg{opacity:1!important}#talkie.radio{top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 132px)!important;left:50%!important;max-width:min(88vw,460px)!important;transform:translateX(-50%)!important;font-size:14.5px}.main.cpg{border-color:rgba(255,63,164,.55)!important;box-shadow:0 0 16px rgba(255,63,164,.35),var(--drop)!important}.main.cpg .k{color:#ff7cc8!important}.main.cpg .gauge i{background:linear-gradient(90deg,#ff3fa4,#ffd1ec)!important}.act.coupe{background:linear-gradient(180deg,#ff5ab8,#c2187a);color:#fff;border-color:rgba(255,160,220,.7);box-shadow:0 0 22px rgba(255,63,164,.7),var(--drop);animation:cpPulse 1.4s ease-in-out infinite}@keyframes cpPulse{50%{box-shadow:0 0 36px rgba(255,63,164,1),var(--drop);transform:scale(1.04)}}.act.turbo{background:linear-gradient(180deg,#ff5a6e,#d81f45);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),var(--drop)}
 .act.joker{background:linear-gradient(180deg,#3a3a46,#16161c)}
 .mission .t{font-family:var(--font-ui);font-weight:600;font-size:19px;letter-spacing:-.01em}
 .mission .k{color:#c9b98a}
@@ -592,6 +592,7 @@ body.inmenu #zoneT,body.ufoon #help,body.ufoon #joy,body.ufoon #joyHint,body.ufo
   <button class="act hidden" id="scopeBtn" type="button">LONGUE-VUE</button>
   <button class="act ufo hidden" id="ufoBtn" type="button">🛸 RETOUR EN VILLE</button>
   <button class="act hidden" id="sirenBtn" type="button">SIRÈNE</button>
+  <button class="act coupe hidden" id="coupeBtn" type="button">PRENDRE MA COUPÉ NÉON</button>
   <button class="act turbo hidden" id="turboBtn" type="button">TURBO<i id="nitroBar"></i></button>
   <button class="act" id="exitBtn" type="button">SORTIR</button>
 </div>
@@ -1011,7 +1012,7 @@ function lookOf(lk) {
 const GOALS = { livraison: { label: "Livraisons", color: COL.business }, salle: { label: "Séances", color: COL.physique }, mentor: { label: "Mentor", color: COL.mental }, mamie: { label: "Mamie", color: COL.env } };
 const CARS = [
   { id: "citadine", name: "Citadine rafistolée", price: 0,     max: 40, color: 0xcfc6b4, statut: 0 },
-  { id: "coupe",    name: "Coupé Néon",          price: 6000,  max: 52, color: 0xff3fa4, statut: 8 },
+  { id: "coupe",    name: "Coupé Néon",          price: 12000,  max: 52, color: 0xff3fa4, statut: 8 },
   { id: "suv",      name: "SUV Noir Mat",        price: 15000,  max: 54, color: 0x1a1a20, statut: 15 },
   { id: "gt",       name: "GT Sunset",           price: 45000, max: 68, color: 0xff7a2f, statut: 25 },
   { id: "hyper",    name: "Hyper Gold",          price: 180000, max: 84, color: 0xf6c945, statut: 40 },
@@ -3420,6 +3421,7 @@ function enterHome() {
 }
 function leaveHome() {
   fade(() => { G.snapCam = true; G.inside = false; G.me.x = LM.home.x; G.me.z = LM.home.z - 3; G.me.h = Math.PI; homeLight.intensity = 0; G.lastZone = "home";
+    if (P && P.day >= 2 && P.prologue && !P.droneJ2 && !CREATOR && !/noprologue/.test(location.search)) { P.droneJ2 = 1; saveNow(); stat("drone-jour2"); setTimeout(() => { if (G.mode !== "play" || CINE.on) return; startPrologue(() => {}); CINE.t = 35.55; if (CINE.th) CINE.th.visible = false; }, 450); } /* V310.21 (tâche 4) : le vol « Bienvenue à Constancy City » n'est plus au Jour 1, il récompense le retour du Jour 2 */
     if (G.intro === "door") { G.intro = "car"; if (G.parked) { G.me.x = G.parked.x - Math.cos(G.parked.h) * 3.2; G.me.z = G.parked.z + Math.sin(G.parked.h) * 3.2; G.me.h = Math.atan2(G.parked.x - G.me.x, G.parked.z - G.me.z); }
       const carHelp = () => setTimeout(() => help("Ça, c'est ta voiture. Pas la plus belle, mais elle roule. <b>Approche-toi et touche MONTER.</b>", 7), 400);
       carHelp(); if (P && !P.prologue && P.day <= 1) setTimeout(prologueRadio, 9000); /* V310.21 (tâche 4) : le mot de Thomas passe dans le talkie */ } });
@@ -3784,13 +3786,13 @@ function updateTalkie(dt) {
 }
 window.__talkie = i => talkieSay(TALKIE.lines[i || 0]);
 /* V310.21 · tâche 4 de l'expert jeu : LE MOT DE THOMAS PASSE DANS LE TALKIE PENDANT LE PREMIER TRAJET · plus de cinématique plein écran au Jour 1, le joueur conduit, la voix de Thomas (les 7 phrases du prologue) arrive par la radio avec le sous-titre en bas · la cinématique complète reste dans Menu › Arrêter › « Le mot de Thomas » */
-function radioLine(txt, url, cb, first, last) { const d = tkCard(); d.querySelector("span").textContent = txt; d.classList.add("on"); document.body.classList.add("tkon"); TALKIE.hideT = 30; if (first || last) talkieCrackle(first ? 0.4 : 0.18);
+function radioLine(txt, url, cb, first, last) { const d = tkCard(); d.classList.add("radio"); document.body.classList.add("tkradio"); d.querySelector("span").textContent = txt; d.classList.add("on"); document.body.classList.add("tkon"); TALKIE.hideT = 30; if (first || last) talkieCrackle(first ? 0.4 : 0.18);
   let done = false; const fin = dur => { if (done) return; done = true; TALKIE.hideT = last ? Math.max(2.5, (dur || 3) + 1.2) : (dur || 3) + 1.6; cb(dur); };
   const c = SND.ctx; if (!c || SND.on === false) { setTimeout(() => fin(null), 50); return; }
   fetch(url).then(r => r.arrayBuffer()).then(b => c.decodeAudioData(b, dd => { try { if (c.state === "suspended") c.resume(); const s = c.createBufferSource(), g = c.createGain(), bp = c.createBiquadFilter(); s.buffer = dd; bp.type = "bandpass"; bp.frequency.value = 1700; bp.Q.value = 0.55; g.gain.value = 1.45; s.connect(bp); bp.connect(g); g.connect(c.destination); s.start(); } catch (e) {} fin(dd.duration); }, () => fin(null))).catch(() => fin(null));
   setTimeout(() => fin(null), 4000); }
 function prologueRadio() { if (!P || P.prologue || CREATOR || /noprologue/.test(location.search) || PRADIO.on) return; PRADIO.on = true; P.prologue = true; P.talkie = 1; saveNow(); stat("prologue-radio-debut"); TALKIE.t = 9999; let i = 0;
-  const next = () => { if (i >= CINE_LINES.length) { PRADIO.on = false; stat("prologue-radio-fin"); TALKIE.t = 160; return; } const k = i++, L = CINE_LINES[k];
+  const next = () => { if (i >= CINE_LINES.length) { PRADIO.on = false; stat("prologue-radio-fin"); TALKIE.t = 160; setTimeout(() => { if (PRADIO.on) return; const d = TALKIE.card; if (d) d.classList.remove("radio"); document.body.classList.remove("tkradio"); }, 4000); return; } const k = i++, L = CINE_LINES[k];
     radioLine(L[2], `assets/voix/prologue_${k + 1}.mp3`, d => setTimeout(next, ((d || (L[1] - L[0])) + 0.5) * 1000), k === 0, k === CINE_LINES.length - 1); };
   next(); }
 const PRADIO = { on: false };
@@ -9909,7 +9911,13 @@ function checkGoal() {
   if (goalProgress().k >= 1) { P.goal.done = true; P.unlocked = P.unlocked || {}; P.unlocked[P.goal.type] = Math.max(P.unlocked[P.goal.type] || 0, P.goal.tier + 1); saveNow(); goalReached(); }
 }
 // V306.7 · un cadeau (sauvegarde, confirmation, bonus des commentaires, parrainage) va dans le cash mais ne compte JAMAIS dans l'objectif : seul l'effort fait avancer la barre
-function addCash(n, gift) { P.cash += n; if (n > 0 && !gift) { P.earned = (P.earned || 0) + n; addXP(Math.round(n / 4)); } G.deltaTimer = 2.2; const d = $("delta"); d.textContent = (n >= 0 ? "+$" : "-$") + fmt(Math.abs(n)); d.style.color = n >= 0 ? "var(--cash)" : "var(--danger)"; d.classList.add("on"); if (n > 0) sfx.cash(); if (n >= 100 && !gift && G.mode === "play") try { cashFly(n); } catch (e) {} }
+/* V310.21 · tâche 5 de l'expert jeu (Thomas, 22/11 16h18) : LA COUPÉ NÉON, PREMIÈRE VRAIE VOITURE · 12 000 $ (seul prix qui change), objectif permanent en haut tant qu'elle n'est pas à lui au Jour 1, « Prime du Jour 1 · ×3. » sur ce qu'il gagne en jouant, bouton « Prendre ma coupé néon » dès que l'argent est là */
+function coupeGoalOn() { return !!P && (P.day || 1) === 1 && !!P.r3 && !(P.cars || []).includes("coupe") && !CREATOR && G.mode === "play"; }
+function coupeBuy() { const c = CARS.find(x => x.id === "coupe"); if (!c || !P || P.cars.includes("coupe") || P.cash < c.price) return; P.cash -= c.price; G.shownCash = P.cash; P.cars.push("coupe"); P.statut += c.statut; P.car = "coupe";
+  if (G.onFoot && G.parked) { const o = G.me; G.parked.x = o.x + Math.cos(o.h) * 3.2; G.parked.z = o.z - Math.sin(o.h) * 3.2; G.parked.h = o.h; } setCar("coupe"); saveNow(); try { storyCheck(); } catch (e) {} try { sfx.win(); } catch (e) {} try { navigator.vibrate && navigator.vibrate([20, 60, 40]); } catch (e) {}
+  const s0 = G.saveT ? (performance.now() - G.saveT) / 60000 : 99; stat("coupe-achetee"); stat("coupe-achetee-" + (s0 < 3 ? "3min" : s0 < 4 ? "4min" : s0 < 5 ? "5min" : s0 < 6 ? "6min" : "plus") + "-" + (P.objective || "cash")); $("coupeBtn").classList.add("hidden");
+  try { xFlash(() => {}); } catch (e) {} notify("gold", "<b>Ta première vraie voiture.</b> La Coupé Néon est à toi.", 7); }
+function addCash(n, gift) { if (n > 0 && !gift && coupeGoalOn()) { n *= 3; if (!G.primeSeen) { G.primeSeen = 1; setTimeout(() => help("<b>Prime du Jour 1 · ×3.</b>", 4), 900); } stat("prime-j1"); } P.cash += n; if (n > 0 && !gift) { P.earned = (P.earned || 0) + n; addXP(Math.round(n / 4)); } G.deltaTimer = 2.2; const d = $("delta"); d.textContent = (n >= 0 ? "+$" : "-$") + fmt(Math.abs(n)) + (n > 0 && !gift && coupeGoalOn() ? " · ×3" : ""); d.style.color = n >= 0 ? "var(--cash)" : "var(--danger)"; d.classList.add("on"); if (n > 0) sfx.cash(); if (n >= 100 && !gift && G.mode === "play") try { cashFly(n); } catch (e) {} }
 /* V307.2 · tâche 1 d (sucre) : les billets volent vers le compteur à chaque vraie paie, le compteur palpite à l'arrivée */
 function cashFly(n) { const tg = $("money"); if (!tg || document.body.classList.contains("cinema")) return; const r = tg.getBoundingClientRect(), tx = r.left + r.width / 2, ty = r.top + r.height / 2, N = Math.min(14, 5 + Math.floor(n / 200)), W = window.innerWidth, H = window.innerHeight;
   for (let i = 0; i < N; i++) { const b = document.createElement("i"); b.className = "cashfly"; const x0 = W / 2 + (Math.random() - 0.5) * W * 0.35, y0 = H * 0.62 + (Math.random() - 0.5) * H * 0.12; b.style.left = x0 + "px"; b.style.top = y0 + "px"; b.style.setProperty("--r", (Math.random() * 60 - 30) + "deg"); document.body.appendChild(b);
@@ -9939,8 +9947,13 @@ function updateHud(dt) {
   $("vStatut").textContent = "niv " + lvl(P.statut); $("gStatut").style.width = clamp(P.statut % 25 / 25 * 100, 4, 100) + "%";
   $("vMind").textContent = "niv " + lvl(P.mindset); $("gMind").style.width = clamp(P.mindset % 25 / 25 * 100, 4, 100) + "%";
   { const sa = Math.round(santeVal()); $("vSante").textContent = sa + "%"; $("gSante").style.width = clamp(sa, 4, 100) + "%"; }
-  const gp = goalProgress();
-  $("mainT").textContent = gp.text; $("mainBar").style.width = clamp(gp.k * 100, 2, 100) + "%";
+  const gp = goalProgress(), cg = coupeGoalOn(), cpr = 12000;
+  if (cg !== !!G.cgOn) { G.cgOn = cg; const k = document.querySelector("#mainGoal .k"); if (k) k.textContent = cg ? "Coupé néon" : "Objectif principal"; $("mainGoal").classList.toggle("cpg", cg); if (cg && !P.cpSeen) { P.cpSeen = 1; stat("coupe-objectif-vu"); } }
+  if (cg) { const c = Math.min(P.cash, cpr); $("mainT").textContent = `${fmtSp(Math.floor(c))}\u202f$ sur 12\u202f000\u202f$.`; $("mainBar").style.width = clamp(c / cpr * 100, 2, 100) + "%";
+    const miss = cpr - P.cash; if (miss > 0 && miss < 1000 && !G.cp900) { G.cp900 = 1; help(`<b>Coupé néon : Il te manque ${fmtSp(Math.ceil(miss / 100) * 100)}\u202f$.</b>`, 4); stat("coupe-manque-900"); }
+    const can = P.cash >= cpr; $("coupeBtn").classList.toggle("hidden", !can); if (can && !G.cpCan) { G.cpCan = 1; try { sfx.ping(); } catch (e) {} } }
+  else { if (G.cpBtn !== false) { G.cpBtn = false; $("coupeBtn").classList.add("hidden"); } $("mainT").textContent = gp.text; $("mainBar").style.width = clamp(gp.k * 100, 2, 100) + "%"; }
+  if (cg) G.cpBtn = true;
   if (G.helpTimer > 0) { G.helpTimer -= dt; if (G.helpTimer <= 0) $("help").classList.remove("on"); }
   updateTips(dt);
   // bandeau de mission
@@ -11936,7 +11949,7 @@ function endMission(ok) {
   }
   if (M.type === "livraison") {
     destBeacon.visible = false;
-    if (ok) { const gain = Math.round((140 + lvl(P.biz) * 30) * P.mult * (M.time > 0 ? 1.25 : 1) * (WX.rain > 0.3 ? 1.2 : 1)); addCash(gain); P.biz += Math.round(6 * P.mult); P.deliveries++; P.counts.livraison = (P.counts.livraison || 0) + 1; sfx.win(); storyCheck(); help(`Livraison réussie${WX.rain > 0.3 ? " sous la pluie" : ""}. <b style="color:var(--cash)">+$${fmt(gain)}</b>`); }
+    if (ok) { const gain = coupeGoalOn() ? 600 : Math.round((140 + lvl(P.biz) * 30) * P.mult * (M.time > 0 ? 1.25 : 1) * (WX.rain > 0.3 ? 1.2 : 1)); /* V310.21 (tâche 5) : au Jour 1, une livraison paie 600 $, ×3 avec la prime */ addCash(gain); P.biz += Math.round(6 * P.mult); P.deliveries++; P.counts.livraison = (P.counts.livraison || 0) + 1; sfx.win(); storyCheck(); help(`Livraison réussie${WX.rain > 0.3 ? " sous la pluie" : ""}. <b style="color:var(--cash)">+$${fmt(gain)}</b>`); }
     else { sfx.fail(); help("Trop tard. Le client a annulé. Retente au Dépôt."); }
   }
   if (M.type === "voisin") {
@@ -11966,7 +11979,7 @@ function endMission(ok) {
   }
   if (M.type === "mamie") {
     scene.remove(M.agent.mesh);
-    if (ok) { const gain = Math.round(100 * P.mult); addCash(gain); P.statut += Math.round(12 * P.mult); P.counts.mamie = (P.counts.mamie || 0) + 1; P.mamieDone = (P.mamieDone || 0) + 1; sfx.win(); storyCheck(); help(`Sac récupéré. Mamie est fière de toi. <b style="color:${COL.env}">+ statut</b>`); }
+    if (ok) { const gain = coupeGoalOn() ? 600 : Math.round(100 * P.mult); addCash(gain); P.statut += Math.round(12 * P.mult); P.counts.mamie = (P.counts.mamie || 0) + 1; P.mamieDone = (P.mamieDone || 0) + 1; sfx.win(); storyCheck(); help(`Sac récupéré. Mamie est fière de toi. <b style="color:${COL.env}">+ statut</b>`); }
     else { sfx.fail(); help("Le voleur t'a semé. Mamie t'appellera encore."); }
   }
   G.mission = null; saveNow();
@@ -12875,7 +12888,7 @@ function startGym(street) {
   function finish() {
     if (S.done) return; S.done = true; G.gymKey = null;
     const fed = P.nutriDay != null && P.day - P.nutriDay <= 1 ? 1 + (P.nutri || 0) * 0.25 : 1, ratio = S.reps / 12, gain = +(m.gain * ratio * P.mult * fed).toFixed(2); if (fed > 1) P.nutriDay = null; // les courses boostent UNE séance
-    P.cm = +(P.cm + gain).toFixed(2); const first = !(P.sessions > 0); if (ratio >= 1) { P.sessions = (P.sessions || 0) + 1; P.gymDay = P.day; P.statut += 1; P.counts.salle = (P.counts.salle || 0) + 1; if (street) P.parkDone = (P.parkDone || 0) + 1; addXP(first ? 260 : 80); sfx.win(); if (first) setTimeout(() => notify("gold", "<b>Première séance validée.</b> Regarde ton perso : ça commence déjà à se voir. C'est la <b>constance</b> qui fera le reste.", 8), 1200); storyCheck(); } else sfx.fail();
+    P.cm = +(P.cm + gain).toFixed(2); const first = !(P.sessions > 0); if (ratio >= 1) { P.sessions = (P.sessions || 0) + 1; P.gymDay = P.day; P.statut += 1; P.counts.salle = (P.counts.salle || 0) + 1; if (coupeGoalOn()) addCash(600); /* V310.21 (tâche 5) : au Jour 1, la séance paie aussi (600 $ ×3) en plus des centimètres */ if (street) P.parkDone = (P.parkDone || 0) + 1; addXP(first ? 260 : 80); sfx.win(); if (first) setTimeout(() => notify("gold", "<b>Première séance validée.</b> Regarde ton perso : ça commence déjà à se voir. C'est la <b>constance</b> qui fera le reste.", 8), 1200); storyCheck(); } else sfx.fail();
     applyMuscle(meMesh); saveNow(); if (ratio >= 1) setTimeout(storyCheck, 400); // la séance valide la mission en cours (salle, street workout)
     show(`<div class="panel"><div class="kicker">${m.title}</div><h2>${ratio >= 1 ? "Séance validée." : "Séance incomplète."}</h2>
       <div class="card avatar">${avatarSvg()}<div class="statline"><span>Reps</span><span>${S.reps}/12</span><span>${m.label}</span><span>${P.cm.toFixed(1).replace(".", ",")} cm</span><span>Gain</span><span>+${gain.toString().replace(".", ",")} cm</span></div></div>
@@ -12900,7 +12913,7 @@ function startQuiz() {
   };
   const done = () => {
     const mind = Math.round(good * 4 * P.mult), biz = Math.round(good * 2 * P.mult);
-    P.mindset += mind; P.biz += biz; P.counts.mentor = (P.counts.mentor || 0) + 1; P.mentorDone = (P.mentorDone || 0) + 1; addXP(100); saveNow(); sfx.win(); storyCheck();
+    P.mindset += mind; P.biz += biz; P.counts.mentor = (P.counts.mentor || 0) + 1; if (coupeGoalOn()) addCash(600); P.mentorDone = (P.mentorDone || 0) + 1; addXP(100); saveNow(); sfx.win(); storyCheck();
     show(`<div class="panel"><div class="kicker">Le Mentor</div><h2>${good === 3 ? "Tu as les codes." : good ? "Tu y es presque." : "Reviens me voir."}</h2>
       <p class="lead">« Moi aussi, j'ai commencé en bas. La différence, c'est que je n'ai jamais arrêté. »</p>
       <div class="card"><div class="statline"><span>Bonnes réponses</span><span>${good}/3</span><span>Mindset</span><span style="color:${COL.mental}">+${mind}</span><span>Business</span><span style="color:${COL.business}">+${biz}</span></div></div>
@@ -13483,7 +13496,7 @@ $("ufoBtn").addEventListener("click", callUfo);
 ["pointerup", "pointercancel", "pointerleave"].forEach(ev => $("turboBtn").addEventListener(ev, () => { G.turbo = false; G.tbPtr = null; }));
 /* V310.20 (Thomas, 22/11 16h22 : turbo qui reste allumé) : le doigt levé ailleurs que sur le bouton (ou le bouton caché pendant l'appui) laissait le turbo allumé pour toujours */
 ["pointerup", "pointercancel"].forEach(ev => window.addEventListener(ev, e => { if (G.tbPtr != null && e.pointerId === G.tbPtr) { G.turbo = false; G.tbPtr = null; } }, true));
-$("jokerBtn").addEventListener("click", useJoker);
+$("jokerBtn").addEventListener("click", useJoker); $("coupeBtn").addEventListener("click", e => { e.preventDefault(); coupeBuy(); });
 $("quitBtn").addEventListener("click", () => { if (G.mode === "play" && G.mission) confirmQuit(); });
 $("mult").addEventListener("click", () => { if (G.mode === "play") help(`<b>Constancy ${multTxt(P.mult)}</b> : ton multiplicateur de gains. Chaque journée réussie d'affilée le fait monter de 0,25 (jusqu'à x2). Une journée ratée le remet à x1.`, 8); });
 $("feedBtn").addEventListener("click", () => { if (G.mode === "play") openPhone(); });

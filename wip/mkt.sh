@@ -4,6 +4,6 @@ python3 - "$2" <<'PY'
 import sys
 p=sys.argv[1]; s=open(p).read(); a='window.__W = () => ({'
 assert s.count(a)==1
-s=s.replace(a,'window.__T = () => ({ coupePhone, rdvCard, gpsRoute, updateMe, toggleCar, onPonton, prologueRadio, coupeBuy, coupeGoalOn, addCash, PRADIO, TALKIE, updateCar, collideCar, collideBlocks, collideProps, finishEnter, AP_OLD, leaveApt: typeof leaveApt === "function" ? leaveApt : null, get carMesh() { return carMesh; }, get renderer() { return renderer; } });\n'+a)
+s=s.replace(a,'window.__T = () => ({ coupePhone, rdvCard, gpsRoute, updateMe, toggleCar, onPonton, prologueRadio, coupeBuy, coupeGoalOn, addCash, PRADIO, TALKIE, updateCar, collideCar, collideBlocks, collideProps, finishEnter, AP_OLD, leaveApt: typeof leaveApt === "function" ? leaveApt : null, get carMesh() { return carMesh; }, get renderer() { return renderer; }, get CSM() { return typeof CSM !== "undefined" ? CSM : null; } });\n'+a)
 open(p,'w').write(s)
 PY

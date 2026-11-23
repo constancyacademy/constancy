@@ -3867,15 +3867,16 @@ function r3Ok() { return !!P && P.day === 1 && !P.r3 && !(P.deliveries > 0) && !
 function r3Start() { if (carMesh && G.ride.kind === "own") { G.parked = { mesh: carMesh, x: G.car.x, z: G.car.z, h: G.car.h }; carMesh = null; }
   G.ride = { kind: "none" }; G.onFoot = true; meMesh.visible = true; resetPose(); G.inside = false; if (homeLight) homeLight.intensity = 0; G.lastZone = "home";
   const pk = G.parked || { x: G.car.x, z: G.car.z, h: G.car.h }; G.me.x = pk.x - Math.cos(pk.h) * 3; G.me.z = pk.z + Math.sin(pk.h) * 3; G.me.h = Math.atan2(pk.x - G.me.x, pk.z - G.me.z); G.snapCam = true; G.intro = "car";
-  P.r3 = 1; saveNow(); stat("r3-dehors");
-  const go = () => setTimeout(() => { if (!P.dep1k) { P.dep1k = 1; addCash(1000, true); try { cashFly(1000); } catch (e) {} help("<b>+1 000 $ pour démarrer.</b> À toi de faire le reste.", 3); stat("depart-1000"); saveNow(); } setTimeout(() => r3Mission(), 2600); }, 300); /* V310.20 (Thomas 14h23) : les 1 000 $ sont donnés en sortant de l'appartement */
+  P.r3 = 1; G.cgHold = performance.now() + 6300; saveNow(); stat("r3-dehors");
+  const go = () => setTimeout(() => { if (!P.dep1k) { P.dep1k = 1; addCash(1000, true); try { cashFly(1000); } catch (e) {} stat("depart-1000"); saveNow(); } setTimeout(() => r3Mission(), 500); }, 300); /* V310.33 · tâche 2 : les 1 000 $ arrivent avec les billets qui volent, sans phrase · l'annonce seule 0,5 s après */ /* V310.20 (Thomas 14h23) : les 1 000 $ sont donnés en sortant de l'appartement */
   go(); /* V310.21 (tâche 4) : plus de prologue plein écran ici, il passe dans le talkie pendant le trajet (prologueRadio) */ }
-const R3G = { muscle: ["gym", "La salle t'attend"], boite: ["mentor", "Ton mentor t'attend"], famille: ["mamie", "Mamie t'attend"] };
+const R3G = { muscle: ["gym", "La salle t'attend"], boite: ["mentor", "Ton mentor t'attend"] }; /* V310.34 · expert jeu (23/11 13h, tâche 3) : objectif famille = les courses de Mamie, plus de voleur au Jour 1 */
 function r3Mission() { if (G.mission || G.r3Goal) return; const og = R3G[P && P.objective];
   if (og && LM[og[0]] && LM[og[0]].x != null) { const c = G.parked || G.car, L = LM[og[0]], d = Math.hypot(L.x - c.x, L.z - c.z), dm = Math.max(50, Math.round(d / 50) * 50); G.r3Goal = og; G.gpsDest = og[0]; G.gpsUser = 1; G.gpsQuiet = false; G.r3T = performance.now(); try { sfx.ping(); } catch (e) {}
     help(`<b>${og[1]} à ${dm} m.</b>`, 9); r3Pulse(true); setTimeout(routeBills, 400); /* V310.23 (tâche 1 de l'expert, 19h07) : 8 mots au plus, le geste est porté par MONTER qui pulse */ stat("r3-annonce"); stat("r3-annonce-" + P.objective); return; } const c = G.parked || G.car; let x, z, k = 0, d = 0; do { x = rc(Math.floor(rand(1, NB))); z = rc(Math.floor(rand(1, NB))); d = Math.hypot(x - c.x, z - c.z); k++; } while ((d < 240 || d > 360) && k < 80);
-  G.mission = { type: "livraison", r3: true, dx: x, dz: z, time: 0 }; destBeacon.position.set(x, 0, z); destBeacon.visible = true; G.r3T = performance.now(); try { sfx.ping(); } catch (e) {}
-  const dm = Math.max(50, Math.round(d / 50) * 50); help(`<b>Un client t'attend · +600 $.</b>`, 9); r3Pulse(true); setTimeout(routeBills, 400); stat("r3-annonce"); }
+  const fam = P.objective === "famille" && LM.mamie && LM.mamie.x != null; if (fam) { x = LM.mamie.x; z = LM.mamie.z; d = Math.hypot(x - c.x, z - c.z); }
+  G.mission = { type: "livraison", r3: true, courses: fam || undefined, dx: x, dz: z, time: 0 }; destBeacon.position.set(x, 0, z); destBeacon.visible = true; G.r3T = performance.now(); try { sfx.ping(); } catch (e) {}
+  const dm = Math.max(50, Math.round(d / 50) * 50); help(fam ? `<b>Les courses de Mamie · +600 $.</b>` : `<b>Un client t'attend · +600 $.</b>`, 9); r3Pulse(true); setTimeout(routeBills, 400); stat("r3-annonce"); if (fam) stat("r3-annonce-famille"); }
 /* V310.23 · tâche 2 de l'expert (19h07) : LA 1RE MISSION GUIDÉE ET L'ENCHAÎNEMENT DU JOUR 1 · billets premium posés sur le trajet du GPS (+50 $, ×3 avec la prime, ramassés en roulant), puis la mission suivante se propose toute seule jusqu'à la coupé néon */
 const RBILL = { list: [], grp: null, n: 0, tot: 0 };
 function routeBillsClear() { if (RBILL.grp) { scene.remove(RBILL.grp); RBILL.grp = null; if (RBILL.tot) stat("billets-route-" + RBILL.n); } RBILL.list = []; RBILL.n = 0; RBILL.tot = 0; }
@@ -3900,9 +3901,9 @@ function j1Tick() { if (!G.j1Arm || G.mode !== "play" || G.mission || G.inside |
   G.j1N = (G.j1N || 0) + 1; G.mission = { type: "livraison", r3: true, chain: G.j1N, dx: x, dz: z, time: 0 }; destBeacon.position.set(x, 0, z); destBeacon.visible = true; try { sfx.ping(); } catch (e) {}
   help("<b>Livraison suivante · +600 $.</b>", 6); stat("mission-enchainee-" + G.j1N); setTimeout(routeBills, 400); }
 function r3Pulse(on) { try { $("exitBtn").classList.toggle("r3p", !!on); } catch (e) {} }
-function r3Car() { r3Pulse(false); stat("voiture-montee"); if (G.saveT && !G.volantS) { G.volantS = 1; const s = (performance.now() - G.saveT) / 1000; stat("volant-apres-sauvegarde-" + (s < 10 ? "10s" : s < 20 ? "20s" : s < 30 ? "30s" : "plus")); } setTimeout(() => { if (G.mode === "play" && !G.onFoot) prologueRadio(); }, 2500);
+function r3Car() { r3Pulse(false); G.cgHold = 0; stat("voiture-montee"); if (G.saveT && !G.volantS) { G.volantS = 1; const s = (performance.now() - G.saveT) / 1000; stat("volant-apres-sauvegarde-" + (s < 10 ? "10s" : s < 20 ? "20s" : s < 30 ? "30s" : "plus")); } setTimeout(() => { if (G.mode === "play" && !G.onFoot) prologueRadio(); }, 2500);
   if (G.r3Goal) { help(`<b>${G.r3Goal[1]}.</b> Suis le trait du GPS. Pas de chrono.`, 7); return; }
-  if (G.mission && G.mission.r3) help("<b>Un client t'attend · +600 $.</b> Suis le point <b style=\"color:#b06bff\">violet</b>. Pas de chrono.", 7); else if (!G.mission) r3Mission(); }
+  if (G.mission && G.mission.r3) help(G.mission.courses ? "<b>Les courses sont dans le coffre.</b> Pas de chrono." : "<b>Un client t'attend · +600 $.</b> Pas de chrono.", 7); else if (!G.mission) r3Mission(); }
 function startInHome(first) { // le joueur se réveille chez lui ; la voiture attend devant l'immeuble
   if (carMesh && G.ride.kind === "own") { G.parked = { mesh: carMesh, x: G.car.x, z: G.car.z, h: G.car.h }; carMesh = null; }
   G.ride = { kind: "none" }; G.onFoot = true; meMesh.visible = true; resetPose(); G.inside = "home"; G.snapCam = true; homeLight.intensity = 1.25; refreshHomeDeco();
@@ -9967,7 +9968,7 @@ function coupeBuy() { const c = CARS.find(x => x.id === "coupe"); if (!c || !P |
 function coupeScene() { stat("coupe-scene"); try { if (SND.on !== false) playBuf("v8", 0.6, 1.15); } catch (e) {} try { navigator.vibrate && navigator.vibrate([30, 80, 30, 80, 60]); } catch (e) {}
   const d = document.createElement("div"); d.className = "cpsc"; d.innerHTML = '<div class="k">Coupé néon</div><div class="t">Ta première vraie voiture.</div><i class="ln"></i>'; document.body.appendChild(d); requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add("on")));
   setTimeout(() => { d.classList.add("out"); setTimeout(() => d.remove(), 700); coupePhone(); }, 3000); }
-function coupePhone() { if (G.mode !== "play") { setTimeout(rdvCard, 400); return; } setMode("menu"); stat("telephone-voitures-vu");
+function coupePhone(w) { if (G.mode !== "play") { w = (w || 0) + 1; if (w < 60) { setTimeout(() => coupePhone(w), 400); return; } stat("telephone-voitures-saute"); setTimeout(rdvCard, 400); return; } setMode("menu"); stat("telephone-voitures-vu");
   const L = CARS.filter(c => ["suv", "gt", "hyper", "minuit", "or", "nacre"].includes(c.id));
   show(phoneFrame("Concession", `<div class="cpph"><div class="cpphh">Elles t'attendent.</div><div class="cppl"><div class="cppr">${L.map(c => `<div class="cpc"><img data-car="${c.id}" alt=""><div><b>${c.name}</b><span>${fmtSp(c.price)}\u202f$</span></div></div>`).join("")}</div></div><div class="cpphf">Un jour à la fois.</div><div class="cpphs">Touche pour continuer</div></div>`));
   const imgs = [...screen.querySelectorAll("img[data-car]")]; imgs.forEach((im, k) => setTimeout(() => { try { const c = CARS.find(x => x.id === im.dataset.car); im.src = snapshot("car-" + c.id, () => makeCar(c), 220, 140, 0.75); } catch (e) {} }, 60 + k * 90));
@@ -9975,7 +9976,7 @@ function coupePhone() { if (G.mode !== "play") { setTimeout(rdvCard, 400); retur
   setTimeout(() => { const sc = screen.querySelector(".cppr"); if (sc) sc.classList.add("go"); }, 400); setTimeout(() => end(false), 7600);
   setTimeout(() => { screen.addEventListener("click", () => end(true), { once: true }); }, 600); on("phBack", () => end(true)); }
 function rdvCard() { if (!P) return; stat("rdv-vu"); eclairArm(); const d = document.createElement("div"); d.className = "chestc rdvc"; const ios = /iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone, canInst = !!installEvt || ios;
-  d.innerHTML = `<div class="ck">Jour 1 ✓ · Jour 1 sur 7</div><div class="ct">Demain : <b>Jour 2 · Ton coffre</b></div><div class="cr">+3 000 $</div><button class="rdvb" id="rdvShare" type="button">Montre ta coupé néon à un pote</button><div class="cw">+1 000 $ chacun quand il crée sa sauvegarde.</div>${canInst ? '<button class="rdvb alt" id="rdvInst" type="button">Ajouter à l\'écran d\'accueil</button>' : ""}<button class="rdvx" id="rdvX" type="button" aria-label="Fermer">×</button>`;
+  d.innerHTML = `<div class="ck">Jour 1 ✓ · Jour 1 sur 7</div><div class="ct">Demain : <b>Jour 2 · Ton coffre</b></div><div class="cr">+3 000 $</div><button class="rdvb" id="rdvShare" type="button">Montre ta coupé néon à un pote</button><div class="cw">+1 000 $ chacun quand il crée sa sauvegarde.</div>${P.email && !P.emailOk ? `<div class="cw">Confirme ton e-mail · +${fmtSp(CONFIRM_BONUS)} $.</div>` : ""}${canInst ? '<button class="rdvb alt" id="rdvInst" type="button">Ajouter à l\'écran d\'accueil</button>' : ""}<button class="rdvx" id="rdvX" type="button" aria-label="Fermer">×</button>`;
   document.body.appendChild(d); requestAnimationFrame(() => d.classList.add("in")); if (canInst) stat("ecran-accueil-propose");
   const close = () => { d.classList.remove("in"); setTimeout(() => d.remove(), 700); };
   d.querySelector("#rdvShare").addEventListener("click", e => { e.stopPropagation(); stat("coupe-partage"); try { shareGame(); } catch (er) {} close(); });
@@ -10012,6 +10013,7 @@ function updateHud(dt) {
   $("vMind").textContent = "niv " + lvl(P.mindset); $("gMind").style.width = clamp(P.mindset % 25 / 25 * 100, 4, 100) + "%";
   { const sa = Math.round(santeVal()); $("vSante").textContent = sa + "%"; $("gSante").style.width = clamp(sa, 4, 100) + "%"; }
   const gp = goalProgress(), cg = coupeGoalOn(), cpr = 12000;
+  { const hold = !!(G.cgHold && performance.now() < G.cgHold); if (hold !== !!G.cgHid) { G.cgHid = hold; $("mainGoal").style.visibility = hold ? "hidden" : ""; if (!hold && cg) stat("coupe-bandeau-" + (G.onFoot ? "6s" : "monte")); } } /* V310.33 · tâche 2 : le bandeau de la coupé arrive quand le joueur est monté, ou à 6 s */
   if (cg !== !!G.cgOn) { G.cgOn = cg; const k = document.querySelector("#mainGoal .k"); if (k) k.textContent = cg ? "Coupé néon" : "Objectif principal"; $("mainGoal").classList.toggle("cpg", cg); if (cg && !P.cpSeen) { P.cpSeen = 1; stat("coupe-objectif-vu"); } }
   if (cg) { const c = Math.min(P.cash, cpr); $("mainT").textContent = `${fmtSp(Math.floor(c))}\u202f$ sur 12\u202f000\u202f$.`; $("mainBar").style.width = clamp(c / cpr * 100, 2, 100) + "%";
     const miss = cpr - P.cash; if (miss > 0 && miss < 1000 && !G.cp900) { G.cp900 = 1; help(`<b>Coupé néon : Il te manque ${fmtSp(Math.ceil(miss / 100) * 100)}\u202f$.</b>`, 4); stat("coupe-manque-900"); }
@@ -10033,13 +10035,14 @@ function updateHud(dt) {
         : M.type === "run" ? `<div class="k">Mission · routine du matin</div><div class="t">à ton rythme</div><div class="s">Point ${Math.min(M.i + 1, M.pts.length)} sur ${M.pts.length} · à pied</div>`
         : M.type === "club" ? `<div class="k">Mission · club de course</div><div class="t">cours avec eux</div><div class="s">Reste près du groupe</div><div class="catch"><i style="width:${clamp(M.prog / 40 * 100, 0, 100)}%"></i></div>`
         : M.type === "livraison"
-        ? `<div class="k">Mission · ${M.eclair ? "livraison express" : M.chain ? "livraison" : M.r3 ? "ta première livraison" : M.kebab ? "livraison du kebab" : M.courses ? "courses de Mamie" : "livraison"}</div><div class="t">${M.eclair ? (M.eclair.t > 0 ? "⏱ " + Math.ceil(M.eclair.t) + " s · ×2" : "+600 $") : M.r3 ? "+600 $" : M.time > 0 ? "bonus " + Math.ceil(M.time) + " s" : "à ton rythme"}</div><div class="s">${M.r3 ? "Un client t'attend · Suis le point violet" : "Livre le colis au point violet"}</div>`
+        ? `<div class="k">Mission · ${M.eclair ? "livraison express" : M.chain ? "livraison" : M.courses ? "courses de Mamie" : M.r3 ? "ta première livraison" : M.kebab ? "livraison du kebab" : M.courses ? "courses de Mamie" : "livraison"}</div><div class="t">${M.eclair ? (M.eclair.t > 0 ? "⏱ " + Math.ceil(M.eclair.t) + " s · ×2" : "+600 $") : M.r3 ? "+600 $" : M.time > 0 ? "bonus " + Math.ceil(M.time) + " s" : "à ton rythme"}</div><div class="s">${M.courses ? "Mamie t'attend · Suis le point violet" : M.r3 ? "Un client t'attend · Suis le point violet" : "Livre le colis au point violet"}</div>`
         : `<div class="k">Mission · Mamie en danger</div><div class="t">colle-le</div><div class="s">Colle le voleur pour récupérer le sac</div><div class="catch"><i style="width:${clamp(M.catch / 2.5 * 100, 0, 100)}%"></i></div>`;
     }
   } else box.classList.add("hidden");
   // sous-titre
   let sub;
-  if (M && M.type === "livraison") sub = `Suis le point <b style="color:${COL.business}">violet</b> sur la carte.`;
+  if (M && M.type === "livraison" && M.r3 && (P.day || 1) === 1) sub = ""; /* V310.33 · tâche 2 : le bandeau, la flèche et MONTER le disent déjà */
+  else if (M && M.type === "livraison") sub = `Suis le point <b style="color:${COL.business}">violet</b> sur la carte.`;
   else if (M && M.type === "mamie") sub = `Rattrape le voleur en <b style="color:${COL.env}">vert</b> et reste collé à lui.`;
   else if (M && M.type === "voisin") sub = M.carry ? `Porte le carton jusqu'à la porte (point <b>blanc</b>).` : `Va chercher un carton au point <b>blanc</b>.`;
   else if (M && M.type === "vtc") sub = M.stage ? `Dépose le client au point <b>blanc</b>.` : `Récupère le client au point <b>blanc</b>.`;
@@ -10892,7 +10895,7 @@ function updateCar(dt) {
   const wd = carWade(c, dt, two);
   carMesh.rotation.order = "YXZ"; carMesh.position.set(c.x, (two ? 0.05 : 0) + c.jy - wd * 0.8, c.z); carMesh.rotation.y = c.h; carMesh.rotation.x = pitch;
   if (!STUNT.hint && Math.hypot(c.x - STUNT.x, c.z - STUNT.z) < 90) { STUNT.hint = true; help(`<b>Stunt Park</b> : prends de l'élan et fais le plus gros saut !${P.bestJump ? ` Ton record : ${P.bestJump.toFixed(1)} m.` : ""}`, 6); }
-  if (gh > 0.5 && !G.mtnHint) { G.mtnHint = true; help("Bienvenue sur la <b>route de la montagne</b>. Le sommet t'attend… et il paraît qu'on y croise des choses étranges.", 7); }
+  if (gh > 0.5 && c.z < -470 && !G.mtnHint && !DREAM.on && G.mode === "play") { /* V310.33 · expert jeu : le message de la montagne partait PENDANT le rêve (nationale) et s'affichait au départ du Jour 1, par-dessus l'annonce de la 1re mission */ G.mtnHint = true; help("Bienvenue sur la <b>route de la montagne</b>. Le sommet t'attend… et il paraît qu'on y croise des choses étranges.", 7); }
   carMesh.rotation.z = -c.s * clamp(sp / def.max, 0, 1) * (two ? 0.35 : 0.05);
   if (!two) { // carrosserie vivante : elle s'assoit à l'accélération, plonge au freinage, penche en virage ; les roues tournent et braquent
     const a = ((c.v - (c.pv == null ? c.v : c.pv)) / Math.max(dt, 1e-3)); c.pv = c.v; c.acc = (c.acc || 0) + (clamp(a, -60, 60) - (c.acc || 0)) * Math.min(1, dt * 5);
@@ -11546,7 +11549,7 @@ function storyStart() {
 function storyCheck(force) {
   const k = storyStep(); if (!k) return; const st = STORY_STEPS[k];
   if (force || (st.done && st.done())) { stat("mission-" + k); G.emailAfterMission = (P.playS || 0) + 7; P.storyI = (P.storyI || 0) + 1; saveNow(); G.gpsDest = null;
-    const nk = storyStep(); if (nk) setTimeout(storyStart, 2500); else setTimeout(() => notify("gold", "<b>Tu as lancé la machine.</b> À partir d'ici, c'est quartier libre : chaque journée où tu reviens, tu avances. C'est ça, <b>Constancy</b>.", 9), 2500); }
+    const nk = storyStep(); if (nk) { if (coupeGoalOn()) stat("histoire-apres-coupe"); else setTimeout(storyStart, 2500); } /* V310.33 · expert jeu : au Jour 1, « Mission 2 · Change de voiture » ou « Protège Mamie » ne passe plus par-dessus les livraisons de la coupé, l'histoire reprend au jour suivant */ else setTimeout(() => notify("gold", "<b>Tu as lancé la machine.</b> À partir d'ici, c'est quartier libre : chaque journée où tu reviens, tu avances. C'est ça, <b>Constancy</b>.", 9), 2500); }
 }
 function startKebab(courses) {
   let x, z, tries = 0;
@@ -12012,9 +12015,9 @@ function endMission(ok) {
   if (ok) setTimeout(() => feedPost(pick(["kebab", "lea", "tom", "mamie"]), pick(["Le livreur du quartier vient encore de frapper. Toujours à l'heure. 🔥", "Je l'ai vu passer, il ne s'arrête jamais celui-là.", "Livré chaud, livré à l'heure. Qui est ce gars ?", "Un jour de plus pour le nouveau. Il tient. 👀"]), { toast: true }), 2500);
   if (M.type === "livraison" && M.r3 && ok) { destBeacon.visible = false; addCash(600); P.deliveries++; P.counts.livraison = (P.counts.livraison || 0) + 1; addXP(120); sfx.win();
     if (M.eclair) { const ok2 = M.eclair.t > 0; if (ok2) { addCash(600); stat("eclair-reussi"); help(`<b>Express réussi.</b> <b style="color:var(--cash)">+1 200 $ · ×2</b>`, 5); } else { stat("eclair-rate"); help("<b>Presque ! Encore une ?</b>", 5); } G.mission = null; saveNow(); eclairArm(); return; }
-    if (M.chain) { help(`<b>Livré.</b> <b style="color:var(--cash)">+600 $ · ×3</b>`, 5); G.mission = null; saveNow(); j1Arm(); return; } stat("mission-guidee-cash-fin"); j1Arm();
-    help(`<b>Livré.</b> Le client te remercie. <b style="color:var(--cash)">+600 $</b> · Ta première livraison.`, 7); const sa = P.saveAt || G.saveAt, sec = sa ? Math.round((Date.now() - sa) / 1000) : -1; /* l'objectif choisi après la sauvegarde recrée la partie : l'heure de la sauvegarde est aussi gardée pour la session */ stat("livraison-1"); stat("livraison-1-" + (sec < 0 ? "inconnu" : sec <= 60 ? "60s" : sec <= 90 ? "90s" : sec <= 180 ? "3min" : "plus")); P.l1Sec = sec;
-    G.mission = null; if (storyStep() === "kebab") storyCheck(true); saveNow(); setTimeout(() => { try { chestCard(); } catch (e) {} }, 2600); setTimeout(() => { if (G.mode === "play" && P && !P.guided && !G.mission && !coupeGoalOn()) startGuide(); }, 10500); return; } /* V310.23 : au Jour 1, pas de tutoriel par-dessus l'enchaînement des missions */
+    if (M.chain) { help(`<b>Livré.</b> <b style="color:var(--cash)">+600 $ · ×3</b>`, 5); G.mission = null; saveNow(); j1Arm(); return; } stat(M.courses ? "mission-guidee-famille-fin" : "mission-guidee-cash-fin"); j1Arm(); if (M.courses) P.statut += 10;
+    help(M.courses ? `<b>Mamie t'embrasse.</b> « Tu es toujours là pour moi. » <b style="color:var(--cash)">+600 $</b>` : `<b>Livré.</b> Le client te remercie. <b style="color:var(--cash)">+600 $</b> · Ta première livraison.`, 7); const sa = P.saveAt || G.saveAt, sec = sa ? Math.round((Date.now() - sa) / 1000) : -1; /* l'objectif choisi après la sauvegarde recrée la partie : l'heure de la sauvegarde est aussi gardée pour la session */ stat("livraison-1"); stat("livraison-1-" + (sec < 0 ? "inconnu" : sec <= 60 ? "60s" : sec <= 90 ? "90s" : sec <= 180 ? "3min" : "plus")); P.l1Sec = sec;
+    G.mission = null; if (storyStep() === "kebab" || (M.courses && storyStep() === "courses")) storyCheck(true); saveNow(); setTimeout(() => { try { chestCard(); } catch (e) {} }, 2600); setTimeout(() => { if (G.mode === "play" && P && !P.guided && !G.mission && !coupeGoalOn()) startGuide(); }, 10500); return; } /* V310.23 : au Jour 1, pas de tutoriel par-dessus l'enchaînement des missions */
   if (M.type === "livraison" && (M.kebab || M.courses) && ok) {
     destBeacon.visible = false; const tip = M.kebab ? 2600 : 1800; addCash(tip); P.deliveries++; P.counts.livraison = (P.counts.livraison || 0) + 1; addXP(120); sfx.win();
     help(M.kebab ? `Le client ouvre la porte : « Un kebab encore chaud ? T'es un bon, toi. » Il te glisse un énorme pourboire : <b style="color:var(--cash)">+$${fmt(tip)}</b>` : `Mamie t'embrasse : « Tu es toujours là pour moi. » Elle te donne une enveloppe et un gâteau : <b style="color:var(--cash)">+$${fmt(tip)}</b>`, 8);
@@ -12204,7 +12207,7 @@ const CONFIRM_BONUS = 2000;
 function confirmReward() { if (!P || !P.emailOk || P.confirmBonus) return; P.confirmBonus = 1; addCash(CONFIRM_BONUS, true); saveNow(); stat("bonus-confirmation"); try { celebrate(3); } catch (e) {} notify("gold", `<b>Adresse confirmée ✓</b> <b style="color:var(--cash)">+$${fmt(CONFIRM_BONUS)}</b> versés et le badge ✓ à côté de ton pseudo.`, 7); }
 function confirmPoll() { if (!P || !P.email || P.emailOk || !VERIFY_URL || navigator.webdriver) return; checkConfirmed().then(ok => { if (ok) confirmReward(); }); }
 addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && G.started) confirmPoll(); });
-function confirmNudge() { if (!P || !P.email || P.emailOk || CREATOR) return; const d = new Date().toDateString(); if (P.cnDay === d) return; P.cnDay = d; saveNow(); setTimeout(() => { if (P && !P.emailOk && G.mode === "play") notify("gold", "📩 Confirme ton adresse dans l'e-mail <b>« Confirme ton adresse · Constancy »</b> : <b style=\"color:var(--cash)\">+$" + fmt(CONFIRM_BONUS) + "</b> et le badge ✓.", 7); }, 45000); } // mode créateur : jamais d'identifiants demandés
+function confirmNudge() { if (!P || !P.email || P.emailOk || CREATOR) return; if ((P.day || 1) === 1 && !(P.cars || []).includes("coupe")) return; /* V310.33 · tâche 2 : pas de rappel de 30 mots pendant la 1re mission, la carte du rendez-vous le dit */ const d = new Date().toDateString(); if (P.cnDay === d) return; P.cnDay = d; saveNow(); setTimeout(() => { if (P && !P.emailOk && G.mode === "play") notify("gold", "📩 Confirme ton adresse dans l'e-mail <b>« Confirme ton adresse · Constancy »</b> : <b style=\"color:var(--cash)\">+$" + fmt(CONFIRM_BONUS) + "</b> et le badge ✓.", 7); }, 45000); } // mode créateur : jamais d'identifiants demandés
 async function checkConfirmed() {
   if (!VERIFY_URL || !P || !P.email) return null;
   try { const r = await fetch(VERIFY_URL + "?email=" + encodeURIComponent(P.email) + "&t=" + Date.now(), { cache: "no-store" }), j = await r.json(); if (!j || j.state === "error" || j.state === "invalid") throw 0; G.cwFails = 0;
@@ -12416,7 +12419,7 @@ function openEmailGate(after, step) {
     if (!typed) { pw = gameCode(); try { localStorage.setItem(CODE_KEY, JSON.stringify({ e: v, c: pw })); } catch (e) {} } else { try { localStorage.removeItem(CODE_KEY); } catch (e) {} }
     try { pwHashOf(v, pw).then(h => { P.pwH = h; saveNow(); cloudPush(true); }); } catch (e) {}
     { const ps = ($("emPs") && $("emPs").value || "").replace(/[<>"&]/g, "").trim().slice(0, 16); if (ps) P.pseudo = ps; } pid(); P.email = v; /* V310.2 (BUSINESS, Thomas 19/11 17h22, demande A) : case décochée par défaut, choix et date gardés */ try { P.mailOpt = { on: !!($("emNews") && $("emNews").checked), d: new Date().toISOString().slice(0, 10) }; stat(P.mailOpt.on ? "mail-opt-oui" : "mail-opt-non"); } catch (e) {} if (!P.src) P.src = SRC; /* V306.6 : la source part avec le compte, même si la sauvegarde est créée avant la première partie */ if (!P.emailBonus) { P.emailBonus = 1; addCash(EMAIL_BONUS, true); } saveNow(); stat("email-ok"); if (refCode()) stat("inscription-parrainee"); const q = kitQueue(); q.push(v); kitSave(q); kitFlush();
-    P.kitV = 1; P.saveAt = G.saveAt = Date.now(); saveNow(); G.emailGate = false; stat("sauvegarde-sans-mur"); const fin = () => { if (after) after(); else resume(); celebrate(4); notify("gold", "<b>Sauvegarde créée ✓</b> <b style=\"color:var(--cash)\">+$" + fmt(EMAIL_BONUS) + "</b> versés. Ta progression est gardée. Bonus : confirme ton adresse dans l'e-mail reçu pour <b>+$" + fmt(CONFIRM_BONUS) + "</b> et le badge ✓.", 9); };
+    P.kitV = 1; P.saveAt = G.saveAt = Date.now(); saveNow(); G.emailGate = false; stat("sauvegarde-sans-mur"); const fin = () => { if (after) after(); else resume(); celebrate(4); notify("gold", "<b>Sauvegarde créée ✓ · +" + fmtSp(EMAIL_BONUS) + " $.</b>", 4); /* V310.33 · expert jeu (23/11 13h, tâche 2) : une phrase à la fois après la sauvegarde · la confirmation de l'adresse passe dans la carte du rendez-vous */ };
     try { xFlash(fin); } catch (e) { fin(); } };
   on("emGo", go); inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
   // « Plus tard » : on ne redemande plus en pleine partie, seulement au retour d'un jour suivant (3 fois maximum)
@@ -12849,6 +12852,10 @@ function chooseTier() {
   on("back", chooseObjective);
 }
 function goalReached() {
+  /* V310.32 · expert jeu (23/11 8h) : au Jour 1, le palier de l'objectif tombe en même temps que la coupé néon (×3) · plus d'écran plein, une bannière, palier suivant pris tout seul */
+  if ((P.day || 1) === 1) { const g = P.goal, list = tierList(g.type, P.muscle), next = list[g.tier + 1]; stat("objectif-atteint"); stat("objectif-atteint-j1-banniere"); try { sfx.win(); celebrate(40); } catch (e) {}
+    notify("gold", `<b>Objectif atteint · ${list[g.tier].l}.</b>${next ? ` Prochain palier : ${next.l}.` : ""}`, 5);
+    if (next) { const b = g.type === "cash" ? (P.earned || 0) : g.type === "muscle" ? P.cm : g.type === "boite" ? P.biz : P.statut; P.goal = { type: g.type, tier: g.tier + 1, base: b }; saveNow(); } return; }
   stat("objectif-atteint"); setMode("goal"); sfx.win(); celebrate(90); setTimeout(() => sfx.win(), 900);
   const g = P.goal, list = tierList(g.type, P.muscle), next = list[g.tier + 1];
   show(`<div class="panel"><div class="kicker">Objectif principal atteint</div><h2>${list[g.tier].l}. C'est fait.</h2>
@@ -13412,11 +13419,11 @@ function endDay(arrestedFlag) {
   addXP(ok ? 150 : 40); P.day++; P.dayT = 0; P.counts = {}; G.alerts = {}; if (!P.carPos) P.carPos = { x: LM.home.x, z: LM.home.z, h: Math.PI / 2 }; saveNow();
   show(`<div class="panel"><div class="kicker">Bilan du jour ${dayN}</div><h2>${ok ? "Journée réussie." : arrestedFlag ? "Journée perdue." : "Objectif manqué."}</h2>
     <div class="card"><div class="statline">${rows}<span>Bonus du soir</span><span style="color:var(--cash)">${ok ? "+$" + fmt(bonus) : "—"}</span><span>Constancy</span><span style="color:var(--gold)">${multTxt(oldMult)} → ${multTxt(P.mult)}</span>${ok ? `<span>Joker gagné</span><span>+1</span>` : ""}</div></div>
-    <p class="lead">${ok ? "Demain, tout ce que tu gagnes est multiplié. Enchaîne les journées réussies pour monter jusqu'à x2." : "Un jour raté, ça arrive. Deux, c'est le début de l'abandon. Demain, tu reprends."}</p>
+    <p class="lead">${ok ? "Demain, tout ce que tu gagnes est multiplié. Enchaîne les journées réussies pour monter jusqu'à x2." : "Un jour raté, ça arrive. Demain, tu reprends."}</p>
     ${timelineHtml()}
     <div class="card avatar">${avatarSvg()}<div class="statline"><span>Niveau</span><span style="color:var(--gold)">${playerLevel().lvl}</span><span>Compte</span><span>$${fmt(P.cash)}</span><span>${MUSCLES[P.muscle].label}</span><span>${P.cm.toFixed(1).replace(".", ",")} cm</span></div></div>
     <button class="btn" id="next" data-focus type="button">Jour ${P.day} · 08:00</button>${dayN === 1 && !envInfo().standalone && !envInfo().framed ? `<button class="tlink" id="a2hs" type="button" style="display:block;margin:10px auto 0">📲 Ajoute Constancy à ton écran d'accueil pour garder ta série.</button>` : ""}</div>`);
-  on("next", () => { if (G.dawnNext) { G.dawn = 2.6; G.dawnNext = false; } if (dayN === 1 && !P.signed) gate(); else startPlay(); });
+  on("next", () => { if (G.dawnNext) { G.dawn = 2.6; G.dawnNext = false; } if (dayN === 1 && !P.signed && !P.email) gate(); else startPlay(); /* V310.32 · expert jeu : plus d'écran « Tu veux continuer à jouer ? » pour un joueur déjà sauvegardé */ });
   on("a2hs", async () => { stat("a2hs-bilan"); if (installEvt) { installEvt.prompt(); try { await installEvt.userChoice; } catch (e) {} installEvt = null; return; } envInfo().mobile ? installGuide() : installDesktopGuide(); });
 }
 function gate() {
@@ -13456,7 +13463,7 @@ const CARRE = /^(car_|bus|firetruck|ambulance|crewcar|taxi|police|tracteur|scoot
 function titleOnlyNacre() { if (G.started) return; const now = performance.now(); /* V305.2 : tant que la partie n'a pas commencé (accueil, avatar, sauvegarde, guides), aucune autre voiture ; liste refaite à chaque image les 20 premières secondes */
   if (!TCAM.list || now - (TCAM.listT || 0) > (now < 20000 ? 0 : 700)) { TCAM.listT = now; const L = []; scene.children.forEach(o => { if (o === TCAM.car) return; const u = o.userData || {}; let car = u.isCar || u.wr || (u.key && CARRE.test(u.key)); if (!car) for (const c of o.children) { const k = c.userData && c.userData.key; if (k && CARRE.test(k)) { car = true; break; } } if (car) L.push(o); }); if (typeof traffic !== "undefined") traffic.forEach(a => a.mesh && L.push(a.mesh)); if (typeof rentals !== "undefined") rentals.forEach(r => r.mesh && L.push(r.mesh)); if (G.parked && G.parked.mesh) L.push(G.parked.mesh); TCAM.list = L.filter(o => o !== TCAM.car); }
   TCAM.hid = TCAM.hid || new Set(); TCAM.list.forEach(o => { if (o.visible) { o.visible = false; TCAM.hid.add(o); } }); }
-function renderFrame0() {
+function renderFrame0() { if (window.__norender) return; /* tests/chrono.js seulement : la page de test pose ce drapeau pour faire tourner le jeu sans dessiner (aucun effet pour un joueur) */
   if (DREAM.on && !DREAM.intro && !DREAM.waking && G.car && Math.abs(G.car.v) > 18) { const n = performance.now(); if (n - (DREAM.lr || 0) < 30) return; DREAM.lr = n; }
   if (window.__hideMe && meMesh) meMesh.visible = false; titleOnlyNacre(); try { nacreFX(); } catch (e) { if (!NFX.err) { NFX.err = 1; console.warn("nacreFX", e); } }
   if (FXR.on && FXR.comp) { const nk = typeof nightK === "number" ? nightK : 0; FXR.bloom.strength = 0.22 + nk * 0.52; FXR.bloom.threshold = 0.86 - nk * 0.22; FXR.bloom.radius = 0.35 + nk * 0.2;

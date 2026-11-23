@@ -1,0 +1,7 @@
+{"id": "povpc", "ver": "b3", "question": "Tu joues avec moi ce soir ?", "music": "mus_01_phonk_drift_pc4", "audio_file": "/root/monteur/mus/mus_01_phonk_drift.mp3", "audio_start": 0, "shake": 0, "fade": 0.05, "text_plate": 180, "abo": true, "beat_every": 1, "sub_fsz": 58, "bouton": true, "btn_cy": 0.8, "card_len": 1.6667, "card_tail": 0.2667, "card_cy": 0.565, "jeu_text": "Tu joues avec moi ce soir ?", "nl_fsz": 94,
+"segs": [["t_povpc-b3_nacre-rampe-a10-ville", 0.3, 1.9666667, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_povpc-b3_drone-axe-nacre-rue-club", 0.0333333, 1.2666667, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_povpc-b3_lettres-constancy-depuis-mer", 0.0333333, 1.2666667, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_povpc-b3_nacre-rampe-a10-retour", 0.0333333, 1.7, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_povpc-b3_nacre-rampe-a10-ville", 0.1, 0.3, [0, 0, 1080, 1920], 0, 1.0]],
+"texts": [[0, 1.65, "POV : T'as pas\nde PC."], [1.65, 2.8833, "Alors le mien tient\ndans ta poche."], [2.8833, 4.1167, "Gratuit,\nsur ton téléphone."], [4.1167, 5.7833, "@Q"], [5.7833, 9.0, "POV : T'as pas\nde PC."]]}

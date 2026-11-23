@@ -12,9 +12,9 @@ const { chromium } = require('playwright'); const path = require('path'); const 
   await ctx.addInitScript(s => { Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false }); try { if (!sessionStorage.getItem('lx')) { for (const k in s) localStorage.setItem(k, s[k]); sessionStorage.setItem('lx', '1'); } } catch (e) {} }, save);
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message.slice(0, 200)));
   await p.goto('file://' + page + '?nostat=1&autostart=1');
-  for (let k = 0; k < 400; k++) { await p.waitForTimeout(1500); const st = await p.evaluate(() => { try { const G = window.__W().G; const c = document.getElementById('cont'); if (c && c.offsetParent && !window.__lxc) { window.__lxc = 1; setTimeout(() => c.click(), 10); } return G.mode + '|' + !!window.__zonesPretes + '|' + !!(c && c.offsetParent) + '|' + (document.querySelector('#screen h2') || {}).textContent; } catch (e) { return 'x ' + e.message; } }); if (k % 10 === 0) console.log('attente', k, st); if (st.startsWith('play') && k > 3) break; }
+  for (let k = 0; k < 400; k++) { await p.waitForTimeout(1500); const st = await p.evaluate(() => { try { const G = window.__W().G; const c = document.getElementById('cont'); if (c && c.offsetParent && !window.__lxc) { window.__lxc = 1; setTimeout(() => c.click(), 10); } return G.mode + '|' + !!window.__zonesPretes + '|' + !!(c && c.offsetParent) + '|' + (document.querySelector('#screen h2') || {}).textContent; } catch (e) { return 'x ' + e.message; } }); if (k % 10 === 0) console.log('attente', k, st); if (/^(play|guide)\|true/.test(st) && k > 3) break; }
   await p.waitForTimeout(6000);
-  const info = await p.evaluate(() => { const G = window.__W().G; window.__auto = () => ({ fwd: 0, side: 0, brake: false }); return { mode: G.mode, onFoot: G.onFoot, parked: !!G.parked, inside: !!G.inside, sudx: JSON.stringify(window.__W().SUDX).slice(0, 300) }; });
+  const info = await p.evaluate(() => { const G = window.__W().G; { const g = document.getElementById('guide'); if (g) g.remove(); if (G.mode === 'guide') G.mode = 'play'; } window.__auto = () => ({ fwd: 0, side: 0, brake: false }); return { mode: G.mode, onFoot: G.onFoot, parked: !!G.parked, inside: !!G.inside, sudx: JSON.stringify(window.__W().SUDX).slice(0, 300), park: Object.keys(window.__W().PARK3D.G).join(','), sudbb: JSON.stringify((window.__W().PARK3D.G.sud || {}).bb), zp: !!window.__zonesPretes }; });
   console.log('ETAT', JSON.stringify(info));
   const res = await p.evaluate(async ([only, pied]) => { const W = window.__W(), X = window.__X(), T = window.__T(), { G, DK, GH, isWater, collide0Terrain, ARCH, AP, SUDX } = W, { scene } = X, { updateCar, collideCar, collideBlocks, collideProps, finishEnter, AP_OLD } = T, leaveApt = T.leaveApt;
     if (G.inside === 'apt' && leaveApt) { try { leaveApt(); } catch (e) {} } G.inside = false;
@@ -31,7 +31,8 @@ const { chromium } = require('playwright'); const path = require('path'); const 
       esplanade: { box: [AP_OLD.x0 - 40, AP_OLD.zg - 20, AP_OLD.x1 + 40, AP_OLD.z1 + 40], n: 50 },
       aeroport: { box: [AP.x0, AP.zg - 40, AP.x1, AP.z1], n: 50 },
       stade: SUDX && SUDX.st ? { box: [SUDX.st[0] - 160, SUDX.st[1] - 160, SUDX.st[0] + 160, SUDX.st[1] + 160], n: 30 } : null,
-      mall: SUDX && SUDX.mall ? { box: [SUDX.mall[0] - 160, SUDX.mall[1] - 120, SUDX.mall[0] + 160, SUDX.mall[1] + 120], n: 30 } : null };
+      mall: SUDX && SUDX.mall ? { box: [SUDX.mall[0] - 160, SUDX.mall[1] - 120, SUDX.mall[0] + 160, SUDX.mall[1] + 120], n: 30 } : null,
+      sud: W.PARK3D && W.PARK3D.G.sud && W.PARK3D.G.sud.spots.length ? (S => { const xs = S.map(q => q.x), zs = S.map(q => q.z); return { box: [Math.min(...xs) - 20, Math.min(...zs) - 20, Math.max(...xs) + 20, Math.max(...zs) + 20], n: 60 }; })(W.PARK3D.G.sud.spots) : null };
     let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     for (const name in Z) { const zz = Z[name]; if (!zz || (only.length && !only.includes(name))) continue; const [x0, z0, x1, z1] = zz.box; const R = { zone: name, points: 0, essais: 0, murs: [], rivages: 0, seules: [], chocs: 0 };
       for (let tries = 0; tries < zz.n * 40 && R.points < zz.n; tries++) { const x = x0 + rnd() * (x1 - x0), z = z0 + rnd() * (z1 - z0);

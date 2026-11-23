@@ -10430,7 +10430,9 @@ function collide0Terrain(o, swim) {
   const wade = !swim && o === G.car && !G.onFoot && !(G.ride && RIDES[G.ride.kind] && RIDES[G.ride.kind].plane) ? 10 : -7;
   const ee = shoreE(o.x, o.z), lim = shoreEdge(o.x, o.z) + (swim ? 90 : wade);
   if (swim && ((o.x < -540 && o.x > -2460 && o.z > -740 && o.z < 1490) || (o.z > 360 && o.z < AP.z1 + 70 && Math.abs(o.x) < AP.x1 + 80))) return hit; /* V310.22 (tests/lieux à pied : à la plage de l'Esplanade et dans l'archipel, entrer dans l'eau ramenait le nageur d'un coup vers la ville, ou le bloquait au bord comme un mur invisible) : on nage librement autour de l'archipel, de l'Esplanade et de l'aéroport */
-  if (ee > lim && !(swim && o.z < -470)) { if (slideBack(o, (x, z) => shoreE(x, z) <= shoreEdge(x, z) + (swim ? 90 : wade))) return hit; const k = lim / ee; o.x *= k; o.z *= k; hit = true; }
+  /* V310.31 (tests/lieux.js à pied, Constancy Sud : en entrant dans la mer à l'est du Sud, le nageur était ramené d'un coup 550 m plus loin, vers la ville) : on nage librement le long de toutes les terres (Sud, nord, est), jusqu'à 90 m du bord, puis on est simplement retenu, sans saut */
+  const nearLand = (x, z) => { if (newLandAt(x, z)) return true; for (let a = 0; a < 8; a++) { const ca = Math.cos(a * 0.7854), sa = Math.sin(a * 0.7854); if (newLandAt(x + ca * 45, z + sa * 45) || newLandAt(x + ca * 90, z + sa * 90)) return true; } return false; };
+  if (ee > lim && !(swim && o.z < -470)) { const okW = (x, z) => shoreE(x, z) <= shoreEdge(x, z) + (swim ? 90 : wade) || (swim && nearLand(x, z)); if (swim && nearLand(o.x, o.z)) return hit; if (slideBack(o, okW)) return hit; const k = lim / ee; o.x *= k; o.z *= k; hit = true; }
   return hit;
 }
 /* ============ Bateau ============ */

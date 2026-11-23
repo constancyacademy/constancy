@@ -1,0 +1,8 @@
+{"id": "povtemps", "ver": "b3", "question": "Tu joues avec moi ?", "music": "mus_03_electro_house_ptemps2", "audio_file": "/root/monteur/mus/mus_03_electro_house.mp3", "audio_start": 0, "shake": 0, "fade": 0.05, "text_plate": 180, "abo": true, "beat_every": 1, "sub_fsz": 58, "bouton": true, "btn_cy": 0.62, "card_len": 2.2, "card_tail": 0.25, "card_cy": 0.40, "jeu_text": "Tu joues avec moi ?", "nl_fsz": 94,
+"segs": [["t_povtemps-b1_minuit-route-plage-ras-du-sol", 0.3666667, 2.0, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_povtemps-b1_sauropode-allee-des-geants", 0.2666667, 1.6666667, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_povtemps-b3_concession-constancy-city-trois-quarts", 0.0, 1.2, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_povtemps-b1_plage-ville-mi-hauteur", 0.4, 1.4, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_povtemps-b2_minuit-route-plage-drone-haut", 0.0, 2.2, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_povtemps-b1_minuit-route-plage-ras-du-sol", 0.1333333, 0.3666667, [0, 0, 1080, 1920], 0, 1.0]],
+"texts": [[0, 1.6167, "POV : T'as pas le temps\nd'attendre GTA 6."], [1.6167, 3.0167, "Alors tu joues\nau mien."], [3.0167, 5.2167, "Gratuit,\nsur ton téléphone."], [5.2167, 7.4167, "@Q"], [7.4167, 9.0, "POV : T'as pas le temps\nd'attendre GTA 6."]]}

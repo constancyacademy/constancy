@@ -1,0 +1,6 @@
+{"id": "tujoues", "ver": "b3", "question": "Tu montes ?", "music": "mus_04_drum_and_bass_tujoues3", "audio_file": "/root/monteur/mus/mus_04_drum_and_bass.mp3", "audio_start": 0, "shake": 0, "fade": 0.05, "text_plate": 180, "abo": true, "beat_every": 1, "sub_fsz": 58, "bouton": true, "btn_cy": 0.655, "card_len": 2.0, "card_tail": 0.15, "card_cy": 0.40, "jeu_text": "Tu montes ?", "nl_fsz": 94,
+"segs": [["t_tujoues-b3_aeroport-suv-drone-et-fin", 0.1333333, 1.1333333, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_tujoues-b3_aeroport-suv-drone-et-fin", 2.3333333, 4.6333333, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_tujoues-b3_aeroport-suv-drone-et-fin", 5.6666667, 8.1666667, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_tujoues-b3_aeroport-suv-drone-et-fin", 0.0, 0.1333333, [0, 0, 1080, 1920], 0, 1.0]],
+"texts": [[0, 1.35, "Ce que tu vois,\ntu le joues."], [1.35, 2.6, "Pas une vidéo.\nLe vrai jeu."], [2.6, 3.8, "Gratuit,\nsur ton téléphone."], [3.8, 5.7833, "@Q"], [5.7833, 9.0, "Ce que tu vois,\ntu le joues."]]}

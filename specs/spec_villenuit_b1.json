@@ -1,0 +1,6 @@
+{"id": "villenuit", "ver": "b1", "question": "Tu sors ce soir ?", "music": "mus_05_synthwave_punch_vn", "audio_file": "/root/monteur/mus/mus_05_synthwave_punch.mp3", "audio_start": 0, "shake": 0, "fade": 0.05, "text_plate": 180, "abo": true, "beat_every": 1, "sub_fsz": 58, "bouton": true, "btn_cy": 0.8, "card_len": 2.0, "card_tail": 0.25, "card_cy": 0.40, "jeu_text": "Tu sors ce soir ?", "nl_fsz": 94,
+"segs": [["t_villenuit_grande-roue-depuis-eau_nuit", 0.2, 1.7, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_villenuit_file-constancy-club_nuit", 0.0, 1.5333333, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_villenuit_minuit-pont-esplanade_nuit", 0.0666667, 3.3, [0, 0, 1080, 1920], 0, 1.0],
+ ["t_villenuit_grande-roue-depuis-eau_nuit", 0.0, 0.2, [0, 0, 1080, 1920], 0, 1.0]],
+"texts": [[0, 1.5, "23 h.\nMa ville ne dort jamais."], [1.5, 4.25, "Elle t'attend\nce soir."], [4.25, 6.25, "@Q"], [6.25, 9.0, "23 h.\nMa ville ne dort jamais."]]}

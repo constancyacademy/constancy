@@ -1,0 +1,16 @@
+// Mesure les arrêts sur image du réveil au miroir (images > 250 ms) et les zones construites pendant ce temps
+const { chromium } = require('playwright'); const path = require('path');
+(async () => { const page = path.resolve(process.argv[2]);
+  const b = await chromium.launch({ args: ['--allow-file-access-from-files', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--mute-audio'] });
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true, isMobile: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 350.0.0.0' });
+  await ctx.route(/^https?:/, r => r.abort()); await ctx.addInitScript(() => { Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false }); try { sessionStorage.setItem('cst-relance', '1'); } catch (e) {}
+    window.__fr = []; let last = 0; const f = t => { if (last) window.__fr.push([Math.round(t), Math.round(t - last)]); last = t; requestAnimationFrame(f); }; requestAnimationFrame(f); });
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message.slice(0, 200)));
+  await p.goto('file://' + page + '?nostat=1&s=ig&autostart=1'); await p.waitForSelector('#quick', { timeout: 900000 });
+  await p.evaluate(() => { const q = document.getElementById('quick'); q && q.click(); });
+  // attendre le réveil
+  await p.waitForFunction(() => (window.__stats || []).some(s => /^reveil/.test(s)), null, { timeout: 900000 });
+  const tw = await p.evaluate(() => { window.__tw = performance.now(); window.__marks = []; const iv = setInterval(() => { try { const ms = Math.round(performance.now() - window.__tw), T = window.__T(); if (T.MIR.on && !window.__mirT) { window.__mirT = 1; window.__marks.push('miroir@' + ms); } const dl = (T.DEFER.t || []).length; if (dl !== window.__dl) { window.__dl = dl; window.__marks.push('zone ' + (T.DEFER.t[dl - 1] || '') + '@' + ms); } const S = window.__stats || []; while ((window.__sn || 0) < S.length) { window.__marks.push('stat ' + S[window.__sn = (window.__sn || 0) + 1, window.__sn - 1] + '@' + ms); } if (document.getElementById('ok') && !window.__okm) { window.__okm = 1; window.__marks.push('panneau@' + ms); } if (window.__zonesPretes && !window.__zp) { window.__zp = 1; window.__marks.push('zones-pretes@' + ms); } } catch (e) {} }, 30); window.__d0 = (window.__T().DEFER.t || []).length; window.__dl = window.__d0; window.__sn = (window.__stats || []).length; return 1; });
+  await p.waitForTimeout(30000); await p.screenshot({ path: '/home/claude/work/tools/h_miroir.png' });
+  const r = await p.evaluate(() => { const t0 = window.__tw; const fr = window.__fr.filter(x => x[0] > t0 && x[0] < t0 + 30000); const big = fr.filter(x => x[1] > 250).map(x => Math.round((x[0] - t0) / 100) / 10 + 's:' + x[1] + 'ms'); return { n: fr.length, med: fr.map(x => x[1]).sort((a, b) => a - b)[fr.length >> 1], big, marks: window.__marks, defer: (window.__T().DEFER.t || []).slice(window.__d0), deferDone: window.__T().DEFER.done }; });
+  console.log(JSON.stringify(r, null, 1)); console.log('ERR', errs.length ? errs.slice(0, 3).join(' | ') : 'none'); await b.close(); })().catch(e => { console.log('ERREUR', e.message.slice(0, 300)); process.exit(1); });

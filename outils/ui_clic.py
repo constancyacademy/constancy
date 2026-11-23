@@ -47,7 +47,7 @@ def card(ver, cy):
         d.text(((W - w_) / 2, y), t, font=f, fill=PINK if c == 'p' else (255, 255, 255, 255)); y += h_
     return im
 def ease(x): x = max(0., min(1., x)); return x * x * (3 - 2 * x)
-def make(out, total, ver, cy=None, card_len=2.0, card_cy=None, period=1.2):
+def make(out, total, ver, cy=None, card_len=2.0, card_cy=None, period=1.2, card_tail=0.0):
     os.makedirs(out, exist_ok=True); cy = cy or int(H * 0.735); card_cy = card_cy or int(H * 0.50)
     base, (bx0, by0, bx1, by1) = pill(cy); hand = _emoji('\U0001F446', 132); cd = card(ver, card_cy)
     n = round(total * 30)
@@ -71,8 +71,8 @@ def make(out, total, ver, cy=None, card_len=2.0, card_cy=None, period=1.2):
         if a > 0.01:
             hd = hand.copy(); hd.putalpha(hd.getchannel('A').point(lambda v: int(v * a)))
             fr.alpha_composite(hd, (int(tipx - hd.size[0] * 0.42), int(tipy + off - 6)))
-        tc = total - card_len
-        if t >= tc - 1e-6:
+        tc = total - card_len - card_tail
+        if t >= tc - 1e-6 and t < total - card_tail - 1e-6:
             k = ease((t - tc) / 0.18); c2 = cd if k >= 1 else cd.copy()
             if k < 1: c2.putalpha(c2.getchannel('A').point(lambda v: int(v * k)))
             fr = Image.alpha_composite(fr, c2)

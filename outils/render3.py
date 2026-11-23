@@ -107,7 +107,7 @@ def build(texts,out,ver='q'):
         fc.append(f"[{last}][{k}:v]overlay=0:0:enable='between(t,{t[0]},{t[1]})'[o{j}]"); last=f'o{j}'; k+=1
     if spec.get('bouton'):
         import ui_clic; ud=f'{work}/ui_{ver}'; import shutil; shutil.rmtree(ud,ignore_errors=True)
-        ui_clic.make(ud,total,ver,cy=int(H*spec.get('btn_cy',0.735)),card_len=spec.get('card_len',2.0),card_cy=int(H*spec.get('card_cy',0.50)))
+        ui_clic.make(ud,total,ver,cy=int(H*spec.get('btn_cy',0.735)),card_len=spec.get('card_len',2.0),card_cy=int(H*spec.get('card_cy',0.50)),card_tail=spec.get('card_tail',0.0))
         inputs+=['-framerate','30','-i',ud+'/f%04d.png']
         fc.append(f'[{last}][{k}:v]overlay=0:0:shortest=0[ui]'); last='ui'; k+=1
     fc.append(f'[{last}][{bi}:v]overlay=0:0,format=yuv420p[vo]')

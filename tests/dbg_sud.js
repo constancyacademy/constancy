@@ -1,0 +1,19 @@
+// Constancy Sud, sur place : (A) hauteur des ponts au-dessus du sol, (B) monter sur chaque pont depuis son pied, (C) murs invisibles le long des avenues, (D) voitures solides
+const { chromium } = require('playwright'); const path = require('path'); const fs = require('fs');
+(async () => { const page = path.resolve(process.argv[2]), save = JSON.parse(fs.readFileSync(process.argv[3], 'utf8')), shots = process.argv[4] || '';
+  const b = await chromium.launch({ args: ['--allow-file-access-from-files', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--mute-audio'] });
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await ctx.route(/^https?:/, r => r.abort());
+  await ctx.addInitScript(([s, nr]) => { Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false }); if (nr) window.__norender = 1; try { if (!sessionStorage.getItem('lx')) { for (const k in s) localStorage.setItem(k, s[k]); sessionStorage.setItem('lx', '1'); } } catch (e) {} }, [save, !shots]);
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message.slice(0, 200)));
+  await p.goto('file://' + page + '?nostat=1&autostart=1');
+  for (let k = 0; k < 300; k++) { await p.waitForTimeout(1000); const st = await p.evaluate(() => { try { const G = window.__W().G; const c = document.getElementById('cont'); if (c && c.getClientRects().length && !window.__lxc) { window.__lxc = 1; setTimeout(() => c.click(), 10); } const w = document.getElementById('wgo'); if (w) w.click(); return G.mode + '|' + !!window.__zonesPretes; } catch (e) { return 'x'; } }); if (/^play\|true/.test(st) && k > 3) break; }
+  for (let k = 0; k < 60; k++) { const st = await p.evaluate(() => { const G = window.__W().G; const w = document.getElementById('wgo'); if (w) w.click(); return G.mode + '|' + (document.querySelector('.dveil') ? 'voile' : '') + '|' + Math.round(G.car.x) + ',' + Math.round(G.car.z); }); if (/^play\|\|/.test(st) && !/\|0,0$/.test(st)) break; await p.waitForTimeout(1000); }
+  await p.evaluate(() => { const W = window.__W(), T = window.__T(), G = W.G; const g = document.getElementById('guide'); if (g) g.remove(); if (G.mode !== 'play') G.mode = 'play'; if (G.onFoot && G.parked) { G.inside = false; T.finishEnter({ own: true }); } });
+  await p.waitForTimeout(2000);
+  const dbg = async (x, z, h, ms) => { await p.evaluate(([x, z, h]) => { const G = window.__W().G, T = window.__T(); G.car.x = x; G.car.z = z; G.car.h = h; G.car.v = 0; G.car.jy = null; window.__lg = []; window.__auto = () => ({ fwd: 1, side: 0, brake: false }); clearInterval(window.__li); window.__li = setInterval(() => { const c = G.car; const sk = T.skyDeckH(c.x, c.z, c.jy || 0); let nd = 99, nh = 0; T.DK.cars.forEach(q => { const d = Math.hypot(q.m.position.x - c.x, q.m.position.z - c.z); if (d < nd) { nd = d; nh = q.hold ? 1 : 0; } }); window.__lg.push([+c.x.toFixed(1), +c.z.toFixed(1), +(c.jy || 0).toFixed(2), +c.v.toFixed(1), sk == null ? null : +sk.toFixed(2), T.DK.onDeck ? 1 : 0, +nd.toFixed(1), nh]); }, 150); }, [x, z, h]); await p.waitForTimeout(ms); return p.evaluate(() => { clearInterval(window.__li); window.__auto = () => ({ fwd: 0, side: 0, brake: true }); return window.__lg; }); };
+  const which = process.env.WHICH || 'mall';
+  const starts = { mall: [20, 1125, 0], perF: [820, 630, Math.PI + 0.3], perD: [-505, 690, 0], f10: [-930, 802, Math.PI / 2] };
+  const [sx, sz, sh] = starts[which];
+  const lg = await dbg(sx, sz, sh, +(process.env.MS || 14000)); lg.forEach((r, i) => { if (i % 3 === 0) console.log(JSON.stringify(r)); });
+  console.log('ERR', errs.slice(0, 3).join(' | ') || 'none'); await b.close(); })().catch(e => { console.log('ERREUR', e.message.slice(0, 300)); process.exit(1); });

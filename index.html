@@ -1556,14 +1556,16 @@ function updateWalkers(dt) { if (!WALKERS.length || !camera) return; const cp = 
    puis tout partait d'un coup au survol de la ville (pic + lag). Le « concierge » envoie au processeur graphique, petit à petit
    pendant l'accueil et le miroir (2,5 Mo de décor et 2 textures par image), tout ce qui ne l'est pas encore, puis libère les copies.
    Rien ne change à l'écran : seules les copies inutiles disparaissent. */
-const JAN = { q: [], tq: [], scanT: -1e9, live: [], freedTex: 0, upGeo: 0, scans: 0 };
+const JAN = { q: [], tq: [], cq: [], scanT: -1e9, live: [], freedTex: 0, freedCv: 0, upGeo: 0, scans: 0 };
+/* V310.41 · U1 de l'expert (23/11 21h50, plantages iPhone) : 163 Mo de dessins (enseignes, panneaux, étiquettes) restaient en double dans la mémoire de la page après leur envoi à la puce graphique · sur téléphone, un dessin qui n'a jamais été redessiné en 30 s est libéré après son envoi (l'image affichée ne change pas) · s'il est redessiné plus tard, le jeu le retrouve (référence faible) */
+const JAN_CV = im => typeof HTMLCanvasElement !== "undefined" && im instanceof HTMLCanvasElement && typeof WeakRef !== "undefined";
 const JAN_IMG = im => im && ((typeof HTMLImageElement !== "undefined" && im instanceof HTMLImageElement) || (typeof ImageBitmap !== "undefined" && im instanceof ImageBitmap));
 const JAN_KEYS = ["map", "emissiveMap", "normalMap", "alphaMap", "roughnessMap", "metalnessMap", "aoMap", "bumpMap", "specularMap", "lightMap", "envMap"];
-try { const d = Object.getOwnPropertyDescriptor(THREE.Texture.prototype, "needsUpdate"); if (d && d.set) Object.defineProperty(THREE.Texture.prototype, "needsUpdate", { configurable: true, get: d.get, set(v) { if (this.userData && this.userData.freed) return; d.set.call(this, v); } });
-  const oc = THREE.Texture.prototype.clone; THREE.Texture.prototype.clone = function () { if (this.userData && this.userData.freed) return this; return oc.call(this); }; } catch (e) {}
-function janScan() { JAN.q.length = 0; JAN.tq.length = 0; JAN.scans++; const sT = new Set(), sG = new Set();
+try { const d = Object.getOwnPropertyDescriptor(THREE.Texture.prototype, "needsUpdate"); if (d && d.set) Object.defineProperty(THREE.Texture.prototype, "needsUpdate", { configurable: true, get: d.get, set(v) { if (this.userData && this.userData.freed) return; if (v && this.userData && this.userData.cvFreed) { const c = this.userData.cvRef && this.userData.cvRef.deref(); this.userData.cvFreed = 0; if (c) this.image = c; else return; } d.set.call(this, v); } }); /* V310.41 : une enseigne dont le dessin a été libéré (voir JAN_CV) retrouve son dessin si le jeu la redessine */
+  const oc = THREE.Texture.prototype.clone; THREE.Texture.prototype.clone = function () { if (this.userData && this.userData.freed) return this; if (this.userData && this.userData.cvFreed) { const c = this.userData.cvRef && this.userData.cvRef.deref(); if (!c) return this; this.image = c; this.userData.cvFreed = 0; } return oc.call(this); }; } catch (e) {}
+function janScan() { JAN.q.length = 0; JAN.tq.length = 0; JAN.cq.length = 0; JAN.scans++; const sT = new Set(), sG = new Set();
   scene.traverse(o => { if (o.isMesh && !o.isSkinnedMesh && !o.isInstancedMesh && o.geometry && !sG.has(o.geometry)) { const g = o.geometry; sG.add(g); const P = g.attributes && g.attributes.position; if (P && !P.isInterleavedBufferAttribute && FREED.has(g) && P.array && P.array.length > 0) JAN.q.push(o); }
-    const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const m of ms) for (const k of JAN_KEYS) { const t = m[k]; if (t && t.isTexture && !sT.has(t)) { sT.add(t); if (!(t.userData && (t.userData.freed || t.userData.keepImage)) && !t.isVideoTexture && !t.isCubeTexture && JAN_IMG(t.image)) JAN.tq.push(t); } } }); }
+    const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const m of ms) for (const k of JAN_KEYS) { const t = m[k]; if (t && t.isTexture && !sT.has(t)) { sT.add(t); if (!(t.userData && (t.userData.freed || t.userData.keepImage)) && !t.isVideoTexture && !t.isCubeTexture && JAN_IMG(t.image)) JAN.tq.push(t); else if (!t.isVideoTexture && JAN_CV(t.image) && !(t.userData && (t.userData.cvFreed || t.userData.keepImage))) { const u = t.userData || (t.userData = {}); if (u.cvV === t.version && performance.now() - u.cvT > 25000) JAN.cq.push(t); else if (u.cvV !== t.version) { u.cvV = t.version; u.cvT = performance.now(); } } } } }); }
 function janTick() { if (!renderer || !scene) return; if (!TOUCH_DEV()) { JAN.tq.length = 0; } /* sur ordinateur : seulement la préparation (pas de libération des images) */ const now = performance.now();
   JAN.live.forEach(m => scene.remove(m)); JAN.live.length = 0;
   if (!JAN.q.length && !JAN.tq.length && typeof RGN !== "undefined" && RGN.cells && !(CINE.on && CINE.t > CINE_L7 - 1)) { let n = 0; for (const c of RGN.cells) { if (c.__up || n >= 3) continue; c.__up = 1; n++; try { const im = c.im, pr = new THREE.InstancedMesh(im.geometry, im.material, im.count); pr.instanceMatrix = im.instanceMatrix; if (im.instanceColor) pr.instanceColor = im.instanceColor; pr.frustumCulled = false; pr.matrixAutoUpdate = false; pr.matrix.makeScale(0, 0, 0); scene.add(pr); pr.updateMatrixWorld(true); JAN.live.push(pr); } catch (e) {} } }
@@ -1572,6 +1574,7 @@ function janTick() { if (!renderer || !scene) return; if (!TOUCH_DEV()) { JAN.tq
   for (let n = 0; JAN.tq.length && n < (busy ? 0 : 2);) { const t = JAN.tq.pop(), pr = renderer.properties.get(t); if (!JAN_IMG(t.image)) continue;
     if (!pr.__webglInit || pr.__version !== t.version) { try { renderer.initTexture(t); } catch (e) { continue; } n++; }
     const p2 = renderer.properties.get(t); if (p2.__webglInit && p2.__version === t.version) { const im = t.image, w = im.width, h = im.height; try { if (im.close) im.close(); } catch (e) {} t.image = { width: w, height: h }; t.userData = t.userData || {}; t.userData.freed = 1; JAN.freedTex += w * h * 4; } }
+  if (TOUCH_DEV() && !busy) for (let n = 0; JAN.cq.length && n < 6; n++) { const t = JAN.cq.pop(), u = t.userData, im = t.image; if (!JAN_CV(im) || u.cvFreed || u.cvV !== t.version) continue; const pr = renderer.properties.get(t); if (!pr.__webglInit || pr.__version !== t.version) continue; /* jamais envoyée (pas encore vue) : on la garde */ u.cvRef = new WeakRef(im); u.cvFreed = 1; t.image = { width: im.width, height: im.height }; JAN.freedCv += im.width * im.height * 4; }
   let bytes = 0; const cap = busy ? 0 : 2.5e6; while (JAN.q.length && bytes < cap) { const o = JAN.q.pop(), g = o.geometry, P = g.attributes.position; if (!P || !P.array || !P.array.length) continue; bytes += P.array.byteLength * 2;
     const m = new THREE.Mesh(g, o.material); m.frustumCulled = false; m.matrixAutoUpdate = false; m.matrix.makeScale(0, 0, 0); m.renderOrder = -9999; m.castShadow = m.receiveShadow = false; scene.add(m); m.updateMatrixWorld(true); JAN.live.push(m); }
   JAN.upGeo += bytes; }
@@ -1649,15 +1652,16 @@ function noiseTex(base, spread, size, rep, draw) {
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep); t.anisotropy = 4; return t;
 }
 function label(text, color) {
-  const c = document.createElement("canvas"); c.width = 512; c.height = 128; const g = c.getContext("2d");
-  g.fillStyle = "rgba(5,5,5,.82)"; g.fillRect(0, 16, 512, 96); g.fillStyle = color; g.fillRect(0, 16, 12, 96);
   const T = text.toUpperCase(), fit = ctx => { let fs = 54; ctx.font = fs + "px Anton, Impact, sans-serif"; const w = ctx.measureText(T).width; if (w > 404) { fs = Math.floor(fs * 404 / w); ctx.font = fs + "px Anton, Impact, sans-serif"; } };
-  fit(g); g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = "#fff"; g.fillText(T, 262, 66);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false })); s.scale.set(16, 4, 1);
-  const n = document.createElement("canvas"); n.width = 512; n.height = 128; const h = n.getContext("2d");
+  const mkDay = () => { const c = document.createElement("canvas"); c.width = 512; c.height = 128; const g = c.getContext("2d");
+  g.fillStyle = "rgba(5,5,5,.82)"; g.fillRect(0, 16, 512, 96); g.fillStyle = color; g.fillRect(0, 16, 12, 96);
+  fit(g); g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = "#fff"; g.fillText(T, 262, 66); return new THREE.CanvasTexture(c); };
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: mkDay(), depthWrite: false })); s.scale.set(16, 4, 1);
+  /* V310.41 (U1, mémoire iPhone) : la version néon de nuit de l'étiquette n'est dessinée qu'à la première nuit (avant : 2 dessins de 512 × 128 par étiquette dès le chargement, même de jour) */
+  const mkNight = () => { const n = document.createElement("canvas"); n.width = 512; n.height = 128; const h = n.getContext("2d");
   h.fillStyle = "rgba(14,4,22,.9)"; h.fillRect(4, 16, 504, 96); h.shadowColor = "#ff3fb4"; h.shadowBlur = 18; h.strokeStyle = "#ff6fcf"; h.lineWidth = 5; h.strokeRect(8, 20, 496, 88);
-  fit(h); h.textAlign = "center"; h.textBaseline = "middle"; h.shadowBlur = 22; h.fillStyle = "#ffe6f6"; h.fillText(T, 256, 66);
-  NEON_LABELS.push({ mats: [s.material], day: s.material.map, night: new THREE.CanvasTexture(n) }); return s;
+  fit(h); h.textAlign = "center"; h.textBaseline = "middle"; h.shadowBlur = 22; h.fillStyle = "#ffe6f6"; h.fillText(T, 256, 66); return new THREE.CanvasTexture(n); };
+  NEON_LABELS.push({ mats: [s.material], day: s.material.map, night: null, mkDay, mkNight }); return s;
 }
 const NEON_LABELS = [];
 // enseigne plate fixée au mur (contrairement aux étiquettes flottantes qui suivent la caméra)
@@ -9933,7 +9937,7 @@ function applySky(h) {
   if (DM.hw) { DM.hw[0].emissiveIntensity = nightK * 1.3; DM.hw[1].emissiveIntensity = nightK * 1.1; }
   if (FX.towerLed) FX.towerLed.emissiveIntensity = 0.05 + nightK * 2.1;
   NEON.mats.forEach(m => m.color.copy(m.userData.base).multiplyScalar(0.06 + nightK * 1.0));
-  { const nt = nightK > 0.45; if (NEON.lblNight !== nt) { NEON.lblNight = nt; NEON_LABELS.forEach(L => L.mats.forEach(mm => { mm.map = nt ? L.night : L.day; mm.needsUpdate = true; })); } }
+  { const nt = nightK > 0.45; if (NEON.lblNight !== nt) { NEON.lblNight = nt; NEON_LABELS.forEach(L => { if (nt && !L.night) L.night = L.mkNight(); if (!nt && !L.day) L.day = L.mkDay(); const off = nt ? "day" : "night"; try { if (L[off] && !renderer.properties.get(L[off]).__webglInit) { L[off].dispose(); L[off] = null; } } catch (e) {} /* V310.41 : la version jamais affichée (jour ou nuit) est jetée et redessinée au besoin */ L.mats.forEach(mm => { mm.map = nt ? L.night : L.day; mm.needsUpdate = true; }); }); } }
   if (AVL_M) AVL_M.opacity = (0.25 + nightK * 0.75) * (Math.floor(performance.now() / 900) % 2 ? 1 : 0.15);
   if (POSTS.M) { POSTS.M[0].emissiveIntensity = nightK * 1.25; POSTS.M[1].emissiveIntensity = nightK * 1.5; POSTS.pool.material.opacity = nightK * 0.55; }
   lampGlowMat.opacity = nightK * 0.95; if (lampPoolMat) lampPoolMat.opacity = nightK * 0.42 * (1 + WX.wet * 0.5); if (WETR.mat) { const k = nightK * WX.wet * 0.85; WETR.mesh.visible = k > 0.01 && !G.inside; WETR.mat.uniforms.uK.value = k; WETR.mat.uniforms.uT.value = performance.now() / 1000; } bulbMat.color.setRGB(0.47 + nightK * 0.53, 0.44 + nightK * 0.5, 0.4 + nightK * 0.3);

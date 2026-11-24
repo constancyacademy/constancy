@@ -1,0 +1,115 @@
+{
+"id": "appart25m",
+"ver": "b1",
+"question": "Tu l'achètes ?",
+"music": null,
+"audio_file": "/root/w/m4/a/a.wav",
+"audio_start": 0,
+"shake": 0,
+"fade": 0.05,
+"text_plate": 180,
+"abo": true,
+"beat_every": 1,
+"sub_fsz": 58,
+"bouton": true,
+"btn_cy": 0.735,
+"card_len": 2.0,
+"card_tail": 0.2,
+"card_cy": 0.4,
+"jeu_text": "Tu l'achètes ?",
+"nl_fsz": 94,
+"segs": [
+[
+"t_appart25m-b1_baie-travelling-feux-artifice_nuit",
+0.2,
+2.1,
+[
+0,
+0,
+1080,
+1920
+],
+0,
+1.0
+],
+[
+"t_appart25m-b1_penthouse-dehors-drone-baie-tours-neon_nuit",
+0.3,
+1.85,
+[
+0,
+0,
+1080,
+1920
+],
+0,
+1.0
+],
+[
+"t_appart25m-b1_penthouse-dessous-tour-vertige-ville_nuit",
+0.2,
+1.75,
+[
+0,
+0,
+1080,
+1920
+],
+0,
+1.0
+],
+[
+"t_appart25m-b1_baie-feux-artifice-ville-plongee_nuit",
+0.0,
+2.0,
+[
+0,
+0,
+1080,
+1920
+],
+0,
+1.0
+],
+[
+"t_appart25m-b1_baie-travelling-feux-artifice_nuit",
+0.0,
+0.2,
+[
+0,
+0,
+1080,
+1920
+],
+0,
+1.0
+]
+],
+"texts": [
+[
+0,
+1.8917,
+"La vue d'un appart\nà 25 millions."
+],
+[
+1.8917,
+3.4417,
+"88e étage.\nToute la ville à tes pieds."
+],
+[
+3.4417,
+4.9917,
+"Il est dans le jeu.\nGratuit."
+],
+[
+4.9917,
+6.9917,
+"@Q"
+],
+[
+6.9917,
+8.0,
+"La vue d'un appart\nà 25 millions."
+]
+]
+}

@@ -30,8 +30,8 @@ const { chromium } = require('playwright'); const fs = require('fs'); const path
           if (v.js) eval(v.js); window.__T0 = null; window.__camK = eval(v.camjs); W.camera.far = Math.max(W.camera.far, v.far || 0); }, v);
         await p.waitForTimeout(v.wait || 4000); await p.evaluate(() => window.__freeze()); frozen=true; await p.evaluate(() => { window.__T0 = performance.now(); });
         const n = v.n || 1;
-        for (let i = 0; i < (v.pre || 3); i++) await p.evaluate(() => window.__step(1000 / 30));
-        for (let i = 0; i < n; i++) { if (i>0 || true) await p.evaluate(() => window.__step(1000 / 30)); if (v.toff && i==0) { for(let k=0;k<Math.round(v.toff*30);k++) await p.evaluate(() => window.__step(1000 / 30)); }
+        for (let i = 0; i < (v.pre || 3); i++) await p.evaluate(fs_ => window.__step(fs_), 1000/(v.fps||30));
+        const FS=1000/(v.fps||30); for (let i = 0; i < n; i++) { if (i>0 || true) await p.evaluate(fs_ => window.__step(fs_), FS); if (v.toff && i==0) { for(let k=0;k<Math.round(v.toff*30);k++) await p.evaluate(() => window.__step(1000 / 30)); }
           await p.screenshot({ path: `${out}/${v.name}_${String(i).padStart(3, '0')}.png`, timeout: 240000 }); if (i % 15 == 0) console.log(v.name, i, (Date.now() - ts0) / 1000); }
       }
     } catch (e) { console.log('JOBERR', e.message); fs.writeFileSync(jf + '.err', String(e.stack)); }

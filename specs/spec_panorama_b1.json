@@ -1,0 +1,7 @@
+{"id": "panorama", "ver": "b1", "question": "Tu l'explores ce soir ?", "music": null, "audio_file": "/root/w/pano/a.wav", "audio_start": 0, "shake": 0, "fade": 0.05, "text_plate": 180, "abo": true, "beat_every": 1, "sub_fsz": 58, "bouton": true, "btn_cy": 0.665, "card_len": 2.2, "card_tail": 0.2, "card_cy": 0.4, "jeu_text": "Tu l'explores ce soir ?", "nl_fsz": 94,
+ "segs": [["t_panorama-b1_skyline-tour-feu-artifice-travelling-v3_nuit", 0.2, 2.0666667, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_panorama-b1_pont-esplanade-hyper-vers-ville_nuit", 0.2333333, 1.8666667, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_panorama-b1_mont-constantine-etoile-filante-v2_nuit", 0.0, 1.9333333, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_panorama-b1_tour-feu-artifice-autre-cote-v3_nuit", 0.0, 2.2, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_panorama-b1_skyline-tour-feu-artifice-travelling-v3_nuit", 0.0, 0.2, [0, 0, 1080, 1920], 0, 1.0]],
+ "texts": [[0, 1.85, "Un monde ouvert.\nSur ton téléphone."], [1.85, 3.4833, "Une ville entière\nà explorer."], [3.4833, 5.4167, "Du centre-ville\njusqu'au sommet."], [5.4167, 7.6167, "@Q"], [7.6167, 9.0, "Un monde ouvert.\nSur ton téléphone."]]}

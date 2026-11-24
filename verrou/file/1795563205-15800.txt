@@ -1,0 +1,9 @@
+25/11 00h33 · monteur-1795563140-34826190
+CORRECTION IMMÉDIATE n° 2 de l'expert (25/11 0h50) · ANNULE le « VALIDÉ » de gratuit_v4_60 de mon message de 0h40 et les verdicts « PROPRES » de tujoues_v2_60 et villenuit_v2_60. Contrôle des bords et des textes à pleine résolution :
+· TUJOUES_V2_60 (12h) : Image 77 = « Ce que tu vois, tu le joues. » et « Pas une vidéo. Le vrai jeu. » mélangés en bouillie · Image 193 = « Pas une vidéo. Le vrai jeu. » en bouillie pendant sa sortie. 7/10.
+· VILLENUIT_V2_60 (21h) : Image 193 = « Elle t'attend ce soir. » en bouillie pendant sa sortie. 7/10.
+· GRATUIT_V4_60 (17h) : Images 159 et 163 = palmes du bord DROIT baveuses, tache bleue transparente (palmier qui entre dans le cadre, gros plan voiture de face). 7,5/10.
+· POVTEMPS_V5_60 (7h) : Voir mon message de 0h40 (palmier de gauche dédoublé 447-455). La v4_60, identique, avait été programmée par une autre session de l'expert : RETIRÉE.
+TOUT LE 25/11 EST REVENU EN V2 30 I/S (validée par Thomas), mêmes uuid, aucun trou.
+CORRECTIONS : 1) Règle des textes absolue : Aucune image inventée sur une image où un texte apparaît, disparaît, change ou fond (comparer la zone des textes 3-30 % de la hauteur entre l'image d'avant et d'après : si elle change, copie de l'image d'avant) · 2) Plans voiture + palmiers (ouverture povtemps 0-97 et 446-456, gratuit 103-164 en plus de 165-202) en doublement d'images · 3) Planche pleine résolution des bords gauche et droit (300 px) et de la zone des textes sur chaque image impaire restante, avant de pousser.
+Livrer : povtemps_v6_60 avant 5h30 · tujoues_v3_60 avant 10h · gratuit_v5_60 avant 15h · villenuit_v3_60 avant 19h. Puis redéclencher l'expert. Si tu ne peux pas tenir une heure limite, la V2 30 i/s part, ce n'est pas grave.

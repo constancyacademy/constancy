@@ -10019,7 +10019,8 @@ function coupeBuy() { const c = CARS.find(x => x.id === "coupe"); if (!c || !P |
   const s0 = G.saveT ? (performance.now() - G.saveT) / 60000 : 99; stat("coupe-achetee"); stat("coupe-achetee-" + (s0 < 3 ? "3min" : s0 < 4 ? "4min" : s0 < 5 ? "5min" : s0 < 6 ? "6min" : "plus") + "-" + (P.objective || "cash")); $("coupeBtn").classList.add("hidden");
   try { coupeScene(); } catch (e) { notify("gold", "<b>Ta première vraie voiture.</b>", 6); } }
 /* V310.24 · tâche 4 de l'expert (19h07, ex-R3) : L'ACHAT EN SCÈNE, LE TÉLÉPHONE « ELLES T'ATTENDENT. », LE RENDEZ-VOUS ET LE PARTAGE · aucun nouveau modèle (les voitures du téléphone sont les images de la concession) */
-function coupeScene() { stat("coupe-scene"); try { if (SND.on !== false) playBuf("v8", 0.6, 1.15); } catch (e) {} try { navigator.vibrate && navigator.vibrate([30, 80, 30, 80, 60]); } catch (e) {}
+function endQuiet() { G.quiet = 0; const q = G.quietQ || []; G.quietQ = []; q.forEach((a, i) => setTimeout(() => notify(a[0], a[1], a[2]), 900 + i * 2400)); }
+function coupeScene() { G.quiet = performance.now() + 45000; setTimeout(() => { if (G.quiet) endQuiet(); }, 45200); try { [...document.querySelectorAll("#notes .note-bar")].forEach(el => { const k = el.className.replace(/\bnote-bar\b|\bon\b|\bout\b/g, "").trim() || "info", t = el.children[1] ? el.children[1].innerHTML : ""; if (t) (G.quietQ = G.quietQ || []).push([k, t, 6]); el.remove(); }); } catch (e) {} stat("coupe-scene"); try { if (SND.on !== false) playBuf("v8", 0.6, 1.15); } catch (e) {} try { navigator.vibrate && navigator.vibrate([30, 80, 30, 80, 60]); } catch (e) {}
   const d = document.createElement("div"); d.className = "cpsc"; d.innerHTML = '<div class="k">Coupé néon</div><div class="t">Ta première vraie voiture.</div><i class="ln"></i>'; document.body.appendChild(d); requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add("on")));
   setTimeout(() => { d.classList.add("out"); setTimeout(() => d.remove(), 700); coupePhone(); }, 3000); }
 function coupePhone(w) { if (G.mode !== "play") { w = (w || 0) + 1; if (w < 60) { setTimeout(() => coupePhone(w), 400); return; } stat("telephone-voitures-saute"); setTimeout(rdvCard, 400); return; } setMode("menu"); stat("telephone-voitures-vu");
@@ -10032,7 +10033,7 @@ function coupePhone(w) { if (G.mode !== "play") { w = (w || 0) + 1; if (w < 60) 
 function rdvCard() { if (!P) return; stat("rdv-vu"); eclairArm(); const d = document.createElement("div"); d.className = "chestc rdvc"; const ios = /iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone, canInst = !!installEvt || ios;
   d.innerHTML = `<div class="ck">Jour 1 ✓ · Jour 1 sur 7</div><div class="ct">Demain : <b>Jour 2 · Ton coffre</b></div><div class="cr">+3 000 $</div><button class="rdvb" id="rdvShare" type="button">Montre ta coupé néon à un pote</button><div class="cw">+1 000 $ chacun quand il crée sa sauvegarde.</div>${P.email && !P.emailOk ? `<div class="cw">Confirme ton e-mail · +${fmtSp(CONFIRM_BONUS)} $.</div>` : ""}${canInst ? '<button class="rdvb alt" id="rdvInst" type="button">Ajouter à l\'écran d\'accueil</button>' : ""}<button class="rdvx" id="rdvX" type="button" aria-label="Fermer">×</button>`;
   document.body.appendChild(d); requestAnimationFrame(() => d.classList.add("in")); if (canInst) stat("ecran-accueil-propose");
-  const close = () => { d.classList.remove("in"); setTimeout(() => d.remove(), 700); };
+  const close = () => { d.classList.remove("in"); setTimeout(() => d.remove(), 700); if (G.quiet) setTimeout(endQuiet, 700); };
   d.querySelector("#rdvShare").addEventListener("click", e => { e.stopPropagation(); stat("coupe-partage"); try { shareGame(); } catch (er) {} close(); });
   const ib = d.querySelector("#rdvInst"); if (ib) ib.addEventListener("click", e => { e.stopPropagation(); stat("ecran-accueil-touche"); if (installEvt) { try { installEvt.prompt(); } catch (er) {} installEvt = null; } else help("Touche <b>Partager</b> puis <b>Sur l'écran d'accueil</b>.", 7); close(); });
   d.querySelector("#rdvX").addEventListener("click", e => { e.stopPropagation(); close(); }); setTimeout(close, 14000); }
@@ -12027,6 +12028,7 @@ function updateRadio() {
   if (RADIO.g && SND.ctx) { const t = SND.ctx.currentTime, on = inCar && SND.on && !!RADIO.list[RADIO.i]; RADIO.g.gain.setTargetAtTime(on ? (G.fpv ? 0.5 : 0.34) : 0, t, 0.25); RADIO.f.frequency.setTargetAtTime(G.fpv ? 15000 : 7000, t, 0.3); }
 }
 function notify(kind, html, secs = 7) {
+  if (G.quiet && performance.now() < G.quiet) { (G.quietQ = G.quietQ || []).push([kind, html, secs]); return; } /* V310.46 (tâche 3 de l'expert) : pendant la scène de la coupé néon, le téléphone et la carte du rendez-vous, les bulles attendent leur tour */
   const box = $("notes"); if (!box) return; const el = document.createElement("div"); el.className = "note-bar " + kind;
   el.innerHTML = `<span class="ic">${kind === "gold" ? "Constancy" : "Info"}</span><span>${html}</span>`; box.appendChild(el);
   requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("on")));
@@ -12720,7 +12722,8 @@ let snapR = null, snapScene = null, snapCam = null; const snapCache = {};
 function snapshot(key, build, w = 220, h = 160, dist = 1) {
   if (snapCache[key]) return snapCache[key];
   try {
-    if (!snapR) {
+    if (!snapR || !snapCam || !snapScene) { /* V310.46 (recette : « Cannot set properties of undefined (setting 'aspect') ») : si la création du petit moteur des vignettes s'arrête en route (contexte graphique refusé), on la reprend en entier au lieu de garder un moteur sans caméra */
+      if (snapR) { try { snapR.dispose(); } catch (e) {} snapR = null; }
       snapR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); snapR.setSize(w, h); snapR.setClearColor(0x000000, 0);
       snapScene = new THREE.Scene(); snapScene.add(new THREE.HemisphereLight(0xffffff, 0x444455, 0.95));
       const d = new THREE.DirectionalLight(0xffffff, 0.7); d.position.set(3, 5, 6); snapScene.add(d);

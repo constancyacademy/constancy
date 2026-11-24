@@ -38,17 +38,38 @@ small{display:block;margin-top:14px;color:rgba(242,240,236,.45);font-size:12.5px
   <a class="go" id="tt" href="snssdk1233://">Retourner sur TikTok</a>
   <a class="go alt" id="ig" href="instagram://app">Retourner sur Instagram</a>
   <a class="go alt" id="yt" href="youtube://">Retourner sur YouTube</a>
+  <a class="go alt" id="fb" href="fb://" style="display:none">Retourner sur Facebook</a>
+  <a class="go alt" id="x" href="twitter://" style="display:none">Retourner sur X</a>
+  <a class="go alt" id="sc" href="snapchat://" style="display:none">Retourner sur Snapchat</a>
   <a class="go alt" id="web" href="/?confirme=1">Je jouais ici, sur ce navigateur</a>
   <small>Si l'appli ne s'ouvre pas, ouvre-la toi-même : le jeu se remet en route au retour.</small>
 </main>
 <script>
-// La source du joueur (?src=tt, ig, yt, fb…) peut être ajoutée au lien de redirection : le bon bouton passe alors en premier.
+// V310.47 (Thomas, 24/11 10h34) : le joueur doit revenir tout seul dans l'appli où il s'est inscrit.
+// Le jeu donne sa source au script de Thomas au moment de l'inscription · Kit ajoute ck_subscriber_id au lien de cette page · le script renvoie la source (jamais l'adresse).
+// Une source dans le lien (?src=tt, ig, yt, fb, x, sc, web) passe avant.
 (function () { try {
-  var q = new URLSearchParams(location.search), s = (q.get("src") || q.get("s") || "").toLowerCase(), map = { tt: "tt", tiktok: "tt", ig: "ig", instagram: "ig", yt: "yt", youtube: "yt", web: "web", direct: "web" }, k = map[s];
-  if (k) { var b = document.getElementById(k), m = document.querySelector("main"), first = document.getElementById("tt"); b.classList.remove("alt"); if (b !== first) { first.classList.add("alt"); m.insertBefore(b, first); } }
-  // statistiques : une seule ligne, comme le jeu (GoatCounter), jamais pour les tests
-  if (localStorage.getItem("skipgc") !== "t" && localStorage.getItem("cst-testacc") !== "1") { var sc = document.createElement("script"); sc.async = true; sc.src = "https://gc.zgo.at/count.js"; sc.dataset.goatcounter = "https://constancy.goatcounter.com/count"; sc.onload = function () { try { window.goatcounter.count({ path: "evt-confirmation-page" + (k ? "-" + k : ""), title: "confirmation-page", event: true }); } catch (e) {} }; document.head.appendChild(sc); }
-  ["tt", "ig", "yt", "web"].forEach(function (id) { document.getElementById(id).addEventListener("click", function () { try { window.goatcounter && window.goatcounter.count({ path: "evt-confirmation-retour-" + id, title: "confirmation-retour", event: true }); } catch (e) {} }); });
+  var VERIFY = "https://script.google.com/macros/s/AKfycbxFiuYqwJzJ7XlKYMkvvJ_lH8ZVk4znGWgh9TeY3YSZ3c_lsDI_dlHhhy7SYcNg3mIaIQ/exec";
+  var q = new URLSearchParams(location.search), map = { tt: "tt", tiktok: "tt", ig: "ig", instagram: "ig", yt: "yt", youtube: "yt", fb: "fb", facebook: "fb", x: "x", twitter: "x", th: "ig", threads: "ig", snap: "sc", sc: "sc", snapchat: "sc", web: "web", direct: "web", mail: "web", seo: "web", pwa: "web", app: "web" };
+  var test = localStorage.getItem("skipgc") === "t" || localStorage.getItem("cst-testacc") === "1";
+  function gc(path) { if (test) return; try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: path, title: path, event: true }); } catch (e) {} }
+  if (!test) { var sc = document.createElement("script"); sc.async = true; sc.src = "https://gc.zgo.at/count.js"; sc.dataset.goatcounter = "https://constancy.goatcounter.com/count"; document.head.appendChild(sc); }
+  var done = false;
+  function apply(k, auto) {
+    if (done) return; done = true; var main = document.querySelector("main"), first = document.getElementById("tt");
+    var b = k ? document.getElementById(k) : null; if (!b) { setTimeout(function () { gc("evt-confirmation-page"); }, 900); return; }
+    b.style.display = ""; b.classList.remove("alt"); if (b !== first) { first.classList.add("alt"); main.insertBefore(b, first); }
+    var names = { tt: "TikTok", ig: "Instagram", yt: "YouTube", fb: "Facebook", x: "X", sc: "Snapchat" };
+    if (names[k]) { document.getElementById("msg").innerHTML = "Ton jeu s'est <b>débloqué tout seul</b>. On te ramène sur <b>" + names[k] + "</b>, ta partie t'attend."; }
+    setTimeout(function () { gc("evt-confirmation-page-" + k); }, 900);
+    if (auto && names[k]) setTimeout(function () { gc("evt-confirmation-retour-auto-" + k); location.href = b.getAttribute("href"); }, 1400);
+  }
+  var k0 = map[(q.get("src") || q.get("s") || "").toLowerCase()];
+  var id = (q.get("ck_subscriber_id") || "").replace(/[^0-9]/g, "");
+  if (k0) apply(k0, true);
+  else if (id) { var t = setTimeout(function () { apply(null); }, 4000); fetch(VERIFY + "?action=src&id=" + id + "&t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) { clearTimeout(t); apply(map[String((j && j.src) || "").toLowerCase()] || null, true); }).catch(function () { clearTimeout(t); apply(null); }); }
+  else apply(null);
+  ["tt", "ig", "yt", "fb", "x", "sc", "web"].forEach(function (id2) { var el = document.getElementById(id2); if (el) el.addEventListener("click", function () { gc("evt-confirmation-retour-" + id2); }); });
 } catch (e) {} })();
 </script>
 </body>

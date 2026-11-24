@@ -3936,6 +3936,10 @@ function j1Tick() { if (!G.j1Arm || G.mode !== "play" || G.mission || G.inside |
   const c = G.onFoot ? G.me : G.car; let x, z, k = 0, d = 0; do { x = rc(Math.floor(rand(1, NB))); z = rc(Math.floor(rand(1, NB))); d = Math.hypot(x - c.x, z - c.z); k++; } while ((d < 220 || d > 340) && k < 80);
   G.j1N = (G.j1N || 0) + 1; G.mission = { type: "livraison", r3: true, chain: G.j1N, dx: x, dz: z, time: 0 }; destBeacon.position.set(x, 0, z); destBeacon.visible = true; try { sfx.ping(); } catch (e) {}
   help("<b>Livraison suivante · +600 $.</b>", 6); stat("mission-enchainee-" + G.j1N); setTimeout(routeBills, 400); }
+/* V310.45 (file de l'expert, tâche 2, vérifiée en vrai écran) : un nouveau joueur Muscle ou Ma boîte arrivait en voiture devant la salle ou le mentor, voyait 6 s « Tu es à la Salle. Appuie sur SORTIR et entre à pied. », puis restait assis dans sa voiture sans rien comprendre, et la police de l'inertie arrivait · tant qu'il est arrêté près du lieu, une ligne courte et SORTIR qui pulse, puis à pied la distance jusqu'au point */
+function r3FootTick() { const g = G.r3Goal; if (!g || G.mission || G.mode !== "play" || !P || P.day !== 1) return; const L = LM[g[0]]; if (!L || !L.foot || L.x == null) return; const now = performance.now(); if (now - (G.r3FootT || 0) < 1500) return; G.r3FootT = now;
+  if (!G.onFoot) { const d = Math.hypot(L.x - G.car.x, L.z - G.car.z); if (d < 24 && Math.abs(G.car.v || 0) < 3) { help("<b>Descends</b>, la suite est à pied.", 2.2); r3Pulse(true); G.idle = 0; if (!G.r3FootS) { G.r3FootS = 1; stat("r3-descends-" + P.objective); } } }
+  else { const d = Math.hypot(L.x - G.me.x, L.z - G.me.z); if (d < 40 && d > 5.5) { r3Pulse(false); help(`<b>Avance jusqu'au point.</b> ${Math.round(d)} m.`, 2.2); G.idle = 0; } } }
 function r3Pulse(on) { try { $("exitBtn").classList.toggle("r3p", !!on); } catch (e) {} }
 function r3Car() { r3Pulse(false); G.cgHold = 0; stat("voiture-montee"); if (G.saveT && !G.volantS) { G.volantS = 1; const s = (performance.now() - G.saveT) / 1000; stat("volant-apres-sauvegarde-" + (s < 10 ? "10s" : s < 20 ? "20s" : s < 30 ? "30s" : "plus")); } setTimeout(() => { if (G.mode === "play" && !G.onFoot && P && P.proloM1 === -1) prologueRadio(); }, 2500); /* V310.34 : le prologue n'est plus à la radio pendant la 1re course, il passe en cinématique après la 1re mission */
   if (G.r3Goal) { help(`<b>${G.r3Goal[1]}.</b> Suis le trait du GPS. Pas de chrono.`, 7); return; }
@@ -11552,7 +11556,7 @@ function normalizeRide() {
 /* ============ Missions ============ */
 function zoneAt() {
   const o = target();
-  for (const [k, l] of Object.entries(LM)) if (Math.hypot(o.x - l.x, o.z - l.z) < (l.foot ? 3 : 5.5)) return k;
+  for (const [k, l] of Object.entries(LM)) if (Math.hypot(o.x - l.x, o.z - l.z) < (l.foot ? (G.r3Goal && G.r3Goal[0] === k && G.onFoot ? 6 : 3) : 5.5)) return k; /* V310.45 : au Jour 1, le lieu de la 1re mission guidée (salle, mentor) s'ouvre à 6 m à pied au lieu de 3 */
   return null;
 }
 function checkZones() {
@@ -11578,7 +11582,8 @@ function onZone(k) {
     else help("Mamie va bien. Elle t'offre un café. Reviens quand elle t'appelle.");
   }
   else if (k === "home" && G.onFoot) enterHome();
-  else if (k === "home") missionCard("Rentrer dormir", "Finir la journée maintenant et passer au bilan du soir ?", [], "", () => endDay(false), "Dormir");
+  /* V310.45 (file de l'expert, tâche 2 : objectifs Muscle et Ma boîte au Jour 1, vérifiés en vrai écran) : un nouveau joueur Muscle ou Ma boîte qui montait dans sa voiture devant l'appartement voyait tout de suite « Rentrer dormir · Finir la journée maintenant et passer au bilan du soir ? » (aucune mission en cours au départ, contrairement au Cash), et « Dormir » finissait son Jour 1 avant d'avoir joué · la carte ne vient plus au Jour 1 tant qu'aucune mission n'est faite, ni dans les 90 s qui suivent le lancement de la partie */
+  else if (k === "home") { if ((P.day === 1 && !((P.deliveries || 0) > 0 || Object.keys(P.counts || {}).length)) || performance.now() - (G.playT0 || 0) < 90000) return; missionCard("Rentrer dormir", "Finir la journée maintenant et passer au bilan du soir ?", [], "", () => endDay(false), "Dormir"); }
 }
 const gymKg = () => 18 + Math.floor((P.sessions || 0) / 2) * 2;
 /* ============ Histoire : la 1re mission dépend de l'objectif, puis tout le monde converge ============ */
@@ -13615,7 +13620,7 @@ function loop(now) {
     G.feedT = (G.feedT || 0) + dt; if (G.feedT > 125) { G.feedT = 0; feedAuto(); }
     G.offerT = (G.offerT || 0) + dt; G.vtcT = (G.vtcT == null ? 90 : G.vtcT) - dt; G.voisT = (G.voisT == null ? 60 : G.voisT) - dt; if (G.offerT > 5) { G.offerT = 0; if (!storyStep() || P.day > 1) offerDaily(); offerVtc(); offerVoisin(); }
     updateDoorClose(dt);
-    if (G.inside) checkInterior(); else { checkZones(); updatePolice(dt); try { aptDoorCheck(); } catch (e) {} }
+    if (G.inside) checkInterior(); else { checkZones(); try { r3FootTick(); } catch (e) {} updatePolice(dt); try { aptDoorCheck(); } catch (e) {} }
     updateMission(dt); if (G.mode === "play") checkGoal();
     try { lodGuard(); } catch (e) {}
     try { updateRouteBills(dt); j1Tick(); eclairTick(); if (G.mission && G.mission.eclair && G.mode === "play") G.mission.eclair.t -= dt; if (!G.homeWalk) homeWalkers(); } catch (e) {} /* V310.26 : le Jour 1 (billets, enchaînement, défi éclair, passants) tourne à chaque image, indépendamment de la guinguette */

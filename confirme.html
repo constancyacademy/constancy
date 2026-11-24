@@ -46,7 +46,7 @@ small{display:block;margin-top:14px;color:rgba(242,240,236,.45);font-size:12.5px
 </main>
 <script>
 // V310.47 (Thomas, 24/11 10h34) : le joueur doit revenir tout seul dans l'appli où il s'est inscrit.
-// Le jeu donne sa source au script de Thomas au moment de l'inscription · Kit ajoute ck_subscriber_id au lien de cette page · le script renvoie la source (jamais l'adresse).
+// Le jeu donne sa source au script de Thomas au moment de l'inscription. Ordre : ?src dans le lien, puis la source gardée par le jeu dans ce navigateur (constancy-src), puis ck_subscriber_id si Kit l'ajoute, sinon le script renvoie la source du dernier inscrit confirmé pas encore servi (jamais l'adresse). Test réel du 24/11 : Kit n'ajoute pas ck_subscriber_id à ce lien.
 // Une source dans le lien (?src=tt, ig, yt, fb, x, sc, web) passe avant.
 (function () { try {
   var VERIFY = "https://script.google.com/macros/s/AKfycbxFiuYqwJzJ7XlKYMkvvJ_lH8ZVk4znGWgh9TeY3YSZ3c_lsDI_dlHhhy7SYcNg3mIaIQ/exec";
@@ -62,13 +62,13 @@ small{display:block;margin-top:14px;color:rgba(242,240,236,.45);font-size:12.5px
     var names = { tt: "TikTok", ig: "Instagram", yt: "YouTube", fb: "Facebook", x: "X", sc: "Snapchat" };
     if (names[k]) { document.getElementById("msg").innerHTML = "Ton jeu s'est <b>débloqué tout seul</b>. On te ramène sur <b>" + names[k] + "</b>, ta partie t'attend."; }
     setTimeout(function () { gc("evt-confirmation-page-" + k); }, 900);
-    if (auto && names[k]) setTimeout(function () { gc("evt-confirmation-retour-auto-" + k); location.href = b.getAttribute("href"); }, 1400);
+    if (auto && names[k] && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) setTimeout(function () { gc("evt-confirmation-retour-auto-" + k); location.href = b.getAttribute("href"); }, 1400);
   }
   var k0 = map[(q.get("src") || q.get("s") || "").toLowerCase()];
   var id = (q.get("ck_subscriber_id") || "").replace(/[^0-9]/g, "");
+  if (!k0) { try { var ls = map[(localStorage.getItem("constancy-src") || "").toLowerCase()]; if (ls && ls !== "web") k0 = ls; } catch (e) {} }
   if (k0) apply(k0, true);
-  else if (id) { var t = setTimeout(function () { apply(null); }, 4000); fetch(VERIFY + "?action=src&id=" + id + "&t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) { clearTimeout(t); apply(map[String((j && j.src) || "").toLowerCase()] || null, true); }).catch(function () { clearTimeout(t); apply(null); }); }
-  else apply(null);
+  else { var t = setTimeout(function () { apply(null); }, 7000); fetch(VERIFY + "?action=src" + (id ? "&id=" + id : "") + "&t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) { clearTimeout(t); apply(map[String((j && j.src) || "").toLowerCase()] || null, true); }).catch(function () { clearTimeout(t); apply(null); }); }
   ["tt", "ig", "yt", "fb", "x", "sc", "web"].forEach(function (id2) { var el = document.getElementById(id2); if (el) el.addEventListener("click", function () { gc("evt-confirmation-retour-" + id2); }); });
 } catch (e) {} })();
 </script>

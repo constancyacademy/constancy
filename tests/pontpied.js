@@ -1,0 +1,21 @@
+// Descendre de voiture sur un pont : où est le perso ? peut-il prendre une voiture du pont ?
+const { chromium } = require('playwright'); const path = require('path'); const fs = require('fs');
+(async () => { const page = path.resolve(process.argv[2]), save = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+  const b = await chromium.launch({ args: ['--allow-file-access-from-files', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--mute-audio'] });
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await ctx.route(/^https?:/, r => r.abort());
+  await ctx.addInitScript(s => { Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false }); window.__norender = 1; try { if (!sessionStorage.getItem('lx')) { for (const k in s) localStorage.setItem(k, s[k]); sessionStorage.setItem('lx', '1'); } } catch (e) {} }, save);
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message.slice(0, 200)));
+  await p.goto('file://' + page + '?nostat=1&autostart=1');
+  for (let k = 0; k < 300; k++) { await p.waitForTimeout(1000); const st = await p.evaluate(() => { try { const G = window.__W().G; const c = document.getElementById('cont'); if (c && c.getClientRects().length && !window.__lxc) { window.__lxc = 1; setTimeout(() => c.click(), 10); } const w = document.getElementById('wgo'); if (w) w.click(); return G.mode + '|' + !!window.__zonesPretes; } catch (e) { return 'x'; } }); if (/^play\|true/.test(st) && k > 3) break; }
+  await p.evaluate(() => { const W = window.__W(), T = window.__T(), G = W.G; const g = document.getElementById('guide'); if (g) g.remove(); if (G.mode !== 'play') G.mode = 'play'; if (G.onFoot && G.parked) { G.inside = false; T.finishEnter({ own: true }); } window.__auto = () => ({ fwd: 0, side: 0, brake: true }); });
+  await p.waitForTimeout(15000);
+  const r = await p.evaluate(async () => { const W = window.__W(), T = window.__T(), G = W.G, c = G.car; const D = T.DK.decks.find(d => /Périphérique/.test(d.name)), i = Math.floor(D.S.length / 2), a = D.S[i], b2 = D.S[i + 1]; c.x = a[0]; c.z = a[1]; c.h = Math.atan2(b2[0] - a[0], b2[1] - a[1]); c.jy = a[2]; c.v = 0; G.snapCam = true; await new Promise(ok => setTimeout(ok, 1500)); const out = { tablier: a[2], voiture: c.jy };
+    out.mode = G.mode; out.v = c.v; out.ent = !!G.entering; G.mode = 'play'; c.v = 0; T.toggleCar(); await new Promise(ok => setTimeout(ok, 300)); if (!G.onFoot) T.toggleCar(); await new Promise(ok => setTimeout(ok, 2500)); out.aPied = G.onFoot; out.persoX = +G.me.x.toFixed(1); out.persoZ = +G.me.z.toFixed(1); out.persoJy = G.me.jy; out.cameraY = +T.cam.position.y.toFixed(1); out.GHperso = +T.GH(G.me.x, G.me.z).toFixed(1); out.lvl = G.me.lvl;
+    const meM = () => { let y = null; T.scene.traverse(o => { if (o.isSkinnedMesh && y == null) {} }); return null; };
+    const x0 = G.me.x, z0 = G.me.z; G.me.h = c.h; window.__auto = () => ({ fwd: 1, side: 0, brake: false }); await new Promise(ok => setTimeout(ok, 3000)); window.__auto = () => ({ fwd: 0, side: 0, brake: true }); out.marche = +Math.hypot(G.me.x - x0, G.me.z - z0).toFixed(1); out.lvlApres = G.me.lvl; out.camApres = +T.cam.position.y.toFixed(1);
+    G.me.h = c.h + Math.PI / 2; window.__auto = () => ({ fwd: 1, side: 0, brake: false }); out.trace = []; for (let q = 0; q < 30; q++) { await new Promise(ok => setTimeout(ok, 100)); out.trace.push([+G.me.x.toFixed(1), +G.me.z.toFixed(1), G.me.lvl == null ? null : +G.me.lvl.toFixed(2), +(G.me.h).toFixed(2), G.onFoot ? 1 : 0]); } window.__auto = () => ({ fwd: 0, side: 0, brake: true }); out.versRambarde = { lvl: G.me.lvl, cam: +T.cam.position.y.toFixed(1) };
+    G.me.h = c.h - Math.PI / 2; window.__auto = () => ({ fwd: 1, side: 0, brake: false }); await new Promise(ok => setTimeout(ok, 1500)); window.__auto = () => ({ fwd: 0, side: 0, brake: true });
+    const dk = T.DK.cars.filter(q => q.m.visible && q.D === D); out.voituresDuPont = dk.length; return out; });
+  console.log(JSON.stringify(r));
+  console.log('ERR', errs.slice(0, 3).join(' | ') || 'none'); await b.close(); })().catch(e => { console.log('ERREUR', e.message.slice(0, 300)); process.exit(1); });

@@ -1,0 +1,17 @@
+const { chromium } = require('playwright'); const path = require('path'); const fs = require('fs');
+(async () => { const page = path.resolve(process.argv[2]), save = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+  const b = await chromium.launch({ args: ['--allow-file-access-from-files', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--mute-audio'] });
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await ctx.route(/^https?:/, r => r.abort());
+  await ctx.addInitScript(s => { Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false }); window.__norender = 1; try { if (!sessionStorage.getItem('lx')) { for (const k in s) localStorage.setItem(k, s[k]); sessionStorage.setItem('lx', '1'); } } catch (e) {} }, save);
+  const p = await ctx.newPage();
+  await p.goto('file://' + page + '?nostat=1&autostart=1');
+  for (let k = 0; k < 300; k++) { await p.waitForTimeout(1000); const st = await p.evaluate(() => { try { const G = window.__W().G; const c = document.getElementById('cont'); if (c && c.getClientRects().length && !window.__lxc) { window.__lxc = 1; setTimeout(() => c.click(), 10); } const w = document.getElementById('wgo'); if (w) w.click(); return G.mode + '|' + !!window.__zonesPretes; } catch (e) { return 'x'; } }); if (/^play\|true/.test(st) && k > 3) break; }
+  for (let k = 0; k < 150; k++) { const d = await p.evaluate(() => window.__T().DEFER.done); if (d) break; await p.waitForTimeout(2000); }
+  const snap = () => p.evaluate(() => { const T = window.__T(), out = { tot: 0, auto: 0, mesh: 0, inst: 0, group: 0, other: 0, top: 0, depthMax: 0 }; const M = []; T.scene.traverse(o => { out.tot++; if (o.matrixAutoUpdate) out.auto++; if (o.isInstancedMesh) out.inst++; else if (o.isMesh) out.mesh++; else if (o.isGroup) out.group++; else out.other++; }); out.top = T.scene.children.length; const pos = []; T.scene.traverse(o => { if (o.matrixAutoUpdate) pos.push([o.position.x, o.position.y, o.position.z, o.quaternion.x, o.quaternion.y, o.quaternion.z, o.quaternion.w, o.scale.x]); }); window.__pos = pos; return out; });
+  console.log('scène', JSON.stringify(await snap()));
+  console.log('cachés', JSON.stringify(await p.evaluate(() => { const T = window.__T(); let hid = 0, hidTop = 0, bones = 0, sprites = 0, o3 = 0; const walk = (o, inv) => { const iv = inv || !o.visible; if (iv) hid++; if (o.isBone) bones++; if (o.isSprite) sprites++; if (o.constructor && o.constructor.name === 'Object3D') o3++; o.children.forEach(c => walk(c, iv)); }; T.scene.children.forEach(c => { if (!c.visible) hidTop++; walk(c, false); }); return { sousUnParentCache: hid, enfantsDirectsCaches: hidTop, os: bones, sprites, object3d: o3 }; }))); 
+  await p.waitForTimeout(5000);
+  const moved = await p.evaluate(() => { const T = window.__T(); let i = 0, mv = 0, st = 0; T.scene.traverse(o => { if (!o.matrixAutoUpdate) return; const q = window.__pos[i++]; if (!q) return; const d = Math.abs(q[0] - o.position.x) + Math.abs(q[1] - o.position.y) + Math.abs(q[2] - o.position.z) + Math.abs(q[3] - o.quaternion.x) + Math.abs(q[4] - o.quaternion.y) + Math.abs(q[5] - o.quaternion.z) + Math.abs(q[6] - o.quaternion.w) + Math.abs(q[7] - o.scale.x); if (d > 1e-6) mv++; else st++; }); return { bougent: mv, immobiles: st }; });
+  console.log('en 5 s', JSON.stringify(moved));
+  await b.close(); })();

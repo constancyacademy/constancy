@@ -1,0 +1,20 @@
+const { chromium } = require('playwright'); const path = require('path'); const fs = require('fs');
+(async () => { const page = path.resolve(process.argv[2]), save = JSON.parse(fs.readFileSync(process.argv[3], 'utf8')), out = process.argv[4]; fs.mkdirSync(out, { recursive: true });
+  const b = await chromium.launch({ args: ['--allow-file-access-from-files', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--mute-audio'] });
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
+  await ctx.route(/^https?:/, r => r.abort());
+  await ctx.addInitScript(s => { window.__farDebug = 1; Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false }); try { if (!sessionStorage.getItem('lx')) { for (const k in s) localStorage.setItem(k, s[k]); sessionStorage.setItem('lx', '1'); } } catch (e) {} }, save);
+  const p = await ctx.newPage(); await p.goto('file://' + page + '?nostat=1&autostart=1');
+  for (let k = 0; k < 300; k++) { await p.waitForTimeout(1000); const st = await p.evaluate(() => { try { const G = window.__W().G; const c = document.getElementById('cont'); if (c && c.getClientRects().length && !window.__lxc) { window.__lxc = 1; setTimeout(() => c.click(), 10); } const w = document.getElementById('wgo'); if (w) w.click(); return G.mode + '|' + !!window.__zonesPretes; } catch (e) { return 'x'; } }); if (/^play\|true/.test(st) && k > 3) break; }
+  await p.evaluate(() => { const W = window.__W(), T = window.__T(), G = W.G; const g = document.getElementById('guide'); if (g) g.remove(); if (G.mode !== 'play') G.mode = 'play'; if (G.onFoot && G.parked) { G.inside = false; T.finishEnter({ own: true }); } window.__auto = () => ({ fwd: 0, side: 0, brake: true }); const PP = T.P; if (PP) PP.nightStart = false; W.creatorSetHour(14); });
+  for (let k = 0; k < 200; k++) { const r = await p.evaluate(() => !!(window.__zonesPretes && window.__FARW && window.__FARW.ready)); if (r) break; await p.waitForTimeout(1000); }
+  await p.evaluate(([x, z]) => { const G = window.__W().G; if (G.onFoot) { G.me.x = x; G.me.z = z; } else { G.car.x = x; G.car.z = z; } G.snapCam = true; }, (process.env.POS || '0,900').split(',').map(Number)); await p.waitForTimeout(8000);
+  const R = await p.evaluate(async () => { const W = window.__W(), T = window.__T(), G = W.G, out = { dk: [], rdx: [] }, f = new THREE.Vector3();
+    const check = (m, hAt) => { m.updateMatrixWorld(true); f.set(0, 0, 1).applyQuaternion(m.quaternion); const p = m.position, l = Math.hypot(f.x, f.z) || 1, ux = f.x / l, uz = f.z / l; const h0 = hAt(p.x - ux * 2, p.z - uz * 2, p.y), h1 = hAt(p.x + ux * 2, p.z + uz * 2, p.y); if (h0 == null || h1 == null) return null; const road = (h1 - h0) / 4, car = f.y / l; return [+road.toFixed(3), +car.toFixed(3)]; };
+    // on fait avancer le temps : plusieurs relevés
+    for (let k = 0; k < 6; k++) { await new Promise(ok => setTimeout(ok, 1500));
+      (W.DK.cars || []).forEach(c => { if (!c.m.visible) return; const r = check(c.m, (x, z, y) => { let best = null, bd = 3; W.DK.decks.forEach(D => D.S.forEach(q => { const d = Math.hypot(q[0] - x, q[1] - z); if (d < bd && Math.abs(q[2] - y) < 4) { bd = d; best = q[2]; } })); return best; }); if (r) out.dk.push(r); });
+      (W.RDX.cars || []).forEach(c => { if (!c.m.visible) return; const P = c.Q.P, H = c.Q.h; const r = check(c.m, (x, z) => { let bi = -1, bd = 9; P.forEach((q, i) => { const d = Math.hypot(q[0] - x, q[1] - z); if (d < bd) { bd = d; bi = i; } }); return bi < 0 ? null : H[bi]; }); if (r) out.rdx.push(r); }); }
+    const bad = L => L.filter(([r, c]) => Math.abs(r) > 0.03 && (Math.sign(r) !== Math.sign(c) || Math.abs(c - r) > 0.08)).length;
+    return { dk: out.dk.length, dkFaux: bad(out.dk), dkPentes: out.dk.filter(([r]) => Math.abs(r) > 0.03).length, rdx: out.rdx.length, rdxFaux: bad(out.rdx), rdxPentes: out.rdx.filter(([r]) => Math.abs(r) > 0.03).length, ex: out.dk.filter(([r]) => Math.abs(r) > 0.03).slice(0, 6).concat(out.rdx.filter(([r]) => Math.abs(r) > 0.03).slice(0, 6)) }; });
+  console.log(JSON.stringify(R)); await b.close(); })();

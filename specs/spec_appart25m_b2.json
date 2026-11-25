@@ -1,0 +1,7 @@
+{"id": "appart25m", "ver": "b2", "question": "Tu l'achètes ?", "music": null, "audio_file": "/root/w/m4/a/a.wav", "audio_start": 0, "shake": 0, "fade": 0.05, "text_plate": 180, "abo": true, "beat_every": 1, "sub_fsz": 58, "bouton": true, "btn_cy": 0.91, "card_len": 2.2, "card_tail": 0.2, "card_cy": 0.63, "jeu_text": "Tu l'achètes ?", "nl_fsz": 94, "text_cy": 0.165,
+ "segs": [["t_appart25m-b2_penthouse-dehors-approche-feux-artifice_nuit", 0.2, 2.1, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_appart25m-b2_baie-entre-montants-feux-artifice_nuit", 0.1, 1.5, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_appart25m-b1_penthouse-dessous-tour-vertige-ville_nuit", 0.2, 1.7, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_appart25m-b2_penthouse-nord-est-carte-feux-artifice_nuit", 0.1, 2.3, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_appart25m-b2_penthouse-dehors-approche-feux-artifice_nuit", 0.0, 0.2, [0, 0, 1080, 1920], 0, 1.0]],
+ "texts": [[0, 1.8917, "La vue d'un appart\nà 25 millions."], [1.8917, 3.2917, "88e étage.\nToute la ville à tes pieds."], [3.2917, 4.7917, "Il est dans le jeu.\nGratuit."], [4.7917, 6.9917, "@Q"], [6.9917, 8.0, "La vue d'un appart\nà 25 millions."]]}

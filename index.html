@@ -1407,7 +1407,7 @@ function updateSound() {
   const quiet = CINE.on || (typeof DREAM !== "undefined" && DREAM.on) || (typeof MIR !== "undefined" && MIR.on); /* V309.1 (Thomas 21h08 : « bruit de rebond toutes les 3 s ») : aucun bruit d'ambiance ponctuel pendant la cinématique, le rêve et le miroir */
   if (playing && !quiet) ambientEvents(pos, inCity);
   if (playing && pos && nearSea > 0.6 && Math.random() < 0.0015) playBuf("gull", 0.25, 0.9 + Math.random() * 0.2);
-  const sirOn = playing && (G.police || (G.siren && G.ride && G.ride.amb && !G.onFoot)), realSir = SND.loops.siren;
+  const sirOn = playing && (G.police || (G.fireSir > 0) || (G.siren && G.ride && G.ride.amb && !G.onFoot)), realSir = SND.loops.siren;
   SND.sir.frequency.setTargetAtTime(Math.floor(performance.now() / 450) % 2 ? 900 : 640, t, 0.02);
   SND.sirGain.gain.setTargetAtTime(sirOn && !realSir ? 0.02 : 0, t, 0.1);
   loopVol("siren", sirOn ? 0.3 : 0, t, 0.3);
@@ -9612,6 +9612,43 @@ function updateTaxiChase(dt) { if (!TX.on) return; const a = TX.a; if (!a || !a.
   TX.t -= dt; const me = G.onFoot ? G.me : G.car, d = Math.hypot(a.x - me.x, a.z - me.z); if (d < 15) TX.near += dt; destBeacon.position.set(a.x, 0, a.z);
   const f = document.getElementById("txF"), tt = document.getElementById("txT"); if (f) f.style.width = Math.min(100, TX.near / 5 * 100) + "%"; if (tt) tt.textContent = Math.max(0, Math.ceil(TX.t)) + " s";
   if (TX.near >= 5) txEnd(true); else if (TX.t <= 0) txEnd(false); }
+/* V310.56 · PRIORITÉ 2 · mini-mission 3 « FEU AU 3E ÉTAGE » (le gros moment filmable, claude/constancy-fun-priorite-2.txt) : une colonne de fumée noire qu'on voit de loin au-dessus d'un immeuble, une sirène, un repère rouge · arriver, descendre, entrer à pied, MAINTENIR 3 s dans l'escalier enfumé (écran qui s'assombrit, lueur orange), Mamie Josette sur le dos, sortie, une fenêtre saute derrière (flammes et verre, AUCUN blessé), les voisins applaudissent · +1 500 $, badge « Le quartier compte sur toi » · rien de chargé avant : fumée et flammes en sprites, Mamie avec le modèle des passants · stat feu-vu / feu-arrive / feu-mamie-sauvee / feu-abandon */
+const FIRE = { on: false };
+function fireEligible() { return P && !CREATOR && G.mode === "play" && !G.mission && !G.race && !(typeof TX !== "undefined" && TX.on) && !FIRE.on && !G.inside && !(P.fire && P.fire.day === P.day) && ((P.day || 1) >= 2 || (P.cars || []).includes("coupe")); }
+function fireTex(kind) { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d"), r = g.createRadialGradient(32, 32, 2, 32, 32, 31); if (kind === "smoke") { r.addColorStop(0, "rgba(40,38,42,.95)"); r.addColorStop(0.55, "rgba(30,28,32,.55)"); r.addColorStop(1, "rgba(20,20,24,0)"); } else { r.addColorStop(0, "rgba(255,255,220,1)"); r.addColorStop(0.3, "rgba(255,170,40,.9)"); r.addColorStop(0.7, "rgba(255,70,10,.45)"); r.addColorStop(1, "rgba(255,40,0,0)"); } g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); }
+function fireStart(force) { if (!force && !fireEligible()) return false; const o = G.onFoot ? G.me : G.car; let sp = null;
+  for (let k = 0; k < 120 && !sp; k++) { const i = 1 + Math.floor(Math.random() * (NB - 2)), j = 1 + Math.floor(Math.random() * (NB - 2)), cx = bC(i), cz = bC(j), d = Math.hypot(cx - o.x, cz - o.z); if (d < 170 || d > 520) continue; let top = 0; try { top = buildingTop(cx, cz); } catch (e) {} if (top < 14) continue;
+    const side = (o.z > cz ? 1 : -1), dz = side > 0 ? bMax(j) + 1.6 : bMin(j) - 1.6, dx = cx; if (isWater(dx, dz)) continue; sp = { cx, cz, top, dx, dz, side }; }
+  if (!sp) return false; P.fire = { day: P.day }; FIRE.on = true; FIRE.st = "go"; FIRE.t = 0; FIRE.sp = sp; FIRE.hold = 0; stat("feu-vu");
+  const grp = new THREE.Group(); grp.name = "incendie"; scene.add(grp); FIRE.grp = grp; const sm = new THREE.SpriteMaterial({ map: fireTex("smoke"), transparent: true, depthWrite: false, fog: false, opacity: 0.85 }), fm = new THREE.SpriteMaterial({ map: fireTex("fire"), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+  FIRE.smoke = []; for (let k = 0; k < 16; k++) { const s2 = new THREE.Sprite(sm.clone()); s2.frustumCulled = false; grp.add(s2); FIRE.smoke.push({ s: s2, ph: k / 16 }); }
+  const fy = Math.min(sp.top - 2, 10.5), fz = sp.side > 0 ? bMax(sp.j != null ? sp.j : 0) : 0; FIRE.flames = []; for (let k = 0; k < 7; k++) { const f = new THREE.Sprite(fm.clone()); f.frustumCulled = false; f.position.set(sp.cx + (k - 3) * 1.6, fy + (k % 2) * 0.8, sp.dz - sp.side * 1.3); grp.add(f); FIRE.flames.push({ s: f, ph: Math.random() * 6 }); }
+  FIRE.win = new THREE.Vector3(sp.cx + 2.4, fy + 0.6, sp.dz - sp.side * 1.2);
+  destBeacon.position.set(sp.dx, 0, sp.dz); destBeacon.visible = true; G.fireSir = 7; try { sfx.ping(); } catch (e) {}
+  help(`<b>Au feu !</b> « Mamie Josette est au 3e ! » Suis la fumée noire, à ${Math.round(Math.hypot(sp.dx - o.x, sp.dz - o.z) / 10) * 10} m.`, 7); return true; }
+function fireHoldUI(on) { let b = document.getElementById("fireHold"); if (!on) { if (b) b.remove(); return; } if (b) return; b = document.createElement("button"); b.id = "fireHold"; b.type = "button"; b.style.cssText = "position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:42;width:150px;height:150px;border-radius:50%;border:3px solid #ff7a2f;background:radial-gradient(circle,rgba(255,122,47,.35),rgba(20,10,10,.85));color:#fff;font:800 14px Inter,sans-serif;letter-spacing:.04em;box-shadow:0 0 30px rgba(255,90,20,.6);touch-action:none;user-select:none;-webkit-user-select:none";
+  b.innerHTML = `MAINTIENS<br>POUR MONTER<div id="fireRing" style="position:absolute;left:8px;right:8px;bottom:14px;height:6px;border-radius:4px;background:rgba(255,255,255,.18);overflow:hidden"><i style="display:block;height:100%;width:0;background:linear-gradient(90deg,#ffd36e,#ff3fa4)"></i></div>`; const dn = e => { e.preventDefault(); FIRE.holding = true; }, up = () => { FIRE.holding = false; }; b.addEventListener("pointerdown", dn); b.addEventListener("pointerup", up); b.addEventListener("pointerleave", up); b.addEventListener("pointercancel", up); window.addEventListener("keydown", FIRE.kd = e => { if (e.code === "Space") FIRE.holding = true; }); window.addEventListener("keyup", FIRE.ku = e => { if (e.code === "Space") FIRE.holding = false; }); document.body.appendChild(b); }
+function fireSmokeVeil(k) { let v = document.getElementById("fireVeil"); if (k <= 0.001) { if (v) v.remove(); return; } if (!v) { v = document.createElement("div"); v.id = "fireVeil"; v.style.cssText = "position:fixed;inset:0;z-index:38;pointer-events:none;background:radial-gradient(circle at 50% 60%,rgba(255,110,30,.25),rgba(15,12,12,.95) 70%)"; document.body.appendChild(v); } v.style.opacity = String(Math.min(1, k)); }
+function fireBurst() { const sp = FIRE.sp, p0 = FIRE.win, mat = new THREE.SpriteMaterial({ map: fireTex("fire"), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }), gm = new THREE.SpriteMaterial({ color: 0xdff4ff, transparent: true, depthWrite: false, fog: false });
+  FIRE.parts = []; for (let k = 0; k < 18; k++) { const isG = k >= 8, s2 = new THREE.Sprite((isG ? gm : mat).clone()); s2.position.copy(p0); s2.scale.setScalar(isG ? 0.35 : 2.2); s2.frustumCulled = false; FIRE.grp.add(s2); const a = Math.random() * Math.PI * 2; FIRE.parts.push({ s: s2, v: new THREE.Vector3(Math.cos(a) * (isG ? 5 : 3), (isG ? 3 : 4) + Math.random() * 4, -sp.side * (isG ? 6 : 3) + Math.sin(a) * 2), life: isG ? 2.2 : 1.1, g: isG }); }
+  try { crash(0.9); } catch (e) {} try { thump && thump(0.6); } catch (e) {} }
+function fireEnd(ok) { const sp = FIRE.sp; FIRE.st = "done"; fireHoldUI(false); fireSmokeVeil(0); destBeacon.visible = false; if (FIRE.kd) { window.removeEventListener("keydown", FIRE.kd); window.removeEventListener("keyup", FIRE.ku); }
+  if (!ok) { stat("feu-abandon"); help("Les pompiers sont arrivés avant toi. Mamie va bien.", 5); FIRE.fade = 6; return; }
+  stat("feu-mamie-sauvee"); addCash(1500); addXP(150); sfx.win(); P.badges = P.badges || {}; if (!P.badges.quartier) { P.badges.quartier = 1; setTimeout(() => notify("gold", "<b>Badge · Le quartier compte sur toi</b>", 7), 1800); }
+  try { const c = SND.ctx; if (c) for (let k = 0; k < 6; k++) stadeClap(c, c.currentTime + k * 0.12, 0.45); } catch (e) {}
+  help(`<b>Mamie Josette est sauvée.</b> « C'est toi qui passes tous les matins ! » <b style="color:var(--cash)">+$1 500</b>`, 7); feedPost("mamie", "Mamie Josette sauvée par le livreur du quartier. Merci mon grand. ❤️", { toast: true }); saveNow(); FIRE.fade = 14; }
+function updateFire(dt) { if (!FIRE.on) { /* règle « jamais rien à faire » (mini-mission 4, première partie) : 45 s de jeu libre sans mission ni écran, l'incendie du jour se déclare */ if (G.mode === "play" && !G.mission && !G.race && !G.inside && !(typeof TX !== "undefined" && TX.on) && !CINE.on) { G.freeT = (G.freeT || 0) + dt; if (G.freeT > 45) { G.freeT = 0; if (fireEligible()) { stat("rien-a-faire-45s"); fireStart(); } } } else G.freeT = 0; return; } const sp = FIRE.sp, T = performance.now() / 1000; FIRE.t += dt; if (G.fireSir > 0) G.fireSir -= dt;
+  const kf = FIRE.fade != null ? Math.max(0, FIRE.fade / 6) : 1; if (FIRE.fade != null) { FIRE.fade -= dt; if (FIRE.fade <= 0) { scene.remove(FIRE.grp); FIRE.grp.traverse(o => { if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } }); if (FIRE.mamie) { scene.remove(FIRE.mamie); FIRE.mamie = null; } FIRE.on = false; return; } }
+  FIRE.smoke.forEach((m, k) => { const u = (m.ph + T * 0.06) % 1, y = sp.top + 2 + u * 70; m.s.position.set(sp.cx + Math.sin(T * 0.3 + k) * (2 + u * 9), y, sp.cz + Math.cos(T * 0.25 + k * 1.7) * (2 + u * 7)); m.s.scale.setScalar(6 + u * 22); m.s.material.opacity = 0.85 * (1 - u) * kf; });
+  FIRE.flames.forEach(f => { const q = 0.7 + 0.3 * Math.sin(T * 11 + f.ph) + 0.15 * Math.sin(T * 23 + f.ph * 2); f.s.scale.set(2.4 * q, 3.4 * q, 1); f.s.material.opacity = (FIRE.st === "done" ? 0.5 : 1) * kf; });
+  if (FIRE.parts) FIRE.parts.forEach(q => { if (q.life <= 0) return; q.life -= dt; q.v.y -= (q.g ? 9 : 2) * dt; q.s.position.addScaledVector(q.v, dt); q.s.material.opacity = Math.max(0, Math.min(1, q.life)); if (!q.g) q.s.scale.multiplyScalar(1 + dt * 0.8); });
+  if (FIRE.st === "go") { const me = G.onFoot ? G.me : G.car, d = Math.hypot(me.x - sp.dx, me.z - sp.dz); if (!FIRE.arr && d < 30) { FIRE.arr = 1; stat("feu-arrive"); help(G.onFoot ? "La porte de l'immeuble ! Entre." : "<b>Descends</b> et entre à pied. Mamie est au 3e.", 4); }
+    if (G.onFoot && d < 4.5) { FIRE.st = "hold"; fireHoldUI(true); help("L'escalier est plein de fumée. <b>Maintiens</b> pour monter.", 4); }
+    if (FIRE.t > 240) { FIRE.on = true; fireEnd(false); } return; }
+  if (FIRE.st === "hold") { const me = G.me; if (!G.onFoot || Math.hypot(me.x - sp.dx, me.z - sp.dz) > 7) { FIRE.st = "go"; fireHoldUI(false); fireSmokeVeil(0); FIRE.hold = 0; return; }
+    FIRE.hold = Math.max(0, FIRE.hold + (FIRE.holding ? dt : -dt * 1.5)); const r = document.querySelector("#fireRing i"); if (r) r.style.width = Math.min(100, FIRE.hold / 3 * 100) + "%"; fireSmokeVeil(FIRE.hold / 3 * 0.92 * (0.9 + 0.1 * Math.sin(T * 9)));
+    if (FIRE.hold >= 3) { FIRE.st = "out"; FIRE.tOut = 0; fireHoldUI(false); fireSmokeVeil(1);
+      setTimeout(() => { try { const m = makeHuman({ shirt: 0x9fd8b0, pants: 0x6a6a7a, skin: 0xf0c8a8, hair: 0xdedede }); const ox = sp.dx, oz = sp.dz + sp.side * 9; G.me.x = ox + 0.8; G.me.z = oz; G.me.h = sp.side > 0 ? Math.PI : 0; /* face à l'immeuble : la caméra voit Mamie, la façade et la fenêtre qui saute */ m.position.set(ox - 0.5, GH(ox, oz) + 0.02, oz - sp.side * 1.6); m.rotation.y = G.me.h + Math.PI; scene.add(m); FIRE.mamie = m; if (m.userData.q) setClip(m, "Idle_Talking_Loop"); G.snapCam = true; } catch (e) {} fireSmokeVeil(0.6); fireBurst(); setTimeout(() => fireSmokeVeil(0), 500); setTimeout(() => fireEnd(true), 1300); }, 650); } return; } }
 // ---------- papiers qui s'envolent au passage des voitures
 const LITTER = { n: 34, inst: null, list: [], m: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(), v: new THREE.Vector3(), s: new THREE.Vector3(1, 1, 1) };
 function litterSpot(o) { const a = Math.random() * 6.28, d = 12 + Math.random() * 45, x = o.x + Math.cos(a) * d, z = o.z + Math.sin(a) * d, i = Math.round((x + HALF - ROAD / 2) / STEP), j = Math.round((z + HALF - ROAD / 2) / STEP);
@@ -9867,7 +9904,7 @@ const DAILY = [
   { k: "propre", n: 2, t: "Conduite propre", d: "Réussis 2 missions sans un seul choc.", w: "Deux missions, zéro choc. La régularité, c'est aussi faire les choses proprement." },
   { k: "pied", n: 800, t: "Marche quotidienne", d: "Fais 800 mètres à pied.", w: "800 mètres à pied. Petit effort, mais fait aujourd'hui. Demain, on remet ça." },
   { k: "routine", n: 1, t: "Routine du matin", d: "Fais la routine du matin : Entre 6 h et 10 h 30 (heure du jeu), à pied sur le front de mer.", w: "Routine faite. Le reste de la journée sera plus facile : Tu as déjà gagné la première bataille." },
-  { k: "voisin", n: 1, t: "Rends service", d: "Aide un voisin à porter ses cartons (la mission arrive quand tu es à pied).", w: "Un service rendu, sans rien attendre. C'est aussi ça, être constant : Le faire même quand personne ne compte." },
+  { k: "voisin", n: 1, t: "Déménagement express", d: "4 cartons en 90 s jusqu'à la porte du voisin : il te prête sa vieille moto pour la journée (la mission arrive quand tu es à pied).", w: "Un service rendu, sans rien attendre. C'est aussi ça, être constant : Le faire même quand personne ne compte." },
   { k: "lavage", n: 1, t: "Prends soin de tes affaires", d: "Roule un peu, puis lave ta voiture devant chez toi (repère A).", w: "Voiture propre. Ce qui est entretenu tous les jours ne casse pas." }
 ];
 function dailyDef() { const d = new Date(); return DAILY[(d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) % DAILY.length]; }
@@ -9948,7 +9985,7 @@ function updateDirt(dt) {
   if (carMesh && (G.dirtMesh !== carMesh || Math.abs((G.dirtShown || 0) - P.dirt) > 0.02)) { G.dirtMesh = carMesh; G.dirtShown = P.dirt; applyDirt(carMesh, G.ride && G.ride.kind === "own" ? P.dirt : 0); }
 }
 function updateWorldLife(dt) {
-  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateCrossers(dt); updateSitters(dt); updateMechanics(dt); updateFoodTruck(); updateAirportGate(dt); updateCats(dt); updateDispute(dt); updateRace(dt); try { updateTaxiChase(dt); } catch (e) {} updateLitter(dt); updatePhotoPeds(dt);
+  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateCrossers(dt); updateSitters(dt); updateMechanics(dt); updateFoodTruck(); updateAirportGate(dt); updateCats(dt); updateDispute(dt); updateRace(dt); try { updateTaxiChase(dt); } catch (e) {} try { updateFire(dt); } catch (e) { console.warn("feu", e); } updateLitter(dt); updatePhotoPeds(dt);
   const cxp = camera.position.x, czp = camera.position.z;
   { /* V310.12 (Thomas : « je vois pas les tanks, je vois pas les avions de chasse… vu aérien, on est censé y voir ») : les chars, avions et avions de chasse restent visibles de beaucoup plus loin quand on regarde d'en haut */ const cyp = camera.position.y, bigR = Math.min(1600, 230 + Math.max(0, cyp - 20) * 4), bigR2 = bigR * bigR; for (let i = 0; i < rentals.length; i++) { const r = rentals[i], big = r.kind === "tank" || r.kind === "chasse" || r.kind === "airbus" || r.kind === "avion"; r.mesh.visible = (r.x - cxp) ** 2 + (r.z - czp) ** 2 < (big ? bigR2 : 52900); } }
   const me = target();
@@ -10191,7 +10228,7 @@ function updateHud(dt) {
     const mk = M.type + Math.ceil(M.time) + (M.eclair ? "e" + Math.max(0, Math.ceil(M.eclair.t)) : "") + Math.round(M.catch || 0) + "|" + (M.i || 0) + "|" + Math.round(M.prog || 0) + "|" + (M.stage || 0) + "|" + (M.done || 0) + (M.carry ? "c" : "");
     if (mk !== lastMissionKey) {
       lastMissionKey = mk;
-      box.innerHTML = M.type === "voisin" ? `<div class="k">Mission · aider un voisin</div><div class="t">${M.carry ? "vers sa porte" : "prends un carton"}</div><div class="s">Carton ${Math.min(M.done + 1, 3)} sur 3 · à pied</div>`
+      box.innerHTML = M.type === "voisin" ? `<div class="k">Mission · aider un voisin</div><div class="t">${M.carry ? "vers sa porte" : "prends un carton"}</div><div class="s">Carton ${Math.min(M.done + 1, M.tot || 3)} sur ${M.tot || 3}${M.tot ? ` · ${Math.max(0, Math.ceil(M.time))} s` : " · à pied"}</div>`
         : M.type === "vtc" ? `<div class="k">Mission · course VTC</div><div class="t">${M.stage ? "vers la destination" : "récupère le client"}</div><div class="s">${M.stage ? "En douceur : chaque choc coûte une étoile" : "Arrête-toi au point blanc"}</div>`
         : M.type === "run" ? `<div class="k">Mission · routine du matin</div><div class="t">à ton rythme</div><div class="s">Point ${Math.min(M.i + 1, M.pts.length)} sur ${M.pts.length} · à pied</div>`
         : M.type === "club" ? `<div class="k">Mission · club de course</div><div class="t">cours avec eux</div><div class="s">Reste près du groupe</div><div class="catch"><i style="width:${clamp(M.prog / 40 * 100, 0, 100)}%"></i></div>`
@@ -12222,11 +12259,12 @@ function endMission(ok) {
     else { sfx.fail(); help("Trop tard. Le client a annulé. Retente au Dépôt."); }
   }
   if (M.type === "voisin") {
-    destBeacon.visible = false; if (VOIS.carry) { VOIS.carry.visible = false; VOIS.carry = null; }
+    destBeacon.visible = false; if (VOIS.carry) { VOIS.carry.visible = false; VOIS.carry = null; } if (!ok && M.tot) { stat("demenagement-rate"); help("Le camion est parti. Le voisin te remercie quand même. « Demain, on remet ça ? »", 5); }
     setTimeout(() => { if (G.mission && G.mission.type === "voisin") return; VOIS.man.visible = false; VOIS.boxes.forEach(b => { b.visible = false; }); }, ok ? 25000 : 500);
     if (ok) { setTimeout(() => dailyAdd("voisin", 1), 1500); P.mindset += Math.round(5 * P.mult); P.statut += Math.round(3 * P.mult); addXP(90); P.counts.voisin = (P.counts.voisin || 0) + 1; P.helped = (P.helped || 0) + 1; sfx.win(); stat("aide-voisin");
       if (VOIS.man) setClip(VOIS.man, "Idle_Talking_Loop");
-      help(`<b>Cartons livrés.</b> Le voisin te serre la main. Il ne t'a rien donné : C'est justement pour ça que ça compte. <b style="color:var(--gold)">+Mindset · +Statut</b>`, 7);
+      if (M.tot) { stat("demenagement-reussi"); try { const h = Math.atan2(M.b[0] - M.a[0], M.b[1] - M.a[1]), x = M.b[0] + Math.cos(h) * 2.2, z = M.b[1] - Math.sin(h) * 2.2, mesh = makeRide("moto"); mesh.position.set(x, GH(x, z) + 0.25, z); mesh.rotation.y = h; scene.add(mesh); rentals.push({ kind: "moto", mesh, x, z, h, lent: true }); } catch (e) {} help(`<b>Cartons livrés, à temps.</b> « Tiens, ma vieille moto. Elle est à toi pour la journée. » Elle t'attend devant sa porte. <b style="color:var(--gold)">+Mindset · +Statut</b>`, 8); }
+      else help(`<b>Cartons livrés.</b> Le voisin te serre la main. Il ne t'a rien donné : C'est justement pour ça que ça compte. <b style="color:var(--gold)">+Mindset · +Statut</b>`, 7);
       setTimeout(() => feedPost(P.helped > 1 ? "ville" : "mamie", P.helped > 1 ? `${P.helped}e voisin aidé par le livreur du quartier. Les petits gestes réguliers font les bonnes villes. 🤝` : "Un jeune a porté les cartons de mon voisin jusqu'à chez lui. Sans rien demander. Ça existe encore. ❤️", { toast: true }), 3000); }
     G.mission = null; saveNow(); return;
   }
@@ -12268,17 +12306,18 @@ function offerVoisin() {
   const o = G.me, sp = streetSpot(o); if (!sp) return; G.voisT = 220 + Math.random() * 160;
   const [ax, az, r] = sp, dir = [Math.cos(r), Math.sin(r)], sg = Math.random() < .5 ? 1 : -1, bx = ax + dir[0] * 10 * sg, bz = az + dir[1] * 10 * sg;
   VOIS.man.position.set(ax + dir[0] * 1.2 * -sg, 0.25, az + dir[1] * 1.2 * -sg); VOIS.man.rotation.y = Math.atan2(o.x - ax, o.z - az); VOIS.man.visible = true; setClip(VOIS.man, "Idle_Talking_Loop");
-  VOIS.boxes.forEach((b, k) => { b.visible = k < 3; b.position.set(ax + (k % 2) * 0.3, 0.46 + k * 0.42, az); b.rotation.y = k * 0.3; });
-  G.mission = { type: "voisin", a: [ax, az], b: [bx, bz], left: 3, done: 0, carry: false, time: 9999 }; destBeacon.position.set(ax, 0, az); destBeacon.visible = true; sfx.ping();
-  notify("gold", `<b>Un voisin galère avec ses cartons.</b> Aide-le : Porte les 3 cartons jusqu'à sa porte (suis le tracé lumineux au sol). Il ne paiera rien. Ce n'est pas la question.`, 8);
+  VOIS.boxes.forEach((b, k) => { b.visible = k < 4; b.position.set(ax + (k % 2) * 0.3, 0.46 + Math.floor(k / 2) * 0.42, az + (k > 1 ? 0.5 : 0)); b.rotation.y = k * 0.3; }); /* V310.57 (Thomas, 24/11 15h54 : « Défi du jour : aide ton voisin à porter ses cartons, ce n'est pas très attractif ») : déménagement express, 4 cartons en 90 s, une récompense qu'on voit et qu'on utilise tout de suite */
+  G.mission = { type: "voisin", a: [ax, az], b: [bx, bz], left: 4, done: 0, carry: false, time: 90, tot: 4 }; destBeacon.position.set(ax, 0, az); destBeacon.visible = true; sfx.ping();
+  notify("gold", `<b>Déménagement express.</b> « Mon camion part dans 90 secondes ! » Porte ses 4 cartons jusqu'à sa porte : il te prête sa vieille moto pour la journée.`, 8); stat("demenagement-vu");
 }
 function updateVoisin(dt) {
   const M = G.mission; destBeacon.userData.ring.rotation.z += dt; if (!G.onFoot) { if (!M.hintT || performance.now() - M.hintT > 12000) { M.hintT = performance.now(); help("Ça se fait <b>à pied</b> : descends de la voiture.", 3); } return; }
+  if (M.time <= 0) { endMission(false); return; } { const sec = Math.ceil(M.time); if (sec !== M.sec && (sec <= 10 || sec % 15 === 0)) { M.sec = sec; help(`Déménagement express · <b>${sec} s</b> · carton ${Math.min(M.done + 1, M.tot || 4)} sur ${M.tot || 4}.`, 2); } }
   const o = G.me, t = M.carry ? M.b : M.a, d = Math.hypot(o.x - t[0], o.z - t[1]);
   if (VOIS.carry) { const h = o.h || 0; VOIS.carry.position.set(o.x + Math.sin(h) * 0.42, 1.05, o.z + Math.cos(h) * 0.42); VOIS.carry.rotation.y = h; }
   if (d < 1.9) {
-    if (!M.carry) { const b = VOIS.boxes[M.left - 1]; VOIS.carry = b; M.carry = true; destBeacon.position.set(M.b[0], 0, M.b[1]); sfx.ping(); help(`Carton ${M.done + 1} sur 3. Porte-le jusqu'à la porte.`, 2.5); }
-    else { const b = VOIS.carry; VOIS.carry = null; M.carry = false; M.left--; b.position.set(M.b[0] + (M.done % 2) * 0.3, 0.46 + M.done * 0.42, M.b[1]); b.rotation.y = M.done * 0.4; M.done++; sfx.ping();
+    if (!M.carry) { const b = VOIS.boxes[M.left - 1]; VOIS.carry = b; M.carry = true; destBeacon.position.set(M.b[0], 0, M.b[1]); sfx.ping(); help(`Carton ${M.done + 1} sur ${M.tot || 3}. Porte-le jusqu'à la porte.`, 2.5); }
+    else { const b = VOIS.carry; VOIS.carry = null; M.carry = false; M.left--; b.position.set(M.b[0] + (M.done % 2) * 0.3, 0.46 + Math.floor(M.done / 2) * 0.42, M.b[1] + (M.done > 1 ? 0.5 : 0)); b.rotation.y = M.done * 0.4; M.done++; sfx.ping();
       if (M.left <= 0) { endMission(true); return; } destBeacon.position.set(M.a[0], 0, M.a[1]); help(`Plus que ${M.left}.`, 2); }
   }
 }

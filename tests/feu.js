@@ -1,0 +1,25 @@
+const { chromium } = require('playwright'); const path = require('path'); const fs = require('fs');
+(async () => { const page = path.resolve(process.argv[2]), save = JSON.parse(fs.readFileSync(process.argv[3], 'utf8')), out = process.argv[4]; fs.mkdirSync(out, { recursive: true });
+  const b = await chromium.launch({ args: ['--allow-file-access-from-files', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--mute-audio'] });
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
+  await ctx.route(/^https?:/, r => r.abort());
+  await ctx.addInitScript(s => { window.__farDebug = 1; Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false }); try { if (!sessionStorage.getItem('lx')) { for (const k in s) localStorage.setItem(k, s[k]); sessionStorage.setItem('lx', '1'); } } catch (e) {} }, save);
+  const p = await ctx.newPage(); await p.goto('file://' + page + '?nostat=1&autostart=1');
+  for (let k = 0; k < 300; k++) { await p.waitForTimeout(1000); const st = await p.evaluate(() => { try { const G = window.__W().G; const c = document.getElementById('cont'); if (c && c.getClientRects().length && !window.__lxc) { window.__lxc = 1; setTimeout(() => c.click(), 10); } const w = document.getElementById('wgo'); if (w) w.click(); return G.mode + '|' + !!window.__zonesPretes; } catch (e) { return 'x'; } }); if (/^play\|true/.test(st) && k > 3) break; }
+  await p.evaluate(() => { const W = window.__W(), T = window.__T(), G = W.G; const g = document.getElementById('guide'); if (g) g.remove(); if (G.mode !== 'play') G.mode = 'play'; if (G.onFoot && G.parked) { G.inside = false; T.finishEnter({ own: true }); } window.__auto = () => ({ fwd: 0, side: 0, brake: true }); const PP = T.P; if (PP) PP.nightStart = false; W.creatorSetHour(14); });
+  for (let k = 0; k < 200; k++) { const r = await p.evaluate(() => !!(window.__zonesPretes && window.__FARW && window.__FARW.ready)); if (r) break; await p.waitForTimeout(1000); }
+  const shot = async n => { await p.screenshot({ path: out + '/' + n + '.png' }); };
+  const R1 = await p.evaluate(async () => { const T = window.__T(), W = window.__W(), G = W.G, P = T.P; G.mission = null; P.fire = null; P.day = Math.max(2, P.day || 1); const ok = T.fireStart(true); const F = T.FIRE; return { ok, sp: F.sp && { cx: F.sp.cx, cz: F.sp.cz, top: Math.round(F.sp.top), door: [Math.round(F.sp.dx), Math.round(F.sp.dz)] } }; });
+  console.log('DEBUT', JSON.stringify(R1)); if (!R1.ok) { await b.close(); return; }
+  // vue de loin : la fumée
+  await p.evaluate(async () => { const T = window.__T(), W = window.__W(), G = W.G, F = T.FIRE; if (!G.onFoot) { try { T.toggleCar(); } catch (e) {} await new Promise(ok => setTimeout(ok, 900)); } G.me.x = F.sp.cx - 20 - 8; G.me.z = F.sp.dz + F.sp.side * 160; G.me.h = Math.atan2(F.sp.cx - G.me.x, F.sp.cz - G.me.z); G.snapCam = true; await new Promise(ok => setTimeout(ok, 2500)); });
+  await shot('feu_loin');
+  const R2 = await p.evaluate(async () => { const T = window.__T(), W = window.__W(), G = W.G, F = T.FIRE; G.me.x = F.sp.dx; G.me.z = F.sp.dz + F.sp.side * 2.5; G.me.h = F.sp.side > 0 ? Math.PI : 0; G.snapCam = true; await new Promise(ok => setTimeout(ok, 1500)); return { st: F.st, bouton: !!document.getElementById('fireHold') }; });
+  console.log('PORTE', JSON.stringify(R2)); await shot('feu_porte');
+  await p.evaluate(() => { window.__T().FIRE.holding = true; }); await p.waitForTimeout(2500); await shot('feu_escalier');
+  const R3 = await p.evaluate(async () => { const T = window.__T(), F = T.FIRE, t0 = performance.now(); while (F.st !== 'out' && F.st !== 'done' && performance.now() - t0 < 30000) await new Promise(ok => setTimeout(ok, 100)); while (!F.parts && performance.now() - t0 < 30000) await new Promise(ok => setTimeout(ok, 50)); return { st: F.st }; });
+  await shot('feu_explosion');
+  const R3b = await p.evaluate(async () => { const T = window.__T(), F = T.FIRE, t0 = performance.now(); while (F.st !== 'done' && performance.now() - t0 < 30000) await new Promise(ok => setTimeout(ok, 100)); F.holding = false; return { st: F.st }; });
+  await p.waitForTimeout(100); await shot('feu_sortie'); await p.waitForTimeout(1500); await shot('feu_sortie2');
+  const R4 = await p.evaluate(() => ({ cash: window.__T().P.cash, badge: window.__T().P.badges, mamie: !!window.__T().FIRE.mamie, stats: (window.__stats || []).filter(x => /feu|rien/.test(x)), aide: (document.getElementById('help') || {}).textContent }));
+  console.log('FIN', JSON.stringify(R3), JSON.stringify(R4)); await b.close(); })();

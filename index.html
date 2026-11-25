@@ -1034,6 +1034,9 @@ Object.entries(LM).forEach(([k, l]) => {
   else { l.x = bC(l.b[0]); l.z = rc(l.b[1] + 1); }                     // repère sur la route
 });
 const LM_BLOCKS = {}; Object.entries(LM).forEach(([k, l]) => { if (l.b) LM_BLOCKS[l.b[0] + "," + l.b[1]] = k; });
+/* V310.73 · les deux agences (Thomas 9h54) : l'Agence Marine sur la plage de la Marina, l'Airline Agency sur le parking de l'aéroport · on y entre en roulant, comme à la Concession */
+LM.marine = { name: "Agence Marine", color: "#34e0ff", letter: "⚓", b: null, foot: false, x: HALF + 14, z: bC(5) + 22 };
+LM.airline = { name: "Airline Agency", color: "#c9a24a", letter: "✈", b: null, foot: false, x: AP.gx + 46, z: AP.zg + 34 };
 
 const MUSCLES = {
   bras:     { label: "Tour de bras",     ex: "Curl à la barre",  title: "Jour des bras",     base: 30, gain: 0.2 },
@@ -1152,6 +1155,23 @@ const RIDES = {
 };
 const rentals = [];
 const isPlane = k => !!(RIDES[k] && RIDES[k].plane);
+/* V310.73 · ACHATS (Thomas, 25/11 9h54 : « motos, vélos, 2 ou 3 trottinettes électriques, la dernière au style Constancy City, néons, rapide… une petite agence de bateaux et yachts… une petite agence d'avions à l'aéroport… tout ce qu'on achète se retrouve dans le garage ») · uniquement des modèles déjà dans le jeu · cat : 2r (Concession), mer (Agence Marine), air (Airline Agency) */
+const VEH = [
+  { id: "velo", cat: "2r", kind: "velo", name: "Vélo de ville", price: 400, max: 13, ic: "🚲" },
+  { id: "trott", cat: "2r", kind: "trottinette", name: "Trottinette électrique", price: 900, max: 14, ic: "🛴" },
+  { id: "trottsport", cat: "2r", kind: "trottinette", tint: 0x34e0ff, name: "Trottinette Sport", price: 2800, max: 19, ic: "🛴" },
+  { id: "trottneon", cat: "2r", kind: "trottinette", neon: true, name: "Trottinette Constancy City", price: 9500, max: 27, ic: "🛴" },
+  { id: "cross", cat: "2r", kind: "moto", cross: true, name: "Motocross", price: 6500, max: 46, ic: "🏍️" },
+  { id: "moto", cat: "2r", kind: "moto", name: "Moto de route", price: 14000, max: 58, ic: "🏍️" },
+  { id: "jetski", cat: "mer", kind: "jetski", name: "Jet-ski", price: 8000, max: 33, ic: "🌊" },
+  { id: "vedette", cat: "mer", kind: "bateau", name: "Vedette", price: 40000, max: 30, ic: "🚤" },
+  { id: "yacht", cat: "mer", kind: "bateau", model: "yacht", len: 22, rad: 5, name: "Yacht", price: 300000, max: 24, ic: "🛥️", big: true },
+  { id: "yachtlux", cat: "mer", kind: "bateau", model: "yacht_lux", len: 34, rad: 7, name: "Yacht Constancy", price: 1200000, max: 26, ic: "🛳️", big: true },
+  { id: "avion", cat: "air", kind: "avion", name: "Avion de tourisme", price: 90000, max: 50, ic: "🛩️" },
+  { id: "chasse", cat: "air", kind: "chasse", name: "Avion de chasse", price: 650000, max: 82, ic: "✈️" },
+  { id: "liner", cat: "air", kind: "airbus", name: "Long-courrier privé", price: 2500000, max: 62, ic: "✈️" }
+];
+const VEH_CAT = { "2r": { t: "Deux-roues", where: "Concession", gps: "shop" }, mer: { t: "Bateaux", where: "Agence Marine", gps: "marine" }, air: { t: "Avions", where: "Airline Agency", gps: "airline" } };
 
 /* ============ Mode créateur (bêta privée de Thomas) ============ */
 const CREATOR_KEY = "constancy-creator";
@@ -8974,7 +8994,7 @@ function buildWorld() {
     lampPos.forEach(([x, y, z], k) => { m4.makeTranslation(x - 0.6, Math.max(0.29, y - 6.7 + 0.29), z); refl.setMatrixAt(k, m4); }); refl.renderOrder = 2; refl.frustumCulled = false; refl.visible = false; scene.add(refl); WETR.mesh = refl; }
 
   // repères
-  Object.entries(LM).forEach(([k, l]) => { const b = makeBeacon(new THREE.Color(l.color)); b.position.set(l.x, 0, l.z); scene.add(b); beacons[k] = b; });
+  Object.entries(LM).forEach(([k, l]) => { const b = makeBeacon(new THREE.Color(l.color)); b.position.set(l.x, 0, l.z); scene.add(b); beacons[k] = b; }); buildAgencies();
   destBeacon = makeBeacon(new THREE.Color(COL.business)); destBeacon.visible = false; scene.add(destBeacon);
 
   // PNJ fixes : Mamie et le Mentor
@@ -10520,7 +10540,7 @@ function drawMinimap() {
 /* GPS : destination choisie sur la carte (comme dans les grands jeux de ville), sinon l'objectif conseillé */
 const GPS_DEST = {
   gym: { name: "Salle", key: "gym" }, home: { name: "Appart", key: "home" }, depot: { name: "Dépôt", key: "depot" }, shop: { name: "Concession", key: "shop" },
-  mamie: { name: "Mamie", key: "mamie" }, market: { name: "Supérette", key: "market" }, mentor: { name: "Mentor", key: "mentor" }, park: { name: "Street Workout", key: "park" },
+  mamie: { name: "Mamie", key: "mamie" }, market: { name: "Supérette", key: "market" }, marine: { name: "Agence Marine", key: "marine" }, airline: { name: "Airline Agency", key: "airline" }, mentor: { name: "Mentor", key: "mentor" }, park: { name: "Street Workout", key: "park" },
   garage: { name: "Garage", x: () => bC(3) + 9, z: () => rc(11) - 3, color: "#ff3fa4" }, car: { name: "Ta voiture" }, pin: { name: "Repère", x: () => (G.pin || { x: 0 }).x, z: () => (G.pin || { z: 0 }).z, color: "#f2f0ec" }, mountain: { name: "Montagne", x: () => MROAD[MROAD.length - 1][0], z: () => MROAD[MROAD.length - 1][1], color: "#9a948a" }, village: { name: "Saint-Constant (campagne)", x: () => -150, z: () => -1100, color: "#ffd36e" }, beach: { name: "Plage", x: () => HALF + 25, z: () => 0, color: "#e3c58d" },
   jungle: { name: "Jungle · dinosaures", x: () => (JUNGLE.gate || [0, -2700])[0], z: () => (JUNGLE.gate || [0, -2700])[1], color: "#7ee08a" }, tower: { name: "Tour Constancy", x: () => TOWER.x, z: () => TOWER.z + 22, color: "#f2f0ec" }, fair: { name: "Fête foraine", x: () => PIER.x0 + 8, z: () => PIER.z, color: "#ff4fa3" }, stunt: { name: "Stunt Park · tremplins", x: () => STUNT.x, z: () => STUNT.z - 72, color: "#ff4fa3" }, hospital: { name: "Hôpital", x: () => bC(2) - 9, z: () => bC(5) + 22, color: "#ff1a35" }, marina: { name: "Marina · bateaux", x: () => HALF + 45, z: () => bC(5), color: "#34e0ff" }, airport: { name: "Aéroport · hangar", x: () => 185, z: () => AP.z0 + 30, color: "#cfd8e6" }, aerodrome: { name: "Aérodrome du Mont", x: () => (PAD.x0 + PAD.x1) / 2, z: () => PAD.z1 - 6, color: "#cfd8e6" }
 };
@@ -10572,7 +10592,7 @@ const GARAGE = { x: 0, z: 0, t: 0, cool: 0 }; window.__GAR = GARAGE;
 function updateGarage(dt) {
   if (!P || G.mode !== "play" || G.inside) return; GARAGE.cool = Math.max(0, GARAGE.cool - dt);
   const o = target(), d = Math.hypot(o.x - GARAGE.x, o.z - GARAGE.z), slow = G.onFoot || Math.abs(G.car.v) < 4;
-  if (d < 7 && slow && !GARAGE.cool && (P.cars || []).length > 1) { /* V310.51 : le garage ne s'ouvre que s'il y a une voiture à choisir (avant : le téléphone sautait au départ avec une seule voiture) */ GARAGE.t += dt; if (GARAGE.t > 0.5) { GARAGE.t = 0; GARAGE.cool = 30; if (G.gpsDest === "garage") G.gpsDest = null; setMode("menu"); phoneShop(); help("<b>Garage.</b> Choisis ta voiture : elle sort tout de suite.", 4); } } else if (d > 9) GARAGE.t = 0;
+  if (d < 7 && slow && !GARAGE.cool && ((P.cars || []).length > 1 || (P.veh || []).length)) { /* V310.51 : le garage ne s'ouvre que s'il y a une voiture à choisir (avant : le téléphone sautait au départ avec une seule voiture) */ GARAGE.t += dt; if (GARAGE.t > 0.5) { GARAGE.t = 0; GARAGE.cool = 30; if (G.gpsDest === "garage") G.gpsDest = null; setMode("menu"); phoneShop(); help("<b>Garage.</b> Choisis ta voiture : elle sort tout de suite.", 4); } } else if (d > 9) GARAGE.t = 0;
 }
 /* V310.25 · tâche 5 de l'expert (Thomas 16h14 : « faire bouger les gens ») : des passants 3D qui marchent sur les trottoirs autour de l'appartement de départ, là où passent les 1res missions · construits une fois en jeu, jamais avant « Touchez pour entrer » */
 function homeWalkers() { if (G.homeWalk || !HQ.ready || G.mode !== "play" || DREAM.on || MIR.on || G.emailGate || !P || !(P.r3 || (P.day || 1) > 1 || P.deliveries > 0)) return; G.homeWalk = 1; try { const hb = LM.home.b, r = mulberry(5150), per = PHONE ? 3 : 5; let n0 = WALKERS.length; G.homeWalk0 = n0;
@@ -10613,7 +10633,7 @@ function gridRoute(o, t) {
 const keys = new Set();
 /* V310.59 (Thomas, 24/11 16h45 : « les voitures de luxe, environ 450 000 €, ne vont pas plus vite que celles à 10 000 € ») : une voiture prise dans la rue roulait toujours comme une « voiture de location » (44 m/s), même une hypercar de l'Archipel · elle roule maintenant comme le modèle de la concession qui lui correspond (Hyper 84, Minuit 104, Or 108, Nacre 112, GT 68, Coupé 52, SUV 54), avec la même tenue de route que celles qu'on achète */
 const RIDE_LUX = { hyper: "hyper", minuit: "minuit", or: "or", nacre: "nacre", sport: "gt", coupe: "coupe", suv: "suv" };
-const carDef = () => { if (G.ride && RIDES[G.ride.kind]) { if (G.ride.kind === "voiture" && G.ride.snd && RIDE_LUX[G.ride.snd]) { if (!G.ride.def) { const cd = CARS.find(c => c.id === RIDE_LUX[G.ride.snd]); G.ride.def = cd ? Object.assign({}, RIDES.voiture, { max: cd.max, id: cd.id }) : RIDES.voiture; } return G.ride.def; } return RIDES[G.ride.kind]; } return CARS.find(c => c.id === P.car) || CARS[0]; };
+const carDef = () => { if (G.ride && G.ride.mine) { if (!G.ride.vdef) { const v = VEH.find(x => x.id === G.ride.mine), R = RIDES[G.ride.kind] || RIDES.voiture; G.ride.vdef = v ? Object.assign({}, R, { max: v.max || R.max, rad: v.rad || R.rad, name: v.name }) : R; } return G.ride.vdef; } /* V310.73 : un véhicule acheté roule à sa vitesse (trottinette néon, moto de route, yacht) */ if (G.ride && RIDES[G.ride.kind]) { if (G.ride.kind === "voiture" && G.ride.snd && RIDE_LUX[G.ride.snd]) { if (!G.ride.def) { const cd = CARS.find(c => c.id === RIDE_LUX[G.ride.snd]); G.ride.def = cd ? Object.assign({}, RIDES.voiture, { max: cd.max, id: cd.id }) : RIDES.voiture; } return G.ride.def; } return RIDES[G.ride.kind]; } return CARS.find(c => c.id === P.car) || CARS[0]; };
 const GPAD = { prev: [], on: false, nav: 0 };
 function padRead(dt) {
   /* V310.20 (Thomas, 22/11 16h15 et 16h22 : « la voiture avance toute seule », « le turbo s'active tout seul ») : un appareil vu comme une manette (casque, volant, boîtier non standard) dont un axe ou un bouton reste au repos à fond pilotait la voiture et le turbo sans que personne y touche · on mémorise l'état de repos de chaque appareil, il ne prend la main qu'après un vrai geste, et un axe ou un bouton bloqué au repos est ignoré */
@@ -11680,7 +11700,7 @@ function updateCamera0(dt, follow) {
 function nearestRide() {
   let best = null, bd = 1e9;
   if (G.parked) { const d = Math.hypot(G.me.x - G.parked.x, G.me.z - G.parked.z); if (d < 5 && d < bd) { bd = d; best = { own: true, kind: "own" }; } }
-  rentals.forEach(r => { const d = Math.hypot(G.me.x - r.x, G.me.z - r.z), lim = RIDES[r.kind].big ? 18 : RIDES[r.kind].plane ? 8 : RIDES[r.kind].boat ? 7 : RIDES[r.kind].car ? 4.5 : 3; if (d < lim && d < bd) { bd = d; best = { own: false, kind: r.kind, r }; } });
+  rentals.forEach(r => { const d = Math.hypot(G.me.x - r.x, G.me.z - r.z), lim = RIDES[r.kind].big || r.big ? 18 : RIDES[r.kind].plane ? 8 : RIDES[r.kind].boat ? 7 : RIDES[r.kind].car ? 4.5 : 3; if (d < lim && d < bd) { bd = d; best = { own: false, kind: r.kind, r }; } });
   // une voiture de la circulation arrêtée à côté de toi : tu peux la louer à son conducteur
   traffic.forEach(a => { const d = Math.hypot(G.me.x - a.x, G.me.z - a.z); if (a.mesh.visible && d < Math.max(4.5, (a.hl || 2) + 2.2) && d < bd) { bd = d; best = { own: false, kind: "voiture", r: a, traffic: true }; } });
   /* V310.48 (Thomas, 24/11 10h34 : « les voitures autour de la map doivent pouvoir être prises », sauf les voitures de luxe de l'Archipel, à débloquer avec les missions) : voitures des ponts, des avenues de Constancy Sud et des parkings */
@@ -11766,7 +11786,7 @@ function toggleCar() {
     // en descendant : la portière s'ouvre, on sort, elle se referme derrière nous
     if (carMesh && !two && !(RIDES[k] && (RIDES[k].plane || RIDES[k].boat))) { if (G.doorClose && G.doorClose.door.parent) G.doorClose.door.parent.remove(G.doorClose.door); const dr = makeDoor(carMesh); dr.rotation.y = 1.15; G.doorClose = { door: dr, t: -0.45 }; }
     if (k === "own") G.parked = { mesh: carMesh, x: c.x, z: c.z, h: c.h };
-    else rentals.push({ kind: k, mesh: carMesh, x: c.x, z: c.z, h: c.h });
+    else rentals.push({ kind: k, mesh: carMesh, x: c.x, z: c.z, h: c.h, mine: G.ride.mine, big: !!(carMesh.userData && carMesh.userData.blen > 20) });
     if (two) carMesh.position.y = Math.max(0.25, GH(c.x, c.z) + 0.25); /* V308.3 (MODIFICATION : « j'ai quitté la moto, la moto n'est plus là ») : la moto garée restait à 0,25 m, enterrée sous la colline ou la montagne */
     if (RIDES[k] && RIDES[k].boat && carMesh.userData.wake) carMesh.userData.wake.visible = false;
     if (RIDES[k] && RIDES[k].plane) { carMesh.rotation.set(0, c.h, 0); carMesh.position.y = GH(c.x, c.z); c.alt = 0; c.pitch = 0; c.roll = 0; G.tbOn = false; }
@@ -11776,7 +11796,7 @@ function toggleCar() {
     meMesh.visible = true; resetPose(); sfx.door(); G.lastZone = null;
   } else {
     const n = nearestRide(); if (!n) { help("Approche-toi d'un véhicule."); return; }
-    { const U = RIDES[n.kind] && RIDES[n.kind].unlock ? needMissions(RIDES[n.kind].unlock) : 0, done = P.storyI || 0; if (U && done < U && !CREATOR) { help(`<b>${RIDES[n.kind].name}.</b> Se débloque après ${U} missions (toi : ${done}/${U}). Une mission après l'autre : c'est comme ça qu'on monte en grade.`, 6); return; } }
+    { const U = RIDES[n.kind] && RIDES[n.kind].unlock ? needMissions(RIDES[n.kind].unlock) : 0, done = P.storyI || 0; if (U && done < U && !CREATOR && !(n.r && n.r.mine)) { help(`<b>${RIDES[n.kind].name}.</b> Se débloque après ${U} missions (toi : ${done}/${U}). Une mission après l'autre : c'est comme ça qu'on monte en grade.`, 6); return; } }
     if (n.kind === "gyro") { const done = P.storyI || 0;
       if (done < 2 && !CREATOR) { help(`<b>Gyrosphère.</b> Réservée aux joueurs qui ont bouclé 2 missions (toi : ${done}/2). Reviens après ta ${done ? "prochaine" : "première"} mission : c'est la régularité qui ouvre les portes.`, 6); return; }
       if (P.gyroDay !== P.day) { if (P.cash < 250 && !CREATOR) { help(`<b>Gyrosphère : 250 $ la journée.</b> Il te manque $${fmt(250 - P.cash)}. Une livraison de plus et elle est à toi.`, 5); return; }
@@ -11795,7 +11815,7 @@ function finishEnter(n) {
     const list = n.traffic ? traffic : n.q ? n.qL : rentals, i = list.indexOf(n.q || n.r); if (i >= 0) list.splice(i, 1);
     G.rideHome = { x: n.r.x, z: n.r.z, h: n.r.h };
     carMesh = n.r.mesh; carMesh.visible = true; [...carMesh.children].forEach(ch => { if (ch.material === DRIVER_M) carMesh.remove(ch); }); // le conducteur descend
-    G.car.x = n.r.x; G.car.z = n.r.z; G.car.h = n.r.h; G.ride = { kind: n.kind, offroad: !!n.r.offroad, amb: !!(n.r.amb || (n.r.mesh && n.r.mesh.userData.patrol === "ambulance")) }; if (n.kind === "voiture") { const sf = carSndFamily(n.r.mesh); G.ride.snd = G.ride.amb ? "ambu" : sf.f; G.ride.sndK = sf.k; } G.siren = false; if (G.ride.amb) { if (!carMesh.userData.ambL) ambLights(carMesh); help("<b>Ambulance</b> : appuie sur <b>SIRÈNE</b> (touche H) pour allumer la sirène et les gyrophares.", 6); }
+    G.car.x = n.r.x; G.car.z = n.r.z; G.car.h = n.r.h; G.ride = { kind: n.kind, offroad: !!n.r.offroad, amb: !!(n.r.amb || (n.r.mesh && n.r.mesh.userData.patrol === "ambulance")) }; if (n.kind === "voiture") { const sf = carSndFamily(n.r.mesh); G.ride.snd = G.ride.amb ? "ambu" : sf.f; G.ride.sndK = sf.k; } if (n.r && n.r.mine) G.ride.mine = n.r.mine; G.siren = false; if (G.ride.amb) { if (!carMesh.userData.ambL) ambLights(carMesh); help("<b>Ambulance</b> : appuie sur <b>SIRÈNE</b> (touche H) pour allumer la sirène et les gyrophares.", 6); }
     meMesh.visible = !RIDES[n.kind].car;
     help(n.traffic ? "Le conducteur te laisse le volant. Bonne route !" : `${RIDES[n.kind].name} : elle est à toi. Descends quand tu veux, elle reste là.`);
   }
@@ -11826,6 +11846,7 @@ function onZone(k) {
   const l = LM[k], M = G.mission;
   if (M) return; // pendant une mission, rien ne t'arrête en route (ni concession ni autres lieux)
   if (k === "shop") { G.car.v = 0; openShop(); return; }
+  if (k === "marine" || k === "airline") { G.car.v = 0; openAgency(k === "marine" ? "mer" : "air"); return; } /* V310.73 */
   if (k === "market" && G.onFoot) { if (P.marketDay === P.day) { help("Tes courses sont faites pour aujourd'hui. Reviens demain.", 4); return; } P.marketDay = P.day; openMarket(); return; }
   if (l.foot && !G.onFoot) { help(`Tu es à la <b>${l.name}</b>. Appuie sur <b>SORTIR</b> et entre à pied.`, 6); return; }
   if (!l.foot && G.onFoot && k !== "home") { help("Cette mission se fait en voiture. Remonte dans ta voiture."); return; }
@@ -11954,9 +11975,12 @@ function phoneShop() {
   const nxt = CARS.find(c => !P.cars.includes(c.id));
   show(phoneFrame("Concession", `<h3>Concession · $${fmt(P.cash)}</h3>` + CARS.map(c => { const own = P.cars.includes(c.id), k = own ? 1 : clamp(P.cash / Math.max(1, c.price), 0, 1);
     return `<div class="car"><img src="${snapshot("car-" + c.id, () => makeCar(c), 220, 140, 0.75)}" alt=""><div style="flex:1"><b style="font-size:13px">${c.name}</b><div style="font-size:12px;opacity:.75">${own ? (P.car === c.id ? (carFar() ? `Ta voiture · <button class="pbtn" data-deliver="${c.id}" type="button" style="display:inline-block;width:auto;padding:4px 10px;margin:4px 0 0;font-size:12px">Faire livrer ici</button>` : "Ta voiture") : `Au garage · <button class="pbtn" data-deliver="${c.id}" type="button" style="display:inline-block;width:auto;padding:4px 10px;margin:4px 0 0;font-size:12px">Faire livrer ici</button>`) : "$" + fmt(c.price) + (k >= 1 ? " · tu peux l'acheter" : " · il te manque $" + fmt(c.price - P.cash))}</div><div class="bar"><i style="width:${Math.round(k * 100)}%"></i></div></div></div>`; }).join("")
+    + Object.entries(VEH_CAT).map(([ck, C]) => `<h3 style="margin-top:14px">${C.t}</h3>` + VEH.filter(v => v.cat === ck).map(v => { const own = (P.veh || []).includes(v.id), k = own ? 1 : clamp(P.cash / Math.max(1, v.price), 0, 1); return `<div class="car"><div style="width:56px;height:40px;display:grid;place-items:center;font-size:24px;background:#16151b;border-radius:8px">${v.ic}</div><div style="flex:1"><b style="font-size:13px">${v.name}</b><div style="font-size:12px;opacity:.75">${own ? `Au garage · <button class="pbtn" data-veh="${v.id}" type="button" style="display:inline-block;width:auto;padding:4px 10px;margin:4px 0 0;font-size:12px">Faire livrer ici</button>` : "$" + fmt(v.price) + " · " + C.where + (k >= 1 ? " · tu peux l'acheter" : "")}</div><div class="bar"><i style="width:${Math.round(k * 100)}%"></i></div></div></div>`; }).join("") + `<button class="pbtn" data-vgps="${C.gps}" type="button">📍 GPS vers ${C.where === "Concession" ? "la Concession" : "l'" + C.where}</button>`).join("") /* V310.73 : deux-roues, bateaux et avions dans le garage du téléphone */
     + `<p style="font-size:12px;opacity:.7">On achète sur place : les modèles t'attendent dans le showroom vitré.</p><button class="pbtn" id="goShop" type="button">📍 GPS vers la Concession</button><button class="pbtn" id="goGarage" type="button">📍 GPS vers le Garage</button>`));
   on("goGarage", () => { G.gpsDest = "garage"; G.gpsUser = 1; resume(); help("GPS réglé sur le <b>Garage</b>, juste à côté de l'appart."); });
   on("goShop", () => { G.gpsDest = "shop"; G.gpsUser = 1; resume(); help("GPS réglé sur la <b>Concession</b>. Suis le trait sur la carte."); }); on("phHome", openPhone);
+  screen.querySelectorAll("[data-veh]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); resume(); vehDeliver(b.dataset.veh); }));
+  screen.querySelectorAll("[data-vgps]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); G.gpsDest = b.dataset.vgps; G.gpsUser = 1; resume(); help(`GPS réglé sur ${b.textContent.replace("📍 GPS vers ", "")}. Suis le trait sur la carte.`, 4); }));
   screen.querySelectorAll("[data-deliver]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); const c = CARS.find(x => x.id === b.dataset.deliver); if (!c || !P.cars.includes(c.id)) return;
     P.car = c.id; if (G.onFoot && G.parked) { const o = G.me; G.parked.x = o.x + Math.cos(o.h) * 3.2; G.parked.z = o.z - Math.sin(o.h) * 3.2; G.parked.h = o.h; } setCar(c.id); saveNow(); resume(); sfx.door();
     help(`<b>${c.name}</b> livrée ${G.onFoot ? "juste à côté de toi" : "sous tes roues"}. Bonne route.`, 5); }));
@@ -13400,6 +13424,44 @@ function startQuiz() {
   };
   render();
 }
+/* V310.73 · ACHATS : fabrication, livraison et agences (voir VEH) */
+function vehMesh(v) { let g = null;
+  try { if (v.kind === "moto" && v.cross) g = makeCross();
+    else if (v.model && MODELS[v.model]) { g = new THREE.Group(); const m = modelInstance(v.model); if (m) { const sz = MODELS[v.model].size, k = v.len / Math.max(sz.x, sz.z); m.scale.multiplyScalar(k); m.position.y = -sz.y * k * 0.16 - 0.3; g.add(m); } }
+    else g = makeRide(v.kind); } catch (e) { g = null; }
+  if (!g) g = makeRide(v.kind === "bateau" ? "bateau" : v.kind);
+  if (v.tint) g.traverse(o => { if (o.isMesh && o.material === RENT_M) o.material = new THREE.MeshLambertMaterial({ color: v.tint }); });
+  if (v.neon) { /* la trottinette Constancy City : nacre, néons rose et cyan, comme la voiture */ const pk = new THREE.MeshBasicMaterial({ color: 0xff3fa4 }), cy = new THREE.MeshBasicMaterial({ color: 0x34e0ff }), nac = new THREE.MeshPhongMaterial({ color: 0xf4f2ee, shininess: 120, specular: 0xffffff });
+    g.traverse(o => { if (o.isMesh && o.material === RENT_M) o.material = nac; });
+    [-0.13, 0.13].forEach((x, i) => { const st = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.03, 1.0), i ? cy : pk); st.position.set(x, 0.17, 0); g.add(st); });
+    const sb = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.9, 0.03), pk); sb.position.set(0, 0.75, 0.52); sb.rotation.x = -0.15; g.add(sb); }
+  if (v.big) g.userData.blen = v.len; g.userData.veh = v.id; return g; }
+function waterNear(x, z, clear, maxR) { for (let r = 6; r <= maxR; r += 6) for (let k = 0; k < 24; k++) { const a = k / 24 * 6.2832, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r; if (!isWater(px, pz)) continue; if (!(isWater(px + clear, pz) && isWater(px - clear, pz) && isWater(px, pz + clear) && isWater(px, pz - clear))) continue; return [px, pz, Math.atan2(px - x, pz - z)]; } return null; }
+function vehDeliver(id) { const v = VEH.find(x => x.id === id); if (!v || !(P.veh || []).includes(id)) return false;
+  if (G.ride && G.ride.mine === id) { help("Tu es déjà dessus.", 3); return false; }
+  const o = G.onFoot ? G.me : G.car, h0 = o.h || 0; let x, z, h = h0, far = false;
+  if (v.cat === "mer") { const w = waterNear(o.x, o.z, v.big ? v.len * 0.7 : 7, 160) || (v.big ? waterNear(o.x, o.z, v.len * 0.55, 520) : null); /* V310.79 : un grand yacht a besoin d'eau libre, on le pose au large si la marina est trop serrée */ if (!w) { help("Approche-toi de l'eau : on te le livre à moins de 160 m du bord.", 5); return false; } [x, z, h] = w; const dw = Math.hypot(x - o.x, z - o.z); if (dw > 60) { far = true; G.gpsPt = [x, z]; } }
+  else if (v.cat === "air") { if (onAirport(o.x, o.z)) { x = o.x + Math.cos(h0) * 22; z = o.z - Math.sin(h0) * 22; } else { x = AP.gx + 90; z = AP.z0 + 40; h = Math.PI / 2; far = true; G.gpsDest = "airline"; G.gpsUser = 1; } }
+  else { x = o.x + Math.cos(h0) * 2.4; z = o.z - Math.sin(h0) * 2.4; }
+  for (let i = rentals.length - 1; i >= 0; i--) if (rentals[i].mine === id) { scene.remove(rentals[i].mesh); rentals.splice(i, 1); }
+  const m = vehMesh(v); m.position.set(x, v.cat === "mer" ? -0.2 : Math.max(0, GH(x, z)) + (v.cat === "2r" ? 0.25 : 0), z); m.rotation.y = h; scene.add(m); rentals.push({ kind: v.kind, mesh: m, x, z, h, mine: id, big: !!v.big }); stat("achat-livre-" + id);
+  help(far && v.cat === "mer" ? `<b>${v.name}</b> t'attend au large, à ${Math.round(Math.hypot(x - o.x, z - o.z))} m. Nage ou prends le jet-ski jusqu'à lui.` : far ? `<b>${v.name}</b> t'attend sur le tarmac de l'aéroport. GPS réglé.` : `<b>${v.name}</b> livré${v.cat === "2r" && /^(Moto|Trott)/.test(v.name) ? "e" : ""} ${v.cat === "mer" ? "sur l'eau, juste devant toi" : "juste à côté de toi"}.`, 5); return true; }
+function vehBuy(id) { const v = VEH.find(x => x.id === id); if (!v) return; P.veh = P.veh || []; if (P.veh.includes(id) || P.cash < v.price) return; P.cash -= v.price; G.shownCash = P.cash; P.veh.push(id); P.statut = (P.statut || 0) + Math.min(30, Math.round(Math.log10(v.price) * 4)); sfx.win(); stat("achat-" + id); saveNow(); }
+function openAgency(cat) { const C = VEH_CAT[cat], L = VEH.filter(v => v.cat === cat); setMode("shop"); P.veh = P.veh || [];
+  const img = v => { try { if (v.model && !MODELS[v.model]) return ""; return `<img src="${snapshot("veh-" + v.id, () => vehMesh(v), 220, 140, 0.75)}" alt="" style="width:96px;height:62px;object-fit:contain;background:radial-gradient(circle at 50% 70%,#2a2a33,#0e0d12);border-radius:6px">`; } catch (e) { return ""; } };
+  show(`<div class="panel"><div class="kicker">${C.where} · ton compte : $${fmt(P.cash)}</div><h2>${C.t}</h2>
+    ${L.map(v => { const own = P.veh.includes(v.id); return `<div class="shop-item">${img(v) || `<div style="width:96px;height:62px;display:grid;place-items:center;font-size:30px;background:#16151b;border-radius:6px">${v.ic}</div>`}<div><b>${v.name}</b><small>Vitesse max ${v.max}${own ? " · à toi" : P.cash < v.price ? " · il te manque $" + fmt(v.price - P.cash) : ""}</small></div><button type="button" data-v="${v.id}" ${!own && P.cash < v.price ? "disabled" : ""}>${own ? "Le sortir" : "$" + fmt(v.price)}</button></div>`; }).join("")}
+    <p class="note">Tout ce que tu achètes va dans ton garage. Tu le fais livrer où tu veux depuis l'appli Concession de ton téléphone.</p><button class="btn alt" id="close" data-focus type="button">Reprendre la route</button></div>`);
+  screen.querySelectorAll("[data-v]").forEach(b => b.addEventListener("click", () => { const id = b.dataset.v; if (!P.veh.includes(id)) { vehBuy(id); if (!P.veh.includes(id)) return; } resume(); vehDeliver(id); }));
+  on("close", resume); }
+function agencyPavilion(l, ry) { /* petit pavillon vitré : socle, verre, toit, enseigne et liseré néon, 6 objets en tout */ const g = new THREE.Group(), w = 11, d = 6.5, col = new THREE.Color(l.color);
+  const glass = new THREE.MeshPhongMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.38, shininess: 120, specular: 0xffffff, depthWrite: false }), dark = new THREE.MeshLambertMaterial({ color: 0x17161c }), white = new THREE.MeshLambertMaterial({ color: 0xf2f0ec });
+  const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); g.add(o); return o; };
+  add(new THREE.BoxGeometry(w + 1, 0.3, d + 1), white, 0, 0.15, 0); add(new THREE.BoxGeometry(w, 3.2, d), glass, 0, 1.9, 0); add(new THREE.BoxGeometry(w + 1.4, 0.35, d + 1.4), dark, 0, 3.65, 0);
+  add(new THREE.BoxGeometry(w + 1.42, 0.07, 0.07), new THREE.MeshBasicMaterial({ color: col }), 0, 3.42, (d + 1.4) / 2);
+  const sg = wallSign(l.name, l.color, 9, 1.6); sg.position.set(0, 4.75, 0); g.add(sg);
+  const gy = Math.max(0, GH(l.px, l.pz)); g.position.set(l.px, gy, l.pz); g.rotation.y = ry || 0; scene.add(g); return g; }
+function buildAgencies() { try { const M = LM.marine, A = LM.airline; M.px = M.x + 4; M.pz = M.z + 10; agencyPavilion(M, 0); A.px = A.x; A.pz = A.z + 13; agencyPavilion(A, 0); } catch (e) { console.warn("agences", e); } }
 /* Concession */
 function carSheet(id) {
   const c = CARS.find(x => x.id === id); if (!c) return; setMode("shop"); const own = P.cars.includes(c.id), cur = P.car === c.id, miss = Math.max(0, c.price - P.cash);
@@ -13421,7 +13483,8 @@ function openShop() {
   setMode("shop");
   show(`<div class="panel"><div class="kicker">Concession · ton compte : $${fmt(P.cash)}</div><h2>Monte en gamme.</h2>
     ${CARS.map(c => { const own = P.cars.includes(c.id), cur = P.car === c.id; return `<div class="shop-item"><img src="${snapshot("car-" + c.id, () => makeCar(c), 220, 140, 0.75)}" alt="${c.name}" style="width:96px;height:62px;object-fit:contain;background:radial-gradient(circle at 50% 70%,#2a2a33,#0e0d12);border-radius:6px"><div><b>${c.name}</b><small>Vitesse max ${c.max} · ${c.statut ? "+" + c.statut + " statut" : "de base"}</small></div><button type="button" data-id="${c.id}" ${cur || (!own && P.cash < c.price) ? "disabled" : ""}>${cur ? "Au volant" : own ? "Prendre" : "$" + fmt(c.price)}</button></div>`; }).join("")}
-    <p class="note">Bientôt : tenues, appart, salle de sport à toi.</p><button class="btn alt" id="close" data-focus type="button">Reprendre la route</button></div>`);
+    <button class="btn" id="shop2r" type="button">Deux-roues · motos, vélos, trottinettes</button><button class="btn alt" id="close" data-focus type="button">Reprendre la route</button></div>`);
+  on("shop2r", () => openAgency("2r")); /* V310.73 : le coin deux-roues de la Concession */
   screen.querySelectorAll(".shop-item button").forEach(b => b.addEventListener("click", () => {
     const c = CARS.find(x => x.id === b.dataset.id);
     if (!P.cars.includes(c.id)) { if (P.cash < c.price) return; P.cash -= c.price; G.shownCash = P.cash; P.cars.push(c.id); P.statut += c.statut; sfx.win(); }

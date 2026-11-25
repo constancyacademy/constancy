@@ -1,7 +1,7 @@
 import sys; sys.path.insert(0,'/root/cap')
 DT=690
 SETUP="""{const W6=window.__W(),G=W6.G,F=W6.FIRE;window.__auto=(g)=>({fwd:0,side:0});
-if(!F.sp){W6.P.fire=null;F.on=false;W6.fireStart(true);}
+if(!F.sp||F.sp.cx!==-308||F.sp.cz!==84){const G9=W6.G;if(!G9.onFoot){G9.car.v=0;W6.toggleCar();}G9.me.x=-60;G9.me.z=40;for(let k=0;k<3000;k++){if(F.grp){W6.scene.remove(F.grp);}if(F.truck){W6.scene.remove(F.truck);F.truck=null;}W6.P.fire=null;F.on=false;F.sp=null;W6.fireStart(true);if(F.sp&&F.sp.cx===-308&&F.sp.cz===84)break;}window.__FTRY=1;}
 F.on=true;F.t=0;F.fade=null;F.st='out';const sp=F.sp;window.__SP=sp;const ho=sp.side>0?0:Math.PI;
 try{const hb=document.getElementById('fireHold');if(hb)hb.remove();W6.fireSmokeVeil(0);}catch(e){}
 if(!G.onFoot){G.car.v=0;W6.toggleCar();}
@@ -55,6 +55,20 @@ S["D11"]=cam(("19.5","5","23.5+0.6*T"),("8","1.5","4"),76); J["D11"]=setup("0.8"
 S["D12"]=cam(("19.5","2.0","23.5+0.6*T"),("9","2.0","5"),68); J["D12"]=setup("0.8","9","ho+0.45","true","-0.5","7.4","ho+0.2")
 S["D13"]=cam(("20.5","2.5","25+0.6*T"),("9","2.6","5"),70); J["D13"]=setup("0.8","9","ho+0.45","true","-0.5","7.4","ho+0.2")
 S["D14"]=cam(("19.5","2.0","23.5-0.5*T"),("9","2.0","5"),68); J["D14"]=setup("0.8","9","ho+0.45","true","-0.5","7.4","ho+0.2")
+# feu_b2 : ouverture sur la façade en feu, contre-plongée sur la fenêtre, camion en mouvement
+S["A10"]=cam(("2+1.5*T","7-1.2*T","48-8*T"),("2","10","0"),60); J["A10"]=setup(truck="false")
+S["A11"]=cam(("-6+2.5*T","4.5-0.8*T","42-7*T"),("2.4","10.5","0"),62); J["A11"]=setup(truck="false")
+S["A12"]=cam(("10-2*T","9-1.5*T","55-9*T"),("2","12","0"),56); J["A12"]=setup(truck="false")
+S["B5"]=cam(("1.2+0.4*T","1.6","5.5-0.8*T"),("2.4","10.8","-0.5"),66); J["B5"]=setup("0.8","9","ho+0.45","false","-0.5","7.4","ho+0.2","false")
+S["B6"]=cam(("-2+0.6*T","1.5","7-0.6*T"),("2.2","10.5","-1"),62); J["B6"]=setup("0.8","9","ho+0.45","false","-0.5","7.4","ho+0.2","false")
+S["D15"]=cam(("19.5-1.2*T","2.0","23.5-0.9*T"),("9-0.6*T","2.0","5"),68); J["D15"]=setup("0.8","9","ho+0.45","true","-0.5","7.4","ho+0.2")
+S["D16"]=cam(("13+10*Math.cos(0.9+0.12*T)","2.2","10.5+12*Math.sin(0.9+0.12*T)"),("11","3.0","8"),66); J["D16"]=setup("0.8","9","ho+0.45","true","-0.5","7.4","ho+0.2")
+S["A13"]=cam(("40-11*T","6-0.7*T","11"),("2","9","-2"),62); J["A13"]=setup(truck="false")
+S["A14"]=cam(("28-8*T","3-0.3*T","16"),("2","10","0"),62); J["A14"]=setup(truck="false")
+S["A15"]=cam(("-24+7*T","5","15-1*T"),("2","10","-1"),60); J["A15"]=setup(truck="false")
+S["A16"]=cam(("-17+7*T","5","14-1*T"),("2","14","-1"),62); J["A16"]=setup(truck="false")
+NOPED="{const W6=window.__W();const H=m=>{if(m&&m.isObject3D&&!m.__h){m.__h=1;Object.defineProperty(m,'visible',{configurable:true,get:()=>false,set:()=>{}});}};[].concat(W6.peds||[],W6.WALKERS&&W6.WALKERS.list||[]).forEach(p=>{H(p&&(p.mesh||p.g||p.m||p));});}"
+J["D15"]=J["D15"]+NOPED
 from h import shot
 def MK(name,body,n=1,o=0,js="",wait=2500):
   k=[x for x in J if S[x]==body]

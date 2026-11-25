@@ -9567,7 +9567,7 @@ function updateRace(dt) {
   const R = G.race;
   if (!R) {
     if (LD.el && (performance.now() - LD.t > 10000 || G.onFoot || G.mission || !LD.a || (LD.a.vEff == null ? LD.a.speed : LD.a.vEff) > 3)) ldCardOff();
-    if (G.onFoot || !carMesh || G.mission || G.inside || (G.ride && RIDES[G.ride.kind] && !RIDES[G.ride.kind].car) || Math.abs(G.car.v) > 2) { G.raceCand = null; return; }
+    if (G.onFoot || !carMesh || G.mission || G.inside || (typeof TX !== "undefined" && TX.on) || (G.ride && RIDES[G.ride.kind] && !RIDES[G.ride.kind].car) || Math.abs(G.car.v) > 2) { G.raceCand = null; return; }
     let cand = null; traffic.forEach(a => { if (cand || !a.mesh.visible || a.frozen || a.mesh.userData.patrol) return; const d = Math.hypot(a.x - G.car.x, a.z - G.car.z); let dh = a.h - G.car.h; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; if (d < 8 && Math.abs(dh) < 0.45 && (a.vEff == null ? a.speed : a.vEff) < 1.5) cand = a; });
     if (cand && G.raceCand !== cand) { G.raceCand = cand; if (ldOk() && !LD.el) ldCard(cand); else if (!LD.el && (!G.raceHintT || performance.now() - G.raceHintT > 60000)) { G.raceHintT = performance.now(); help("Une voiture s'arrête à côté de toi. Le conducteur te regarde… Touche <b>TURBO</b> pour le défier jusqu'au point blanc.", 5); } }
     if (cand && G.turbo && !LD.el) startRace(cand);
@@ -9596,6 +9596,22 @@ function endRace(win) {
   if (win) { addCash(300); addXP(60); sfx.win(); help(`<b>Gagné !</b> Le conducteur lève le pouce. <b style="color:var(--cash)">+$300</b>`, 5); feedPost("tom", "Course improvisée au feu rouge avec le livreur du quartier. Il m'a mis une leçon. 😅", { toast: false }); }
   else help("Il t'a eu cette fois. Prochain feu, prochaine chance.", 4);
 }
+/* V310.55 · PRIORITÉ 2 · mini-mission 2 « RATTRAPE LE TAXI » (claude/constancy-fun-priorite-2.txt) : après une livraison (Jour 2 et plus, ou après la coupé néon), une fois par jour, le client court vers toi : « Mon téléphone est resté dans le taxi blanc et rose, là ! » · 60 s pour rester à moins de 15 m du taxi pendant 5 s en tout (barre qui se remplit) · le taxi ne fuit pas, il roule normalement · réussi : il s'arrête et rend le téléphone, +500 $ · raté : +100 $ pour avoir essayé · stat taxi-vu / taxi-reussi / taxi-rate */
+const TX = { on: false, a: null, t: 0, near: 0, el: null };
+function txEligible() { return P && !CREATOR && G.mode === "play" && !G.mission && !G.race && !TX.on && !(P.tx && P.tx.day === P.day) && ((P.day || 1) >= 2 || (P.cars || []).includes("coupe")); }
+function txArm() { if (!txEligible() || Math.random() > 0.6) return; setTimeout(() => { try { txStart(); } catch (e) {} }, 2600); }
+function txStart() { if (!txEligible() || G.onFoot || !carMesh) return; const c = G.car; let best = null, bd = 1e9; traffic.forEach(a => { if (!a.mesh.visible || a.frozen || a.racer || a.mesh.userData.patrol || a.police || a.bus || !/^car_/.test(a.model || "") || /police/.test(a.model)) return; const d = Math.hypot(a.x - c.x, a.z - c.z); if (d < 25 || d > 110) return; const sc = d + (a.model === "car_taxi" ? -40 : 0); if (sc < bd) { bd = sc; best = a; } }); if (!best) return;
+  TX.on = true; TX.a = best; TX.t = 60; TX.near = 0; best.txTgt = true; P.tx = { day: P.day }; stat("taxi-vu"); const isTaxi = best.model === "car_taxi"; try { sfx.ping(); } catch (e) {}
+  help(`« Mon téléphone est resté dans ${isTaxi ? "le taxi" : "la voiture"}, là ! » <b>Rattrape-${isTaxi ? "le" : "la"}</b> : reste tout près 5 s.`, 6);
+  const d = document.createElement("div"); d.id = "txBar"; d.style.cssText = "position:fixed;left:50%;top:31%;transform:translateX(-50%);z-index:39;width:min(70vw,280px);padding:8px 12px;border-radius:14px;background:rgba(14,10,24,.82);border:1px solid rgba(52,224,255,.5);color:#fff;font:600 12px Inter,sans-serif;text-align:center;pointer-events:none";
+  d.innerHTML = `<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span>${isTaxi ? "RATTRAPE LE TAXI" : "RATTRAPE LA VOITURE"}</span><span id="txT">60 s</span></div><div style="height:7px;border-radius:5px;background:rgba(255,255,255,.15);overflow:hidden"><i id="txF" style="display:block;height:100%;width:0;background:linear-gradient(90deg,#34e0ff,#ff3fa4)"></i></div>`; document.body.appendChild(d); TX.el = d; destBeacon.visible = true; }
+function txEnd(ok) { const a = TX.a; TX.on = false; if (TX.el) { TX.el.remove(); TX.el = null; } destBeacon.visible = false; if (a) { a.txTgt = false; if (ok) { a.txStop = 3; a.speed = 0; } } TX.a = null;
+  if (ok) { addCash(500); addXP(50); sfx.win(); stat("taxi-reussi"); help(`Le chauffeur s'arrête et te rend le téléphone. « Le quartier sait que tu es fiable. » <b style="color:var(--cash)">+$500</b>`, 6); feedPost("lea", "Le livreur a rattrapé un taxi pour me rendre mon téléphone. Qui fait encore ça ? 🙏", { toast: false }); }
+  else { addCash(100); stat("taxi-rate"); help(`Il est loin. Le client te remercie d'avoir essayé. <b style="color:var(--cash)">+$100</b>`, 5); } saveNow(); }
+function updateTaxiChase(dt) { if (!TX.on) return; const a = TX.a; if (!a || !a.mesh.visible || G.mission || G.race || G.mode !== "play") { TX.on = false; if (TX.el) { TX.el.remove(); TX.el = null; } destBeacon.visible = false; if (a) a.txTgt = false; TX.a = null; return; }
+  TX.t -= dt; const me = G.onFoot ? G.me : G.car, d = Math.hypot(a.x - me.x, a.z - me.z); if (d < 15) TX.near += dt; destBeacon.position.set(a.x, 0, a.z);
+  const f = document.getElementById("txF"), tt = document.getElementById("txT"); if (f) f.style.width = Math.min(100, TX.near / 5 * 100) + "%"; if (tt) tt.textContent = Math.max(0, Math.ceil(TX.t)) + " s";
+  if (TX.near >= 5) txEnd(true); else if (TX.t <= 0) txEnd(false); }
 // ---------- papiers qui s'envolent au passage des voitures
 const LITTER = { n: 34, inst: null, list: [], m: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(), v: new THREE.Vector3(), s: new THREE.Vector3(1, 1, 1) };
 function litterSpot(o) { const a = Math.random() * 6.28, d = 12 + Math.random() * 45, x = o.x + Math.cos(a) * d, z = o.z + Math.sin(a) * d, i = Math.round((x + HALF - ROAD / 2) / STEP), j = Math.round((z + HALF - ROAD / 2) / STEP);
@@ -9932,7 +9948,7 @@ function updateDirt(dt) {
   if (carMesh && (G.dirtMesh !== carMesh || Math.abs((G.dirtShown || 0) - P.dirt) > 0.02)) { G.dirtMesh = carMesh; G.dirtShown = P.dirt; applyDirt(carMesh, G.ride && G.ride.kind === "own" ? P.dirt : 0); }
 }
 function updateWorldLife(dt) {
-  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateCrossers(dt); updateSitters(dt); updateMechanics(dt); updateFoodTruck(); updateAirportGate(dt); updateCats(dt); updateDispute(dt); updateRace(dt); updateLitter(dt); updatePhotoPeds(dt);
+  updateDaily(dt); updateDirt(dt); updateCarLights(); updateTrafficLights(); updateStreetScenes(dt); updateCrossers(dt); updateSitters(dt); updateMechanics(dt); updateFoodTruck(); updateAirportGate(dt); updateCats(dt); updateDispute(dt); updateRace(dt); try { updateTaxiChase(dt); } catch (e) {} updateLitter(dt); updatePhotoPeds(dt);
   const cxp = camera.position.x, czp = camera.position.z;
   { /* V310.12 (Thomas : « je vois pas les tanks, je vois pas les avions de chasse… vu aérien, on est censé y voir ») : les chars, avions et avions de chasse restent visibles de beaucoup plus loin quand on regarde d'en haut */ const cyp = camera.position.y, bigR = Math.min(1600, 230 + Math.max(0, cyp - 20) * 4), bigR2 = bigR * bigR; for (let i = 0; i < rentals.length; i++) { const r = rentals[i], big = r.kind === "tank" || r.kind === "chasse" || r.kind === "airbus" || r.kind === "avion"; r.mesh.visible = (r.x - cxp) ** 2 + (r.z - czp) ** 2 < (big ? bigR2 : 52900); } }
   const me = target();
@@ -9959,6 +9975,7 @@ function updateWorldLife(dt) {
       const v = Math.max(0, (fwd - 6.8) * 1.9); if (v < gapV) { gapV = v; a.yieldTo = b; } }
     if (a.ghost > 0) a.ghost -= dt; if (a.speed < 0.4 && a.yieldTo) { a.waitT = (a.waitT || 0) + dt; if (a.waitT > 5) { a.ghost = 1.6; a.waitT = 0; } } else a.waitT = 0;
     a.speed += ((ahead ? 0 : Math.min(a.base, gapV)) - a.speed) * Math.min(1, dt * (gapV < a.speed ? 6 : 3));
+    if (a.txStop > 0) { a.txStop -= dt; a.speed = 0; a.vEff = 0; return; } /* V310.55 : le taxi rattrapé s'arrête 3 s */
     if (a.racer) { a.speed += (a.base - a.speed) * Math.min(1, dt * 1.2); stepAgent(a, dt, chooseStraight); if (a.mesh.visible) spinWheels(a.mesh, a.speed, 0, dt); return; }
     if (a.to && a.to[0] > 0 && a.to[0] < NB && a.to[1] > 0 && a.to[1] < NB && a.base > 0) { // feu rouge ou orange devant : on s'arrête à la ligne
       const dist = (1 - a.t) * STEP, axis = a.to[0] !== a.from[0] ? "x" : "z";
@@ -12188,6 +12205,7 @@ function endMission(ok) {
   const M = G.mission; if (!M) return;
   if (ok && P.daily && P.daily.k === "propre" && G.dailyM === M && (G.bumps || 0) === G.dailyB) setTimeout(() => dailyAdd("propre", 1), 1200);
   if (ok) setTimeout(() => feedPost(pick(["kebab", "lea", "tom", "mamie"]), pick(["Le livreur du quartier vient encore de frapper. Toujours à l'heure. 🔥", "Je l'ai vu passer, il ne s'arrête jamais celui-là.", "Livré chaud, livré à l'heure. Qui est ce gars ?", "Un jour de plus pour le nouveau. Il tient. 👀"]), { toast: true }), 2500);
+  if (ok && M.type === "livraison") setTimeout(() => { try { txArm(); } catch (e) {} }, 400); /* V310.55 : parfois, le client a oublié son téléphone dans un taxi */
   if (M.type === "livraison" && M.r3 && ok) { destBeacon.visible = false; addCash(600); P.deliveries++; P.counts.livraison = (P.counts.livraison || 0) + 1; addXP(120); sfx.win();
     if (M.eclair) { const ok2 = M.eclair.t > 0; if (ok2) { addCash(600); stat("eclair-reussi"); help(`<b>Express réussi.</b> <b style="color:var(--cash)">+1 200 $ · ×2</b>`, 5); } else { stat("eclair-rate"); help("<b>Presque ! Encore une ?</b>", 5); } G.mission = null; saveNow(); eclairArm(); return; }
     if (M.chain) { help(`<b>Livré.</b> <b style="color:var(--cash)">+600 $ · ×3</b>`, 5); G.mission = null; saveNow(); j1Arm(); return; } stat(M.courses ? "mission-guidee-famille-fin" : "mission-guidee-cash-fin"); j1Arm(); if (M.courses) P.statut += 10;

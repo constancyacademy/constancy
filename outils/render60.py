@@ -42,6 +42,8 @@ def wrap(d,txt,font,maxw):
         if best: lines=best[1]
     return lines
 def text_png(txt,path,sub=None,emoji=None):
+    col=(255,255,255,255)
+    if txt.startswith('§'): txt=txt[1:]; col=(255,63,164,255)  # texte rose (« +1 500 $. »)
     txt=txt.replace('5 000 $','5\u00a0000\u00a0$').replace(' €','\u00a0€').replace(' ?','\u00a0?').replace(' :','\u00a0:').replace(' !','\u00a0!')
     im=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(im)
     for fsz in ((spec['nl_fsz'],) if ('\n' in txt and spec.get('nl_fsz')) else (96,88,80,74)):
@@ -67,7 +69,7 @@ def text_png(txt,path,sub=None,emoji=None):
     for (l,f,x,y,ew) in items: ds.text((x+3,y+6),l,font=f,fill=(0,0,0,220))
     im=Image.alpha_composite(im,sh.filter(ImageFilter.GaussianBlur(6))); d=ImageDraw.Draw(im)
     for (l,f,x,y,ew) in items:
-        d.text((x,y),l,font=f,fill=(255,255,255,255),stroke_width=2,stroke_fill=(15,10,25,255))
+        d.text((x,y),l,font=f,fill=(col if f is font else (255,255,255,255)),stroke_width=2,stroke_fill=(15,10,25,255))
         if ew:
             ef=ImageFont.truetype(FE,109); e=Image.new('RGBA',(140,140),(0,0,0,0)); ImageDraw.Draw(e).text((0,0),emoji,font=ef,embedded_color=True)
             e=e.crop(e.getbbox()).resize((86,86)); tw=d.textlength(l,font=f); im.alpha_composite(e,(int(x+tw+22),int(y+20)))
@@ -106,7 +108,9 @@ def build(texts,out,ver='q'):
         p=f'{work}/{os.path.basename(out)}_t{j}.png'; text_png(t[2],p,t[3] if len(t)>3 else None,t[4] if len(t)>4 else None); inputs+=['-i',p]
         fc.append(f"[{last}][{k}:v]overlay=0:0:enable='between(t,{t[0]},{t[1]})'[o{j}]"); last=f'o{j}'; k+=1
     if spec.get('bouton'):
-        import ui_clic60 as ui_clic; ud=f'{work}/ui_{ver}'; import shutil; shutil.rmtree(ud,ignore_errors=True)
+        import ui_clic60 as ui_clic
+        if spec.get('lien_bio_jeu'): ui_clic.CARD['jeu']=ui_clic.CARD['q']  # section 0 du plan du 27/11 : plus de « Commente JEU »
+        ud=f'{work}/ui_{ver}'; import shutil; shutil.rmtree(ud,ignore_errors=True)
         ui_clic.make(ud,total,ver,cy=int(H*spec.get('btn_cy',0.735)),card_len=spec.get('card_len',2.0),card_cy=int(H*spec.get('card_cy',0.50)),card_tail=spec.get('card_tail',0.0))
         inputs+=['-framerate','60','-i',ud+'/f%04d.png']
         fc.append(f'[{last}][{k}:v]overlay=0:0:shortest=0[ui]'); last='ui'; k+=1

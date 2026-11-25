@@ -1,0 +1,12 @@
+// Habitacle de la Constancy City (vue conducteur) : node nacre.js page.html save.json out
+const { chromium } = require('playwright'); const path = require('path'); const fs = require('fs');
+(async () => { const page = path.resolve(process.argv[2]), save = JSON.parse(fs.readFileSync(process.argv[3], 'utf8')), out = process.argv[4]; fs.mkdirSync(out, { recursive: true });
+  const b = await chromium.launch({ args: ['--allow-file-access-from-files', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--mute-audio'] });
+  const ctx = await b.newContext({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1 }); await ctx.route(/^https?:/, r => r.abort());
+  await ctx.addInitScript(s => { Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false }); try { if (!sessionStorage.getItem('lx')) { for (const k in s) localStorage.setItem(k, s[k]); sessionStorage.setItem('lx', '1'); } } catch (e) {} }, save);
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); await p.goto('file://' + page + '?nostat=1&autostart=1');
+  for (let k = 0; k < 400; k++) { await p.waitForTimeout(1000); const st = await p.evaluate(() => { try { const G = window.__W().G; const c = document.getElementById('cont'); if (c && c.getClientRects().length && !window.__lxc) { window.__lxc = 1; setTimeout(() => c.click(), 10); } const w = document.getElementById('wgo'); if (w) w.click(); return G.mode + '|' + !!window.__zonesPretes; } catch (e) { return 'x'; } }); if (/^(play|guide)\|true/.test(st) && k > 3) break; }
+  const r = await p.evaluate(() => { const T = window.__T(), G = T.G, P = T.P; const g = document.getElementById('guide'); if (g) g.remove(); G.mode = 'play'; if (!P.cars.includes('nacre')) P.cars.push('nacre'); P.car = 'nacre'; window.__shop.setCar('nacre'); G.fpv = true; window.__W().creatorSetHour(21.5); return [P.car, !!T.carMesh && !!T.carMesh.userData.nacre]; }); console.log('voiture', JSON.stringify(r));
+  await p.waitForTimeout(9000); await p.screenshot({ path: out + '/habitacle.png', timeout: 120000 }).catch(() => {});
+  await p.evaluate(() => { const N = window.__W().NCKf(); window.__look = 1; }); await p.waitForTimeout(3000); await p.screenshot({ path: out + '/habitacle_ecran.png', timeout: 120000 }).catch(() => {});
+  console.log('ERR', errs.length ? errs.slice(0, 5).join(' | ') : 'none'); await b.close(); })();

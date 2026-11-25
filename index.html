@@ -7647,6 +7647,15 @@ function buildArchipel() { const R = REG[5]; if (!R) return; const r = mulberry(
     bag.forEach((L, m) => { const g = THREE.BufferGeometryUtils.mergeBufferGeometries(L.map(q => { q.deleteAttribute("uv"); return q.index ? q.toNonIndexed() : q; })); G.add(new THREE.Mesh(g, m)); }); }
   // boulevard du tronc
   { const C = ARCH.C, t0 = ARCH.t0, L = t0[0] - C[0], rd = new THREE.Mesh(new THREE.PlaneGeometry(L, 12).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0x3a3a40 })); rd.position.set((t0[0] + C[0]) / 2, Math.max(landH((t0[0] + C[0]) / 2, C[1]), 2) + 0.08, C[1]); G.add(rd); }
+  /* V310.81 (Thomas, 24/11 16h45, retour 21, redit le 25/11 : « l'Archipel doit puer la richesse… de grandes allées dorées avec bordures, palmiers alignés le long d'une route ») : le boulevard du tronc devient une allée dorée · trottoirs de pierre blonde, bordures dorées, filet d'or au sol qui luit la nuit, 2 rangées de palmiers alignés tous les 16 m · tout fusionné en 3 objets */
+  try { const C = ARCH.C, t0 = ARCH.t0, x0 = t0[0] - 4, x1 = C[0] + 100, L = x0 - x1, cx = (x0 + x1) / 2, y = Math.max(landH((t0[0] + C[0]) / 2, C[1]), 2) + 0.08, side = [], gold = [], inl = [];
+    for (const sd of [-1, 1]) { const z = C[1] + sd * 8.75; const sw = new THREE.BoxGeometry(L, 0.16, 5.5); sw.translate(cx, y + 0.08, z); side.push(sw);
+      const cb = new THREE.BoxGeometry(L, 0.3, 0.32); cb.translate(cx, y + 0.15, C[1] + sd * 6.12); gold.push(cb); const cb2 = new THREE.BoxGeometry(L, 0.22, 0.22); cb2.translate(cx, y + 0.2, C[1] + sd * 11.4); gold.push(cb2);
+      const il = new THREE.BoxGeometry(L, 0.02, 0.14); il.translate(cx, y + 0.17, z); inl.push(il);
+      for (let x = x0 - 6; x > x1 + 4; x -= 16) { const pz = C[1] + sd * 9.6; if (typeof PALM_SPOTS !== "undefined" && PALM_SPOTS.length < 1800) PALM_SPOTS.push([x, pz, y + 0.16, 10.5 + ((x * 7) % 3), (x * 0.37) % 6.283]); const pt = new THREE.CylinderGeometry(0.75, 0.85, 0.35, 12); pt.translate(x, y + 0.33, pz); gold.push(pt); } }
+    const mg = (Lg, m) => { const g = THREE.BufferGeometryUtils.mergeBufferGeometries(Lg.map(q => { q.deleteAttribute("uv"); return q.index ? q.toNonIndexed() : q; })); const ms = new THREE.Mesh(g, m); G.add(ms); return ms; };
+    const stoneM = new THREE.MeshLambertMaterial({ color: 0xf1e2bd }), goldM = new THREE.MeshPhongMaterial({ color: 0xe8b04a, emissive: 0x5a3a00, shininess: 120, specular: 0xfff0c0 }), inlM = new THREE.MeshBasicMaterial({ color: 0xffd27a });
+    farFog(stoneM, 0.4); mg(side, stoneM); mg(gold, goldM); const il = mg(inl, inlM); ARCH.goldInl = inlM; } catch (e) { console.warn("allée dorée", e); }
   // hôtel La Couronne : deux tours reliées par une arche, au sommet du croissant, face à la ville
   { const hx = ARCH.C[0] - ARCH.cr, hz = ARCH.C[1], h0 = Math.max(landH(hx, hz), 2), H = new THREE.Group(); H.position.set(hx, h0, hz); H.rotation.y = Math.PI / 2; G.add(H);
     const tw = new THREE.MeshLambertMaterial({ color: 0xf2d9c4, emissive: 0x2a1426 }), ar = new THREE.MeshLambertMaterial({ color: 0xff6fb0, emissive: 0x7a1450 });

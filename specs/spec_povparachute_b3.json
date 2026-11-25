@@ -1,0 +1,7 @@
+{"id": "povparachute", "ver": "b3", "question": "Tu sautes avec moi ?", "music": null, "audio_file": "/root/w/para/a/a.wav", "audio_start": 0, "shake": 0, "fade": 0.05, "text_plate": 180, "abo": true, "beat_every": 1, "sub_fsz": 58, "bouton": true, "btn_cy": 0.91, "card_len": 2.2, "card_tail": 0.2, "card_cy": 0.68, "jeu_text": "Tu sautes avec moi ?", "nl_fsz": 94, "text_cy": 0.165,
+ "segs": [["t_povparachute-b3_saut-voile-tours-34-avant_jour", 0.2, 1.8, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_povparachute-b3_drone-voile-canaux-toits_jour", 0.1, 1.5, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_povparachute-b3_orbite-voile-ville_jour", 0.1, 1.3, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_povparachute-b3_voile-grande-tour-profil_jour", 0.1, 3.3666667, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_povparachute-b3_saut-voile-tours-34-avant_jour", 0.0, 0.2, [0, 0, 1080, 1920], 0, 1.0]],
+ "texts": [[0, 1.5917, "POV : Tu sautes\nau-dessus de ta ville."], [1.5917, 2.9917, "Toute la ville\nsous tes pieds."], [2.9917, 4.1917, "Gratuit,\nsur ton téléphone."], [4.1917, 7.4583, "@Q"], [7.4583, 9.0, "POV : Tu sautes\nau-dessus de ta ville."]]}

@@ -42,6 +42,12 @@ S["P6"]=ring(90,0,0)+L(("%f+Math.cos(2.0)*(360-16*T)"%CX,"30-3*T","%f+Math.sin(2
 S["N3"]=ring(90,0,0)+L(("40+6*T","2.5","650-1.6*T"),("40+6*T","9","604"),62)
 NOPED="{const W6=window.__W();const H=m=>{if(m&&m.isObject3D&&!m.__h){m.__h=1;Object.defineProperty(m,'visible',{configurable:true,get:()=>false,set:()=>{}});}};[].concat(W6.peds||[]).forEach(p=>{H(p&&(p.mesh||p.g||p.m||p));});}"
 S["S3"]=ringa(90,0.95,-0.2)+L(("%f+Math.cos(a+0.055)*94.5"%CX,"cy+0.75","%f+Math.sin(a+0.055)*94.5"%CZ),("%f"%CX,"cy+4.5","%f"%CZ),56)
+S["S4"]=ringa(90,0.95,-0.2)+L(("%f+Math.cos(a-0.01)*95.5"%CX,"cy+0.75","%f+Math.sin(a-0.01)*95.5"%CZ),("cx+(%f-cx)*0.35"%CX,"cy+1.6","cz+(%f-cz)*0.35"%CZ),58)
+S["Y6"]=ring(90,0,0)+L(("-1342+9*T","6","884"),("-1372+3*T","3","828"),56)
+S["S5"]=ringa(90,0.95,-0.2)+("const tx=-Math.sin(a)*Math.sign(-0.2),tz=Math.cos(a)*Math.sign(-0.2),ox=Math.cos(a),oz=Math.sin(a),ph=2.5-0.9*T,dd=6.2;"
+ "return {p:[cx+(tx*Math.cos(ph)+ox*Math.sin(ph))*dd,cy+0.8,cz+(tz*Math.cos(ph)+oz*Math.sin(ph))*dd],t:[cx+(%f-cx)*0.04,cy+0.9,cz+(%f-cz)*0.04],fov:58};")%(CX,CZ)
+S["Y7"]=ring(90,0,0)+L(("-1368+Math.cos(0.9+0.35*T)*62","9","833+Math.sin(0.9+0.35*T)*62"),("-1368","3","833"),56)
+S["S6"]=S["S5"].replace("ph=2.5-0.9*T","ph=2.5-0.6*T").replace("cx+(%f-cx)*0.04"%CX,"cx+tx*0.6").replace("cz+(%f-cz)*0.04"%CZ,"cz+tz*0.6")
 NOFIRE="{const W6=window.__W();if(W6.FIRE&&W6.FIRE.grp)W6.FIRE.grp.visible=false;if(W6.FIRE&&W6.FIRE.truck)W6.FIRE.truck.visible=false;}"
 NOME="{const W8=window.__W();if(!W8.meMesh.__h){W8.meMesh.__h=1;Object.defineProperty(W8.meMesh,'visible',{configurable:true,get:()=>false,set:()=>{}});}}"
 def MK(name,body,n=1,o=0,js="",wait=2500):

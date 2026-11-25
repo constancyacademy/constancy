@@ -1,0 +1,19 @@
+25/11 22h07 · monteur-1795640620-244816060
+Expert réels, 25/11 22h05 · Verdicts de b776437 et b1cc1db (détail : VERDICTS DU 25/11 À 22H05 en tête de claude/constancy-retours-data.txt, plan claude/constancy-plan-27-11.txt).
+ORDRE : feu_b2 d'abord (verdict de 21h00, si pas déjà livré) → lignedroite_b2 → milliardaires_b2, tous AVANT JEU. 26/11 17H (au plus tard ven. 11h). Si feu_b2 est déjà en cours dans une autre session, enchaîne seulement les deux b2 ci-dessous.
+
+1) LIGNEDROITE_B2 (ven. 27/11 17h, TikTok 18h) · b1 à 6,5/10 · ÉLIMINATOIRE : 1,2-1,8 s, caméra DANS le rétroviseur de la citadine (forme violette à pointes qui flotte devant la GT, traversée par une tige noire, vitre vide).
+a) Supprimer ce plan. Caméra TOUJOURS hors de toute carrosserie, rétroviseur ou vitre : Plan latéral de la GT à hauteur de capot, ou le feu qui passe au vert, 0,6 s, ou prolonger l'image 1.
+b) « PARTEZ. » : Caméra posée au sol (devant ou sur le côté), les 2 voitures démarrent et s'éloignent, on doit VOIR l'accélération (aujourd'hui la caméra recule avec elles, elles restent fixes dans le cadre).
+c) « 3 · 2 · 1 » : Caméra qui glisse le long de la roue ou du capot (mouvement 4 ou plus, aujourd'hui 2,6).
+d) Plan final : La GT visible qui revient derrière la citadine, pas un point au fond.
+Garder : image 1 (excellente), passage de la balise, voix 06 et sa réverbération, nappe C, cap et cap2 de b776437, miniatures (texte inchangé). Voix : voix 06, cœur terminé ~1 s avant la fin, réverbération de Constancy intacte.
+
+2) MILLIARDAIRES_B2 (ven. 27/11 21h, TikTok 22h) · b1 à 6,5/10, aucun éliminatoire.
+a) Image 1 : Caméra BASSE au ras d'une supercar dorée qui roule devant le grand C doré, projecteurs dans le ciel, travelling qui la suit (mouvement 4 ou plus). Plus de vue large qui ressemble à un parking. Roues sur la chaussée, contrôle à 10 i/s.
+b) Superyacht (aujourd'hui figé 1,6 s, mouvement 0,7) : Caméra en mouvement (travelling latéral rapide ou poussée vers la proue), 1,2 s maximum.
+c) Drone La Palme : Plus bas et plus rapide, une villa éclairée avec piscine allumée au centre, 1,2 s maximum.
+d) Plan final néon CONSTANCY : Légère poussée de caméra.
+Garder : accroche, voix 05 et la grosse réverbération de Constancy dot F R, nappe D, cap et cap2 de b1cc1db, miniatures. Voix : voix 05, cœur terminé ~1 s avant la fin, réverbération de Constancy dot F R intacte.
+
+Pour chacun : 60 i/s, _jeu, _q, _yt, carte « Lien en bio · Gratuit · Sans téléchargement. » (aucun « Commente JEU »), cover_reel_<nom>.png ET tiktok_cover_<nom>.png (2160 × 2880) dans media/b4, cap et cap2 dans le commit. Redéclenche-moi après chaque livraison.

@@ -1,0 +1,7 @@
+{"id": "panorama", "ver": "b3", "question": "Tu l'explores ce soir ?", "music": null, "audio_file": "/root/w/pano/a/a.wav", "audio_start": 0, "shake": 0, "fade": 0.05, "text_plate": 180, "abo": true, "beat_every": 1, "sub_fsz": 58, "bouton": true, "btn_cy": 0.665, "card_len": 2.2, "card_tail": 0.2, "card_cy": 0.4, "jeu_text": "Tu l'explores ce soir ?", "nl_fsz": 94,
+ "segs": [["t_panorama-b3_skyline-tour-feu-artifice-travelling-rapide_nuit", 0.2, 2.1, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_panorama-b3_pont-esplanade-hyper-sans-panneau_nuit", 0.1, 1.3, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_panorama-b3_fete-toit-tour-69m_nuit", 0.5, 2.0, [135, 0, 810, 1440], 0, 1.0],
+          ["t_panorama-b3_skyline-travelling-helico-etoile-filante_nuit", 0.8, 4.0, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_panorama-b3_skyline-tour-feu-artifice-travelling-rapide_nuit", 0.0, 0.2, [0, 0, 1080, 1920], 0, 1.0]],
+ "texts": [[0, 1.8917, "Un monde ouvert.\nSur ton téléphone."], [1.8917, 3.0917, "Une ville entière\nà explorer."], [3.0917, 4.5917, "Des fêtes sur les toits.\nToute la nuit."], [4.5917, 7.7917, "@Q"], [7.7917, 9.0, "Un monde ouvert.\nSur ton téléphone."]]}

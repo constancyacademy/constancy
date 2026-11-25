@@ -4761,7 +4761,10 @@ function grassMat(flowers) {
     float gp = position.x * 0.37 + position.z * 0.29; float tip = uv.y * uv.y; transformed.x += sin(uSway * 2.3 + gp) * 0.09 * tip; transformed.z += cos(uSway * 1.9 + gp * 1.3) * 0.06 * tip;`); };
   return m;
 }
-const GFIELD = { im: null, cx: 1e9, cz: 1e9, t: 0, N: 6000 };
+const GFIELD = { im: null, cx: 1e9, cz: 1e9, t: 0, N: 6000, cN: new Map(), cF: new Map() };
+/* V310.58 (Thomas, 24/11 : « micro-arrêts d'une demi-seconde en roulant, en approchant du Mont ») · MESURÉ (tools/saccades.js, code seul, sans rendu) : une image de 80 à 180 ms tous les 40 à 60 m dans la campagne et vers le Mont · c'était la couronne d'herbe lointaine, 10 900 points recalculés d'un coup (relief, champs, routes) à chaque reconstruction, alors que 80 % sont les mêmes que la fois d'avant · chaque point de la grille garde maintenant son type d'herbe et sa hauteur, seuls les nouveaux sont calculés · la mémoire se vide au-delà de 60 000 points, quand la grille change, et quand un quartier vient d'être construit (l'herbe ne pousse pas sous un nouveau bâtiment) */
+function gfKind(C, key, x, z) { let v = C.get(key); if (v === undefined) { const k = grassKind(x, z); v = [k, k ? landH(x, z) : 0]; if (C.size > 60000) C.clear(); C.set(key, v); } return v; }
+function gfCacheCheck(st) { const q = (typeof DEFER !== "undefined" && DEFER.q) ? DEFER.q.length : 0, b = typeof FARW !== "undefined" && FARW.ready ? 1 : 0; if (GFIELD.cNst !== st || GFIELD.cq !== q || GFIELD.cb !== b) { GFIELD.cNst = st; GFIELD.cq = q; GFIELD.cb = b; GFIELD.cN.clear(); GFIELD.cF.clear(); } }
 function grassKind(x, z) { if (z > -470 || onHighway(x, z) || nearMX(x, z) < 9 || inGolf(x, z) || grassBlocked(x, z)) return 0;
   if (z < -2380) { const j = jgH(x, z); if (j > 0.9 && jgMask(x, z) < 0.95 && nearJT(x, z) > 5.5) return 3; }
   const c = csH(x, z); if (c > 0.5 && csMask(x, z) < 1.02 && nearNat(x, z) > 9) return 2;
@@ -4769,23 +4772,23 @@ function grassKind(x, z) { if (z > -470 || onHighway(x, z) || nearMX(x, z) < 9 |
 function updateGrassField(dt) {
   const o = target(); if (!o || G.inside || o.z > -440) { if (GFIELD.im) GFIELD.im.visible = false; if (GFIELD.far) GFIELD.far.visible = false; return; }
   if (!GFIELD.im) { if (!GRASS_M) { GRASS_M = grassMat(false); FLOWER_M = grassMat(true); } GFIELD.im = new THREE.InstancedMesh(GRASS_G, grassMat(false), GFIELD.N); GFIELD.im.setColorAt(0, new THREE.Color(0.6, 0.9, 0.5)); GFIELD.im.frustumCulled = false; GFIELD.im.count = 0; scene.add(GFIELD.im); }
-  GFIELD.im.visible = true; GFIELD.cool = (GFIELD.cool || 0) - dt; if (GFIELD.cool > 0 || Math.hypot(o.x - GFIELD.cx, o.z - GFIELD.cz) < (G.onFoot ? 7 : 14)) return; GFIELD.cool = 0.7; /* V306 : plus de reconstruction toutes les 2,5 s à l'arrêt, et moins souvent en voiture (7 000 touffes recalculées à chaque fois) */ GFIELD.cx = o.x; GFIELD.cz = o.z;
+  GFIELD.im.visible = true; GFIELD.cool = (GFIELD.cool || 0) - dt; if (GFIELD.cool > 0 || Math.hypot(o.x - GFIELD.cx, o.z - GFIELD.cz) < (G.onFoot ? 7 : 14)) return; GFIELD.cool = 0.7; gfCacheCheck(TOUCH_DEV() ? 0.9 : 0.75); /* V306 : plus de reconstruction toutes les 2,5 s à l'arrêt, et moins souvent en voiture (7 000 touffes recalculées à chaque fois) */ GFIELD.cx = o.x; GFIELD.cz = o.z;
   const R = 28, st = TOUCH_DEV() ? 0.9 : 0.75, d = new THREE.Object3D(), col = new THREE.Color(), tint = [null, [0.62, 0.95, 0.5], [0.95, 0.92, 0.55], [0.45, 0.85, 0.42]]; let n = 0;
   const gx0 = Math.floor((o.x - R) / st), gz0 = Math.floor((o.z - R) / st);
   for (let i = gx0; i * st < o.x + R && n < GFIELD.N; i++) for (let j = gz0; j * st < o.z + R && n < GFIELD.N; j++) {
     const h1 = Math.abs(Math.sin(i * 12.9898 + j * 78.233) * 43758.5453) % 1, h2 = Math.abs(Math.sin(i * 39.346 + j * 11.135) * 23421.631) % 1, x = (i + h1) * st, z = (j + h2) * st;
-    const dd2 = (x - o.x) ** 2 + (z - o.z) ** 2; if (dd2 > R * R || dd2 < 2.2) continue; const k = grassKind(x, z); if (!k) continue; const y = landH(x, z), sc = (0.62 + h1 * 0.5) * clamp((R - Math.sqrt(dd2)) / 7 + 0.35, 0.35, 1);
+    const dd2 = (x - o.x) ** 2 + (z - o.z) ** 2; if (dd2 > R * R || dd2 < 2.2) continue; const gk = gfKind(GFIELD.cN, i * 262144 + j, x, z), k = gk[0]; if (!k) continue; const y = gk[1], sc = (0.62 + h1 * 0.5) * clamp((R - Math.sqrt(dd2)) / 7 + 0.35, 0.35, 1);
     d.position.set(x, y - 0.05, z); d.rotation.set(0, h2 * 6.28, 0); d.scale.set(sc, 0.38 + h2 * 0.4 + (k === 3 ? 0.25 : 0), sc); d.updateMatrix(); GFIELD.im.setMatrixAt(n, d.matrix);
     const t = tint[k], v = 0.85 + h1 * 0.3, dry = h2 > 0.82 ? 0.25 : 0; GFIELD.im.setColorAt(n, col.setRGB(t[0] * v + dry, t[1] * v - dry * 0.2, t[2] * v - dry * 0.3)); n++; }
   GFIELD.im.count = n; GFIELD.im.instanceMatrix.needsUpdate = true; if (GFIELD.im.instanceColor) GFIELD.im.instanceColor.needsUpdate = true;
   // couronne lointaine : de grosses touffes jusqu'à 120 m, pour que la campagne ne soit jamais vide de loin (plus de herbe qui apparaît / disparaît)
   if (!GFIELD.far) { GFIELD.far = new THREE.InstancedMesh(GRASS_G, grassMat(false), 7000); GFIELD.far.setColorAt(0, col.setRGB(0.6, 0.9, 0.5)); GFIELD.far.frustumCulled = false; GFIELD.far.count = 0; scene.add(GFIELD.far); }
-  /* V305.2 · quand on dézoome, la couronne d'herbe grandit avec la distance de la caméra : l'herbe reste au sol, elle ne disparaît plus */ const cd = Math.hypot(camera.position.x - o.x, camera.position.y - landH(o.x, o.z), camera.position.z - o.z), R2 = clamp(120 + cd * 2.6, 120, 340), st2 = Math.max(2.3, R2 / 52);
-  GFIELD.far.visible = true; if (Math.hypot(o.x - (GFIELD.fx || 1e9), o.z - (GFIELD.fz || 1e9)) > 42 || Math.abs(R2 - (GFIELD.fr || 0)) > 40) /* V306 : reconstruit moins souvent (pic de 16 ms à chaque fois, saccades en voiture sur téléphone) */ { GFIELD.fx = o.x; GFIELD.fz = o.z; GFIELD.fr = R2; let m = 0;
+  /* V305.2 · quand on dézoome, la couronne d'herbe grandit avec la distance de la caméra : l'herbe reste au sol, elle ne disparaît plus */ const cd = Math.hypot(camera.position.x - o.x, camera.position.y - landH(o.x, o.z), camera.position.z - o.z), R2 = clamp(120 + Math.round(cd * 2.6 / 40) * 40, 120, 340), st2 = Math.max(2.3, R2 / 52); /* V310.58 : rayon par paliers de 40 m, la grille ne change plus à chaque mouvement de caméra (et sa mémoire reste valable) */
+  GFIELD.far.visible = true; if (GFIELD.cFst !== st2) { GFIELD.cFst = st2; GFIELD.cF.clear(); } if (Math.hypot(o.x - (GFIELD.fx || 1e9), o.z - (GFIELD.fz || 1e9)) > 42 || Math.abs(R2 - (GFIELD.fr || 0)) > 40) /* V306 : reconstruit moins souvent (pic de 16 ms à chaque fois, saccades en voiture sur téléphone) */ { GFIELD.fx = o.x; GFIELD.fz = o.z; GFIELD.fr = R2; let m = 0;
     for (let i = Math.floor((o.x - R2) / st2); i * st2 < o.x + R2 && m < 7000; i++) for (let j = Math.floor((o.z - R2) / st2); j * st2 < o.z + R2 && m < 7000; j++) {
       const h1 = Math.abs(Math.sin(i * 7.13 + j * 91.7) * 43758.5453) % 1, h2 = Math.abs(Math.sin(i * 19.3 + j * 3.71) * 13421.63) % 1, x = (i + h1) * st2, z = (j + h2) * st2, dd = Math.hypot(x - o.x, z - o.z);
-      if (dd > R2 || dd < R - 6) continue; const k = grassKind(x, z); if (!k) continue; const sc = (1.05 + h1 * 0.75) * Math.min(1.25, Math.sqrt(st2 / 2.3)) * clamp((R2 - dd) / 25, 0.3, 1); /* V306 : touffes lointaines moins hautes (plus de « haie » d'herbe à l'horizon) */
-      d.position.set(x, landH(x, z) - 0.08, z); d.rotation.set(0, h2 * 6.28, 0); d.scale.set(sc, sc * (0.5 + h2 * 0.35), sc); d.updateMatrix(); GFIELD.far.setMatrixAt(m, d.matrix);
+      if (dd > R2 || dd < R - 6) continue; const gk = gfKind(GFIELD.cF, i * 262144 + j, x, z), k = gk[0]; if (!k) continue; const sc = (1.05 + h1 * 0.75) * Math.min(1.25, Math.sqrt(st2 / 2.3)) * clamp((R2 - dd) / 25, 0.3, 1); /* V306 : touffes lointaines moins hautes (plus de « haie » d'herbe à l'horizon) */
+      d.position.set(x, gk[1] - 0.08, z); d.rotation.set(0, h2 * 6.28, 0); d.scale.set(sc, sc * (0.5 + h2 * 0.35), sc); d.updateMatrix(); GFIELD.far.setMatrixAt(m, d.matrix);
       const t = tint[k], v = 0.8 + h1 * 0.3; GFIELD.far.setColorAt(m, col.setRGB(t[0] * v, t[1] * v, t[2] * v)); m++; }
     GFIELD.far.count = m; GFIELD.far.instanceMatrix.needsUpdate = true; if (GFIELD.far.instanceColor) GFIELD.far.instanceColor.needsUpdate = true; }
 }

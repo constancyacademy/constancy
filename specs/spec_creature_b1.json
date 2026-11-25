@@ -1,0 +1,7 @@
+{"id": "creature", "ver": "b1", "question": "Tu t'approches ?", "music": null, "audio_file": "/root/w/cr/a/a.wav", "audio_start": 0, "shake": 0, "fade": 0.05, "text_plate": 180, "abo": true, "beat_every": 1, "sub_fsz": 58, "bouton": true, "btn_cy": 0.91, "card_len": 1.8, "card_tail": 0.2, "card_cy": 0.60, "jeu_text": "Tu t'approches ?", "nl_fsz": 94, "text_cy": 0.165,
+ "segs": [["t_creature-b1_rex-baie-neon-marche_nuit", 0.2, 2.9, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_creature-b1_perso-longe-baie-rex_nuit", 0.1, 1.6, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_creature-b1_rex-contre-plongee-faisceau_nuit", 0.1, 1.3, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_creature-b1_rex-entier-se-tourne-vers-camera_nuit", 0.0, 2.2, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_creature-b1_rex-baie-neon-marche_nuit", 0.0, 0.2, [0, 0, 1080, 1920], 0, 1.0]],
+ "texts": [[0, 2.6917, "J'approche la créature\nla plus redoutée du jeu."], [2.6917, 4.1917, "Zone 0.\nEspèce hybride."], [4.1917, 5.3917, "Il est dans le jeu.\nGratuit."], [5.7917, 7.5917, "@Q"], [7.5917, 7.8, "J'approche la créature\nla plus redoutée du jeu."]]}

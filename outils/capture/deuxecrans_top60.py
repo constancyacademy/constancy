@@ -12,10 +12,10 @@ def empty():
 def state(t):
   if t<0.5: return ('hook',(HOOK,104,[]))
   if t<1.9: return ('hook2',(HOOK,104,['a','b']))
-  if t<3.9:
-    k=min(1,(t-1.9)/1.7); k=1-(1-k)**3; v=int(round(12000*k/100))*100
+  if t<3.8:
+    k=min(1,(t-1.9)/1.5); k=1-(1-k)**3; v=int(round(12000*k/100))*100
     return ('m%d'%v,([[(money(v),'m' if v==12000 else None)],[("Gagnés",None),("en",None),("livrant.",None)]],120,['m']))
-  if t<5.1: return ('deb',([[("Coupé",'c'),("néon.",'c')],[("Débloquée.",'c')]],120,['c']))
+  if t<5.0: return ('deb',([[("Coupé",'c'),("néon.",'c')],[("Débloquée.",'c')]],120,['c']))
   if t<total-0.2: return ('none',None)
   return ('hook',(HOOK,104,[]))
 n=round(total*60); cache={}

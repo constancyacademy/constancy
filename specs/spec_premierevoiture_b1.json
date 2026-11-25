@@ -1,0 +1,7 @@
+{"id": "premierevoiture", "ver": "b1", "question": "Tu la débloques ce soir ?", "music": null, "audio_file": "/root/w/m3/a/a.wav", "audio_start": 0, "shake": 0, "fade": 0.05, "abo": true, "beat_every": 1, "sub_fsz": 58, "bouton": true, "card_len": 2.0, "card_tail": 0.2, "card_cy": 0.272, "jeu_text": "Tu la débloques ce soir ?", "nl_fsz": 92, "text_cy": 0.11, "band_cy": 0.4, "overlay_seq": "/root/w/m3/top", "btn_cy": 0.452,
+ "segs": [["t_premierevoiture-b1_citadine-approche-rue_jour", 0.2, 2.1, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_premierevoiture-b1_citadine-profil-rue_jour", 0.1, 2.0, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_premierevoiture-b1_coupe-neon-orbite_jour", 0.1, 1.3, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_premierevoiture-b1_coupe-neon-demarre_jour", 0.5, 2.5, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_premierevoiture-b1_citadine-approche-rue_jour", 0.0, 0.2, [0, 0, 1080, 1920], 0, 1.0]],
+ "texts": [[4.9917, 6.9917, "@Q"]]}

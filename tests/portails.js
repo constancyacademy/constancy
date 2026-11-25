@@ -5,7 +5,7 @@ const { chromium } = require('playwright'); const path = require('path'); const 
   await ctx.route(/^https?:/, r => r.abort());
   await ctx.addInitScript(s => { window.__farDebug = 1; Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false }); try { if (!sessionStorage.getItem('lx')) { for (const k in s) localStorage.setItem(k, s[k]); sessionStorage.setItem('lx', '1'); } } catch (e) {} }, save);
   const res = {};
-  for (const por of ['itch', 'cg']) {
+  for (const por of ['itch', 'cg', 'y8']) {
     const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message.slice(0, 160)));
     await p.goto('file://' + page + '?nostat=1&autostart=1&accueil=1&portail=' + por);
     await p.waitForSelector('#cont', { timeout: 900000 }); const r = {};
@@ -17,6 +17,8 @@ const { chromium } = require('playwright'); const path = require('path'); const 
     r.tel = await p.evaluate(async () => { const T = window.__T(); T.openPhone(); await new Promise(o => setTimeout(o, 400)); const o = { share: !!document.querySelector('[data-app="share"]'), apps: [...document.querySelectorAll('[data-app]')].map(b => b.dataset.app).join(',') }; window.__W().resume(); return o; });
     r.rdv = await p.evaluate(async () => { window.__T().rdvCard(); await new Promise(o => setTimeout(o, 500)); const c = document.querySelector('.rdvc'); const o = { keep: !!document.getElementById('rdvKeep'), share: !!document.getElementById('rdvShare'), txt: c ? c.innerText.replace(/\s+/g, ' ').slice(0, 160) : null }; return o; });
     if (por === 'itch') { await p.screenshot({ path: out + '/rdv_itch.png' }); r.url = await p.evaluate(() => { const u = window.__T().portalSaveURL(); const b = u.split('#partie=')[1]; const j = JSON.parse(decodeURIComponent(escape(atob(b.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((b.length + 3) % 4))))); return { debut: u.slice(0, 40), long: u.length, jour: j.day, cash: j.cash }; }); res.lien = r.url; }
+    r.carte7 = await p.evaluate(async () => { const T = window.__T(); if (T.portalKeepCard) T.portalKeepCard('jeu'); await new Promise(o => setTimeout(o, 500)); const c = document.querySelector('.pkeep'); return c ? c.innerText.replace(/\s+/g, ' ').slice(0, 120) : null; });
+    r.finJour1 = await p.evaluate(async () => { const T = window.__T(), W = window.__W(); T.gateFn(); await new Promise(o => setTimeout(o, 600)); const sc = document.getElementById('screen'); const o = { mode: W.G.mode, garder: !!document.getElementById('pgGo'), insta: !!document.getElementById('fIg'), txt: sc ? sc.innerText.replace(/\s+/g, ' ').slice(0, 100) : '' }; return o; });
     r.liens = await p.evaluate(() => [...document.querySelectorAll('a[href^="http"]')].map(a => a.href).slice(0, 5));
     r.err = errs; res[por] = r; await p.close(); }
   // import sur constancy.fr (sans portail, appareil vierge)

@@ -30,7 +30,20 @@ S["Y3"]=ring(90,0,0)+L(("-1345+4*T","6","885"),("-1372","3","828"),56)
 S["Y4"]=ring(90,0,0)+L(("-1320+5*T","26","900"),("-1380","0","800"),60)
 S["P4"]=ring(90,0,0)+L(("%f+Math.cos(2.3)*(430-12*T)"%CX,"45-2*T","%f+Math.sin(2.3)*(430-12*T)"%CZ),("%f+Math.cos(2.3)*280"%CX,"0","%f+Math.sin(2.3)*280"%CZ),60)
 S["M1d"]=ring(88,0.80,-0.36)+L(("%f+Math.cos(0.45-0.16*T)*100"%CX,"W7.GH(%f+Math.cos(0.45-0.16*T)*100,%f+Math.sin(0.45-0.16*T)*100)+5"%(CX,CZ),"%f+Math.sin(0.45-0.16*T)*100"%CZ),("%f"%CX,"W7.GH(%f,%f)+9"%(CX,CZ),"%f"%CZ),58)
+RINGA=("const W7=window.__W();const g=window.__LX;const a=%f+(%f)*T;const x=%f+Math.cos(a)*%f,z=%f+Math.sin(a)*%f;const y=W7.GH(x,z);g.position.set(x,y,z);g.rotation.order='YXZ';"
+ "const dx=-Math.sin(a)*Math.sign(%f),dz=Math.cos(a)*Math.sign(%f);g.rotation.y=Math.atan2(dx,dz);"
+ "if(window.__lt!=null&&T>window.__lt){W7.spinWheels(g,%f,0,T-window.__lt);}window.__lt=T;const cx=x,cy=y,cz=z;")
+def ringa(R,a0,w): return RINGA%(a0,w,CX,R,CZ,R,w,w,abs(w*R))
+S["S1"]=ringa(88,0.95,-0.2)+L(("%f+Math.cos(a+0.045)*94"%CX,"cy+0.8","%f+Math.sin(a+0.045)*94"%CZ),("cx+(%f-cx)*0.12"%CX,"cy+1.3","cz+(%f-cz)*0.12"%CZ),56)
+S["S2"]=ringa(88,0.95,-0.2)+L(("%f+Math.cos(a+0.06)*93"%CX,"cy+1.1","%f+Math.sin(a+0.06)*93"%CZ),("%f"%CX,"cy+6","%f"%CZ),58)
+S["Y5"]=ring(90,0,0)+L(("-1320+14*T","20-3*T","900-6*T"),("-1375+4*T","2","815"),60)
+S["P5"]=ring(90,0,0)+L(("%f+Math.cos(2.3)*(330-16*T)+Math.cos(2.3+1.57)*6"%CX,"24-3*T","%f+Math.sin(2.3)*(330-16*T)+Math.sin(2.3+1.57)*6"%CZ),("%f+Math.cos(2.3)*(285-16*T)"%CX,"0","%f+Math.sin(2.3)*(285-16*T)"%CZ),60)
+S["P6"]=ring(90,0,0)+L(("%f+Math.cos(2.0)*(360-16*T)"%CX,"30-3*T","%f+Math.sin(2.0)*(360-16*T)"%CZ),("%f+Math.cos(2.0)*(310-16*T)"%CX,"0","%f+Math.sin(2.0)*(310-16*T)"%CZ),60)
+S["N3"]=ring(90,0,0)+L(("40+6*T","2.5","650-1.6*T"),("40+6*T","9","604"),62)
+NOPED="{const W6=window.__W();const H=m=>{if(m&&m.isObject3D&&!m.__h){m.__h=1;Object.defineProperty(m,'visible',{configurable:true,get:()=>false,set:()=>{}});}};[].concat(W6.peds||[]).forEach(p=>{H(p&&(p.mesh||p.g||p.m||p));});}"
+S["S3"]=ringa(90,0.95,-0.2)+L(("%f+Math.cos(a+0.055)*94.5"%CX,"cy+0.75","%f+Math.sin(a+0.055)*94.5"%CZ),("%f"%CX,"cy+4.5","%f"%CZ),56)
+NOFIRE="{const W6=window.__W();if(W6.FIRE&&W6.FIRE.grp)W6.FIRE.grp.visible=false;if(W6.FIRE&&W6.FIRE.truck)W6.FIRE.truck.visible=false;}"
 NOME="{const W8=window.__W();if(!W8.meMesh.__h){W8.meMesh.__h=1;Object.defineProperty(W8.meMesh,'visible',{configurable:true,get:()=>false,set:()=>{}});}}"
 def MK(name,body,n=1,o=0,js="",wait=2500):
-  s=shot(name,body,dayT=DT,n=n,toff=o,wait=wait,js=NO+NOPLANE+notraf+NOPAN+(CAR%CARID)+NOME+js); s["far"]=20000; return s
+  s=shot(name,body,dayT=DT,n=n,toff=o,wait=wait,js=NO+NOPLANE+notraf+NOPAN+(CAR%CARID)+NOME+NOPED+NOFIRE+js); s["far"]=20000; return s
 NEAR=""

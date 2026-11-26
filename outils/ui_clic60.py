@@ -47,7 +47,7 @@ def card(ver, cy):
         d.text(((W - w_) / 2, y), t, font=f, fill=PINK if c == 'p' else (255, 255, 255, 255)); y += h_
     return im
 def ease(x): x = max(0., min(1., x)); return x * x * (3 - 2 * x)
-def make(out, total, ver, cy=None, card_len=2.0, card_cy=None, period=1.2, card_tail=0.0):
+def make(out, total, ver, cy=None, card_len=2.0, card_cy=None, period=1.2, card_tail=0.0, btn_t0=0.0):
     os.makedirs(out, exist_ok=True); cy = cy or int(H * 0.735); card_cy = card_cy or int(H * 0.50)
     base, (bx0, by0, bx1, by1) = pill(cy); hand = _emoji('\U0001F446', 132); cd = card(ver, card_cy)
     n = round(total * 60)
@@ -62,12 +62,16 @@ def make(out, total, ver, cy=None, card_len=2.0, card_cy=None, period=1.2, card_
         press = math.exp(-((ph - 0.36) / 0.06) ** 2)
         sc = 1.0 + 0.022 * math.sin(2 * math.pi * t / period * 2) * 0.5 + 0.018 - 0.05 * press
         fr = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+        if t < btn_t0 - 1e-6 or (btn_t0 > 0 and card_tail > 0 and t >= total - card_tail - 1e-6):  # plan du 28/11 (et boucle identique à l'image 1) : rien qui ressemble à une pub avant 3 s (bouton absent)
+            fr.save(f'{out}/f{i:04d}.png', compress_level=1); continue
         bw = int(W * sc); bh = int(H * sc); b2 = base.resize((bw, bh), Image.BILINEAR)
         ox = int(540 - 540 * sc); oy = int(cy - cy * sc); fr.alpha_composite(b2, (ox, oy)) if ox >= 0 and oy >= 0 else fr.alpha_composite(b2.crop((-ox if ox < 0 else 0, -oy if oy < 0 else 0, (-ox if ox < 0 else 0) + W, (-oy if oy < 0 else 0) + H)), (max(ox, 0), max(oy, 0)))
         if 0.36 <= ph < 0.85:
             k = (ph - 0.36) / 0.49; r = 18 + 70 * k; al = int(200 * (1 - k))
             rp = Image.new('RGBA', (W, H), (0, 0, 0, 0)); ImageDraw.Draw(rp).ellipse((tipx - r, tipy - r * 0.7, tipx + r, tipy + r * 0.7), outline=(255, 63, 164, al), width=6)
             fr = Image.alpha_composite(fr, rp)
+        if btn_t0 > 0 and t < btn_t0 + 0.2:
+            kk = ease((t - btn_t0) / 0.2); fr.putalpha(fr.getchannel('A').point(lambda v: int(v * kk)))
         if a > 0.01:
             hd = hand.copy(); hd.putalpha(hd.getchannel('A').point(lambda v: int(v * a)))
             fr.alpha_composite(hd, (int(tipx - hd.size[0] * 0.42), int(tipy + off - 6)))

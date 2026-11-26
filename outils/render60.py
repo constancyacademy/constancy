@@ -111,7 +111,7 @@ def build(texts,out,ver='q'):
         import ui_clic60 as ui_clic
         if spec.get('lien_bio_jeu'): ui_clic.CARD['jeu']=ui_clic.CARD['q']  # section 0 du plan du 27/11 : plus de « Commente JEU »
         ud=f'{work}/ui_{ver}'; import shutil; shutil.rmtree(ud,ignore_errors=True)
-        ui_clic.make(ud,total,ver,cy=int(H*spec.get('btn_cy',0.735)),card_len=spec.get('card_len',2.0),card_cy=int(H*spec.get('card_cy',0.50)),card_tail=spec.get('card_tail',0.0))
+        ui_clic.make(ud,total,ver,cy=int(H*spec.get('btn_cy',0.735)),card_len=spec.get('card_len',2.0),card_cy=int(H*spec.get('card_cy',0.50)),card_tail=spec.get('card_tail',0.0),btn_t0=spec.get('btn_t0',0.0))
         inputs+=['-framerate','60','-i',ud+'/f%04d.png']
         fc.append(f'[{last}][{k}:v]overlay=0:0:shortest=0[ui]'); last='ui'; k+=1
     fc.append(f'[{last}][{bi}:v]overlay=0:0,format=yuv420p[vo]')

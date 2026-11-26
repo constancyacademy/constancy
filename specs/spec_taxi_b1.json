@@ -1,0 +1,6 @@
+{"id": "taxi", "ver": "b1", "question": "Tu le rattrapes ?", "music": null, "audio_file": "/root/w/taxi/a/a.wav", "audio_start": 0, "shake": 0, "fade": 0.05, "text_plate": 170, "abo": true, "beat_every": 1, "sub_fsz": 58, "bouton": true, "btn_t0": 3.0, "btn_cy": 0.90, "card_len": 2.0, "card_tail": 0.2, "card_cy": 0.76, "jeu_text": "Tu le rattrapes ?", "lien_bio_jeu": true, "nl_fsz": 96, "text_cy": 0.15,
+ "segs": [["t_taxi-b1_derriere-fonce-vers-le-taxi_aube", 0.2, 2.4, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_taxi-b1_coude-a-coude-avec-le-taxi_aube", 0.0, 1.7, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_taxi-b1_le-taxi-freine-et-s-arrete_aube", 0.0, 3.7833333, [0, 0, 1080, 1920], 0, 1.0],
+          ["t_taxi-b1_derriere-fonce-vers-le-taxi_aube", 0.0, 0.2, [0, 0, 1080, 1920], 0, 1.0]],
+ "texts": [[0, 1.5917, "POV : Ton téléphone\nest resté dans le taxi."], [1.5917, 2.9917, "60 s pour\nle rattraper."], [2.9917, 4.3917, "Colle-le\n5 secondes."], [4.3917, 5.675, "§+500 $."], [5.675, 7.675, "@Q"], [7.675, 9.0, "POV : Ton téléphone\nest resté dans le taxi."]]}

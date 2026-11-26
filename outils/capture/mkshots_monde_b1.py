@@ -49,3 +49,14 @@ S["Sg"]=GH+"const x=1461+9*T,z=-1393.5;const y=gh(x,z)+1.0;"+L(("x","y","z"),("x
 S["Sh"]=GH+"const x=1461+9*T,z=-1394.5;const y=gh(x,z)+1.4;"+L(("x","y","z"),("x+2","gh(x+2,-1380)+2.0","-1380"),70)
 S["Sf2"]=GH+"const x=1465.2+9*T,z=-1393.5;const y=gh(x,z)+1.0;"+L(("x","y","z"),("x+4","gh(x+4,-1378)+2.6","-1378"),64)
 S["Rf2"]=GH+"const u=Math.min(1,T/6.5),e=1-(1-u)*(1-u);const y=45+170*e,z=990-60*e;"+L(("330","y","z"),("420","y*0.35","620"),62)
+# b2 (verdict de l'expert du 26/11 21h15) : safari du troupeau sud-ouest (1111 ; -516), girafes en plein champ, caméra basse et proche, canyon au fond (vers +z)
+S["S6"]=GH+"const x=1107+9*T,z=-539.5;const y=gh(x,z)+1.0;"+L(("x","y","z"),("x+3","gh(x+3,-522)+2.0","-522"),62)
+S["S7"]=GH+"const x=1106+9*T,z=-541;const y=gh(x,z)+0.8;"+L(("x","y","z"),("x+2","gh(x+2,-524)+2.4","-524"),66)
+# Mall : caméra qui avance au milieu de la foule vers les portes qui s'ouvrent devant elle
+MALL2=("{const D=W7.MALLDOOR;W7.G.me.x=330;W7.G.me.z=(T>0.15?1006:860);if(D&&D.L){const k=Math.max(0,Math.min(1,(T-0.15)/0.9));const e=k*k*(3-2*k);D.L.position.x=D.x-2.5-e*4.9;D.R.position.x=D.x+2.5+e*4.9;}}")
+S["M3"]=GH+MALL2+"const z=992+6.5*T;"+L(("330.5","3.26+1.7","z"),("330","3.26+2.4","z+25"),62)
+S["M4"]=GH+MALL2+"const z=990+7*T;"+L(("327+1.2*T","3.26+1.4","z"),("331","3.26+2.6","1011"),64)
+# vue haute qui monte ET tourne jusqu'à la boucle
+S["R4"]=GH+"const u=Math.min(1,T/4.6),e=1-(1-u)*(1-u);const y=45+170*e,z=990-60*e;"+L(("330","y","z"),("420+45*T","y*0.35","620"),62)
+S["S8"]=GH+"const x=1120+9*T,z=-541.5;const y=gh(x,z)+0.9;"+L(("x","y","z"),("x+1","gh(x+1,-524)+4.4","-524"),66)
+S["S9"]=GH+"const x=1116+9*T,z=-541.5;const y=gh(x,z)+0.9;"+L(("x","y","z"),("x+1","gh(x+1,-524)+4.4","-524"),66)

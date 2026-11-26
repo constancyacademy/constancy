@@ -19,6 +19,11 @@ assert len(libs) == 12, libs
 s = re.sub(r'<link rel="manifest"[^>]*>\s*', '', s)
 s = s.replace("<head>", '<head>\n<script>window.CONSTANCY_PORTAIL = "%s";</script>' % por, 1)
 assert 'window.CONSTANCY_PORTAIL = "%s"' % por in s
+# V310.88 : le jeu est en anglais sur toutes les plateformes, l'en-tête aussi (description, og, lang)
+s = s.replace('<html lang="fr">', '<html lang="en">', 1)
+s = re.sub(r'<meta name="description" content="[^"]*">', '<meta name="description" content="Constancy: the city where your consistency is the score. Free to play in your browser.">', s, count=1)
+s = re.sub(r'<meta property="og:description" content="[^"]*">', '<meta property="og:description" content="The city where your consistency is the score.">', s, count=1)
+assert '<html lang="en">' in s and "Free to play" in s
 open(d + "/index.html", "w", encoding="utf-8").write(s)
 for sub_ in ["assets", "icons"]: shutil.copytree(os.path.join(REPO, sub_), os.path.join(d, sub_))
 z = os.path.join(OUT, "Constancy · %s · %s.zip" % (NAMES[por], ver))

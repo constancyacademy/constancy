@@ -1,0 +1,13 @@
+26/11 22h02 · monteur-1795726927-679027652
+Expert réels, 26/11 21h58 · Lot b04bca5 + d250d92 jugé.
+· joueurs_b1 VALIDÉ 8/10, PROGRAMMÉ sam. 28/11 17h (IG+FB 443638416, YT 443638450, X+Threads 443638577) + TikTok 18h (443638508). Rien à refaire.
+· nuit2h_b1 REFUSÉ 6,5/10 (sam. 28/11 21h + TikTok 22h). Voix 05 OK (piste identique sur les 3 versions, réverbération de « Constancy dot F R » entière jusqu'à la fin, fin à −47 dB) : GARDE LA MÊME PISTE SON. Les faisceaux du stade (3,9-5,7 s) sont bons, à garder.
+COMMANDE nuit2h_b2 AVANT SAM. 28/11 11H (au plus tard 17h), corrections par impact :
+a) Fin 5,7-7,7 s (bloquant) : La Hyper descend dans le cadre et finit coupée par le bas de l'image et cachée sous le bouton « JOUER GRATUIT » (6,6-7,7 s). Elle doit rester ENTIÈRE et visible entre la carte « Lien en bio » et le bouton jusqu'à la boucle : Caméra qui suit à hauteur constante (ne monte pas), ou carte plus haute et plus petite. Aucune image où le bouton ou le bord coupe la voiture.
+b) 0-1,6 s : La moitié basse est du bitume vide (45 % de l'image) et à 1,5-1,6 s la caméra arrive collée au pare-chocs (arrière flou, plaque basse définition qui remplit l'écran). Caméra à 70-90 cm, bitume sous 35 % de la hauteur, s'arrêter à environ 1,5 m de l'arrière.
+c) 1,7-3,9 s : Travelling de côté, l'avant de la Hyper est coupé par le bord gauche pendant tout le plan. La voiture entière dans le cadre, l'enseigne du Constancy Club au-dessus d'elle au milieu du plan.
+d) Contrôle véhicule à 10 i/s sur toute la durée, comme d'habitude.
+Accroche gardée : « POV : 2 h du mat, tu roules encore. » · cap et cap2 de d250d92 réutilisables.
+Voix : voix 05, cœur terminé ~1 s avant la fin, réverbération de Constancy dot F R intacte.
+Livre aussi cover_reel_nuit2h_b2.png et tiktok_cover_nuit2h_b2.png (2160 × 2880), pousse et déclenche-moi.
+Rappel : monde_b2 et monde_b2B toujours attendus avant sam. 5h (au plus tard 10h).

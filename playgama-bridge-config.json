@@ -1,0 +1,6 @@
+{
+    "loadingScreenType": "none",
+    "game": {
+        "adaptToSafeArea": false
+    }
+}

@@ -26,6 +26,8 @@ s = re.sub(r'<meta property="og:description" content="[^"]*">', '<meta property=
 assert '<html lang="en">' in s and "Free to play" in s
 open(d + "/index.html", "w", encoding="utf-8").write(s)
 for sub_ in ["assets", "icons"]: shutil.copytree(os.path.join(REPO, sub_), os.path.join(d, sub_))
+if por == "pg":  # V310.94 : Playgama Bridge v2.4.4 et son fichier de réglages, à côté d'index.html
+    for f_ in ["playgama-bridge.js", "playgama-bridge-config.json"]: shutil.copy(os.path.join(REPO, f_), os.path.join(d, f_))
 z = os.path.join(OUT, "Constancy · %s · %s.zip" % (NAMES[por], ver))
 if os.path.exists(z): os.remove(z)
 n = 0

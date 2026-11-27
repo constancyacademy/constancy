@@ -8481,7 +8481,7 @@ function buildMountain(r) {
   for (let z = HW.z0 - 2; z > HW.z1; z -= 6) {
     const h = hwH(z), h2 = hwH(z - 6), mid = (h + h2) / 2, pitch = Math.atan2(h - h2, 6);
     addGeo(deckM, new THREE.BoxGeometry(16, 0.6, 6.4), HW.x, mid - 0.3, z - 3, 0, 1, 1, 1, -pitch);
-    [-1, 1].forEach(sd => addGeo(railM, new THREE.BoxGeometry(0.4, 0.9, 6.4), HW.x + sd * 7.8, mid + 0.45, z - 3, 0, 1, 1, 1, -pitch));
+    [-1, 1].forEach(sd => { const PM = parapetMats(); addGeo(PM.beton, boxUV(0.4, 0.9, 6.4, 4), HW.x + sd * 7.8, mid + 0.45, z - 3, 0, 1, 1, 1, -pitch); addGeo(PM.metal, new THREE.BoxGeometry(0.5, 0.14, 6.4), HW.x + sd * 7.8, mid + 0.97, z - 3, 0, 1, 1, 1, -pitch); }); /* V310.127 : béton et glissière */
     addGeo(lineM_ref, new THREE.BoxGeometry(0.25, 0.02, 3), HW.x, mid + 0.02, z - 3);
     if (Math.round(z) % 36 < 6 && h > 2 && isWater(HW.x + 20, z)) addGeo(pillarM, new THREE.BoxGeometry(5, h + 4, 3), HW.x, (h - 4) / 2 - 0.6, z - 3);
     if (Math.round(z) % 48 < 6) lamp(HW.x + 8.6, z - 3, mid); if ((Math.round(z) + 24) % 48 < 6) lamp(HW.x - 8.6, z - 3, mid);
@@ -9016,7 +9016,7 @@ async function buildWorld() {
   const deckM = asphaltM, railM = new THREE.MeshLambertMaterial({ color: 0xe8e4dc }), quayM = new THREE.MeshLambertMaterial({ color: 0x9a948a });
   for (let k = 0; k <= NB; k++) { const x = rc(k);
     addGeo(deckM, new THREE.BoxGeometry(ROAD, 0.7, RZ1 - RZ0 + 0.4), x, -0.35, (RZ0 + RZ1) / 2);
-    [-1, 1].forEach(sd => { addGeo(railM, new THREE.BoxGeometry(0.35, 1.1, RZ1 - RZ0), x + sd * (ROAD / 2 - 0.2), 0.55, (RZ0 + RZ1) / 2); for (let z = RZ0 + 2; z < RZ1; z += 4) addGeo(railM, new THREE.BoxGeometry(0.5, 1.2, 0.5), x + sd * (ROAD / 2 - 0.2), 0.5, z); });
+    [-1, 1].forEach(sd => { const PM = parapetMats(); addGeo(PM.beton, boxUV(0.35, 1.1, RZ1 - RZ0, 4), x + sd * (ROAD / 2 - 0.2), 0.55, (RZ0 + RZ1) / 2); addGeo(PM.metal, new THREE.BoxGeometry(0.45, 0.14, RZ1 - RZ0), x + sd * (ROAD / 2 - 0.2), 1.17, (RZ0 + RZ1) / 2); for (let z = RZ0 + 2; z < RZ1; z += 4) addGeo(PM.beton, boxUV(0.5, 1.2, 0.5, 4), x + sd * (ROAD / 2 - 0.2), 0.5, z); }); /* V310.127 : béton et glissière */
     addGeo(quayM, new THREE.BoxGeometry(ROAD, 1.2, 1), x, -1.2, RZ0 + 1); addGeo(quayM, new THREE.BoxGeometry(ROAD, 1.2, 1), x, -1.2, RZ1 - 1);
   }
   [RZ0, RZ1].forEach(z => addGeo(quayM, new THREE.BoxGeometry(HALF * 2 + 40, 3, 0.6), 0, -1.4, z + (z === RZ0 ? 0.3 : -0.3)));
@@ -10995,13 +10995,21 @@ function pushCsBoxes(o) { if (o.z > -470 || !CS_BOX || !CS_BOX.length) return fa
     if (px < pz) lx = Math.sign(lx || 1) * (b[2] + rad); else lz = Math.sign(lz || 1) * (b[3] + rad);
     o.x = b[0] + lx * c + lz * s; o.z = b[1] - lx * s + lz * c; hit = true; }
   return hit; }
+/* V310.127 · glissière : la voiture glisse le long (tangente tx, tz), perte selon l'angle une seule fois par contact, cap recalé, choc, vibration, secousse · jamais d'arrêt net */
+function railSlide(c, tx, tz) { const fx = Math.sin(c.h), fz = Math.cos(c.h), dp = fx * tx + fz * tz, sa = Math.sqrt(Math.max(0, 1 - dp * dp)), av = Math.abs(c.v), now = performance.now();
+  if (!railSlide.t || now - railSlide.t > 700) { if (av > 4) { c.v *= 1 - Math.min(0.5, Math.max(0.02, sa * sa * 0.7)); const k = Math.min(1, av * (0.25 + sa) / 30); try { if (typeof clang === "function") clang(Math.max(0.15, k)); } catch (e) {} try { navigator.vibrate && navigator.vibrate(k > 0.5 ? [30, 30, 40] : 25); } catch (e) {} try { shakeAdd(Math.min(0.7, 0.12 + k * 0.6)); } catch (e) {} if (!railSlide.s) { railSlide.s = 1; try { stat("parapet-choc"); } catch (e) {} } } }
+  railSlide.t = now; if (av > 1 && sa > 0.02) { const sg = (dp * (c.v >= 0 ? 1 : -1)) >= 0 ? 1 : -1, ht = Math.atan2(tx * sg, tz * sg) + (c.v < 0 ? Math.PI : 0); let d = ht - c.h; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; c.h += d * Math.min(1, (railSlide.dt || 0.016) * 7); } c.roll = 0; }
+/* V310.127 · parapets en béton (texture dessinée une fois, joints tous les 4 m) et glissière métallique */
+var PARAP_M = null; function parapetMats() { if (PARAP_M) return PARAP_M; const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"); g.fillStyle = "#a9a7a3"; g.fillRect(0, 0, 128, 128); for (let i = 0; i < 1400; i++) { const v = 140 + Math.random() * 60 | 0; g.fillStyle = `rgba(${v},${v - 2},${v - 6},${0.12 + Math.random() * 0.2})`; g.fillRect(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 2, 1 + Math.random() * 2); }
+  g.fillStyle = "rgba(60,58,55,.55)"; g.fillRect(0, 0, 2, 128); g.fillStyle = "rgba(255,255,255,.18)"; g.fillRect(0, 0, 128, 6); g.fillStyle = "rgba(40,38,36,.25)"; g.fillRect(0, 118, 128, 10); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  PARAP_M = { beton: new THREE.MeshLambertMaterial({ color: 0xffffff, map: t }), metal: new THREE.MeshPhongMaterial({ color: 0xc3c9d0, specular: 0x9aa4ae, shininess: 90 }) }; return PARAP_M; }
 function collide0Terrain(o, swim) {
   if (o === G.car && DK.onDeck) return false; /* V308.5 : sur un tablier suspendu (au-dessus de l'eau ou du terrain), seul le tablier compte */
   let hit = pushCsBoxes(o); if (pushSudBoxes(o)) hit = true;
   if (o === G.car && o._lx != null && onPier(o._lx, o._lz) && !onPier(o.x, o.z) && isWater(o.x, o.z)) { o.x = o._lx; o.z = o._lz; G.car.v *= 0.3; if (typeof clang === "function") clang(0.3); return true; } /* V308.4 : la rambarde de la jetée retient aussi les voitures */
   if (onPier(o.x, o.z)) return false; // la jetée de la fête foraine s'avance loin dans la mer : on y marche jusqu'au bout
   // bord de l'eau : la voiture s'arrête au rivage, à la nage on peut aller jusqu'au large (limite plus loin)
-  if (onHighway(o.x, o.z)) { if (o.z < HW.z0 - 30 && o.z > HW.z1 + 10) { const lx = HW.x - 7.2, rx = HW.x + 7.2; if (o.x < lx) { o.x = lx; hit = true; } if (o.x > rx) { o.x = rx; hit = true; } } return hit; }
+  if (onHighway(o.x, o.z)) { if (o.z < HW.z0 - 4 && o.z > HW.z1 + 4) { const car = o === G.car, lim = car ? 6.4 : 7.2, lx = HW.x - lim, rx = HW.x + lim; if (o.x < lx || o.x > rx) { o.x = o.x < lx ? lx : rx; if (car) railSlide(o, 0, -1); else hit = true; } } return hit; } /* V310.127 : parapets du pont de la voie rapide du Mont, voir railSlide */
   if (!swim && o.z > AP_OLD.zg + 2 && o.z < AP_OLD.z1 + 32 && Math.abs(o.x) < AP_OLD.x1 + 32 && !inAP(o.x, o.z) && !(RDX.ready && roadH(o.x, o.z) != null)) { const d = espD(o.x, o.z); if (d < 1.2) { if (slideBack(o, (x, z) => espD(x, z) >= 1.2)) return true; /* V310.21 : au bord de l'Esplanade, la voiture glisse le long du bord au lieu d'être projetée de 9 m vers le centre */ for (let q = 0; q < 12 && espD(o.x, o.z) < 1.2; q++) { const cx = 0, cz = (AP_OLD.zg + AP_OLD.z1) / 2, dx = cx - o.x, dz = cz - o.z, l = Math.hypot(dx, dz) || 1; o.x += dx / l * 0.8; o.z += dz / l * 0.8; } hit = true; } return hit; }
   if (inAP(o.x, o.z) || (o.x > AP.x0 + 1 && o.x < AP.x1 - 1 && o.z > AP.zg - 30 && o.z < AP.z1)) { if (o.z > AP.z1 - 2) { o.z = AP.z1 - 2; hit = true; }
     if (!(o === G.car && G.ride && RIDES[G.ride.kind] && RIDES[G.ride.kind].plane && G.car.alt > 2)) for (const S of AP_SOL) { const dx = o.x - S.x, dz = o.z - S.z, d = Math.hypot(dx, dz), R = S.r + (o === G.car && !G.onFoot ? 1.4 : 0.35); if (d < R && d > 1e-3) { o.x = S.x + dx / d * R; o.z = S.z + dz / d * R; hit = true; } } /* V308.6 : tour de contrôle et radar solides */

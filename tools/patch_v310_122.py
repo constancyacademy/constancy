@@ -1,0 +1,57 @@
+# V310.122 · MISSION SPECTACULAIRE « LE TRANSFO SAUTE » (file de nuit : « transformateur qui saute pendant un orage », commande 26/11 des missions spectaculaires)
+# Pendant une vraie averse (pluie à plus de 55 %), en ville, une fois par jour réel, 60 s après l'entrée en jeu, hors mission et hors autre événement :
+# un poteau électrique avec son transformateur apparaît sur le trottoir 40 à 90 m devant le joueur · 2,5 s de grésillement et d'étincelles bleues, puis il saute :
+# éclair bleu blanc sur tout l'écran, gerbe de 40 étincelles qui retombent, fumée, transformateur noirci, écran qui tremble selon la distance, détonation
+# puis le poteau grésille encore 20 s · personne n'est blessé (bulle + post de la Mairie) · sans lumière ajoutée (sprites) · ?transfo=1 force l'averse et l'événement (pour filmer)
+# stats transfo-vu, transfo-boum · textes en/es/pt/de
+import re, sys, json
+p = "index.html"; s = open(p, encoding="utf-8").read(); n = 0
+def rep(a, b):
+    global s, n
+    if s.count(a) != 1: sys.exit("REFUS %d : %s" % (s.count(a), a[:90]))
+    s = s.replace(a, b); n += 1
+CODE = r'''/* V310.122 · LE TRANSFO SAUTE pendant une averse (file de nuit : « transformateur qui saute pendant un orage ») · ?transfo=1 pour filmer */
+const TF = { on: false, q: null };
+function tfForced() { if (TF.q == null) TF.q = /[?&]transfo=1/.test(location.search); return TF.q; }
+function tfEligible() { if (!P || CREATOR && !tfForced() || G.mode !== "play" || !G.playT0 || performance.now() - G.playT0 < (tfForced() ? 8000 : 60000)) return false; if (G.mission || CINE.on || G.inside || REXE.on || CY.on || FIRE.on || VOL.on || CT.on) return false;
+  if (!tfForced() && (P.tfDay === todayStr() || WX.rain < 0.55)) return false; const o = G.onFoot ? G.me : G.car; return Math.abs(o.x) < HALF - 20 && Math.abs(o.z) < HALF - 20; }
+function tfStart() { const o = G.onFoot ? G.me : G.car, cam = camera.position; let fx = o.x - cam.x, fz = o.z - cam.z; { const L = Math.hypot(fx, fz) || 1; fx /= L; fz /= L; }
+  let sp = null; { /* d'abord sur la rue où l'on roule, devant soi (visible entre les immeubles) */ const ax = Math.abs(fx) > Math.abs(fz), sg = Math.sign(ax ? fx : fz) || 1, side = Math.random() < 0.5 ? 1 : -1, off = ROAD / 2 + 3.35;
+    for (const d0 of [48, 56, 40, 66]) { let px, pz; if (ax) { const j = clamp(Math.round((o.z + HALF - ROAD / 2) / STEP), 0, NB); if (Math.abs(o.z - rc(j)) > ROAD) continue; pz = rc(j) + side * off; px = o.x + sg * d0; const k = clamp(Math.round((px + HALF - ROAD / 2) / STEP), 0, NB); if (Math.abs(px - rc(k)) < ROAD / 2 + WALK + 3) continue; } else { const i = clamp(Math.round((o.x + HALF - ROAD / 2) / STEP), 0, NB); if (Math.abs(o.x - rc(i)) > ROAD) continue; px = rc(i) + side * off; pz = o.z + sg * d0; const k = clamp(Math.round((pz + HALF - ROAD / 2) / STEP), 0, NB); if (Math.abs(pz - rc(k)) < ROAD / 2 + WALK + 3) continue; }
+      if (Math.abs(px) < HALF - 6 && Math.abs(pz) < HALF - 6 && !isWater(px, pz)) { sp = { x: px, z: pz }; break; } } }
+  for (let k = 0; k < 40 && !sp; k++) { const q = streetSpot({ x: o.x + fx * 45, z: o.z + fz * 45 }); if (!q) continue; const dx = q[0] - o.x, dz = q[1] - o.z, d = Math.hypot(dx, dz); if (d > 38 && d < 95 && (dx * fx + dz * fz) / d > 0.55 && Math.abs(dx * fz - dz * fx) < 16) sp = { x: q[0], z: q[1] }; } if (!sp) return false;
+  P.tfDay = todayStr(); saveNow(); stat("transfo-vu"); const y0 = GH(sp.x, sp.z), g = new THREE.Group(); g.position.set(sp.x, y0, sp.z); g.rotation.y = Math.atan2(o.x - sp.x, o.z - sp.z);
+  const pm = new THREE.MeshLambertMaterial({ color: 0x4a4038 }), mm = new THREE.MeshLambertMaterial({ color: 0x7d8790 }), im = new THREE.MeshLambertMaterial({ color: 0xdfe7ef }); TF.geo = [new THREE.CylinderGeometry(0.22, 0.3, 11, 8), new THREE.BoxGeometry(3.8, 0.24, 0.24), new THREE.CylinderGeometry(0.78, 0.78, 1.9, 12), new THREE.CylinderGeometry(0.1, 0.13, 0.45, 6)];
+  const pole = new THREE.Mesh(TF.geo[0], pm); pole.position.y = 5.5; g.add(pole); const arm = new THREE.Mesh(TF.geo[1], pm); arm.position.y = 10.3; g.add(arm); const box = new THREE.Mesh(TF.geo[2], mm); box.position.set(0, 8, 0.85); g.add(box); [-1.5, 0, 1.5].forEach(x => { const i = new THREE.Mesh(TF.geo[3], im); i.position.set(x, 10.65, 0); g.add(i); });
+  scene.add(g); TF.g = g; TF.box = box; TF.c = new THREE.Vector3(sp.x, y0 + 8.2, sp.z); TF.arc = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: 0x9fd4ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); TF.arc.frustumCulled = false; TF.arc.position.copy(TF.c); TF.arc.scale.set(3, 3, 1); scene.add(TF.arc); TF.t = 0; TF.boom = false; TF.sp = []; TF.smoke = []; TF.on = true; TF.nx = 0;
+  TF.sm = new THREE.SpriteMaterial({ map: glowTexture(), color: 0xbfe6ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }); TF.km = new THREE.SpriteMaterial({ map: fireTex("smoke"), transparent: true, depthWrite: false, fog: false }); return true; }
+function tfSpark(n, v0, sz) { for (let k = 0; k < n; k++) { const q = new THREE.Sprite(TF.sm); q.frustumCulled = false; q.position.copy(TF.c); q.position.x += (Math.random() - 0.5) * 0.8; q.position.z += (Math.random() - 0.5) * 0.8; const s0 = sz * (0.5 + Math.random()); q.scale.set(s0, s0, 1); TF.g.parent.add(q); const a = Math.random() * 6.283; TF.sp.push({ q, v: new THREE.Vector3(Math.cos(a) * v0 * Math.random(), v0 * (0.3 + Math.random() * 0.9), Math.sin(a) * v0 * Math.random()), l: 0.6 + Math.random() * 0.9 }); } }
+function tfBoom() { TF.boom = true; stat("transfo-boum"); tfSpark(46, 12, 1.7); if (TF.arc) TF.arc.visible = false; TF.box.material = TF.box.material.clone(); TF.box.material.color.setHex(0x1b1b1e); const fl = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: 0xdff3ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); fl.scale.set(26, 26, 1); fl.position.copy(TF.c); fl.frustumCulled = false; TF.g.parent.add(fl); TF.flash = fl;
+  for (let k = 0; k < 8; k++) { const q = new THREE.Sprite(TF.km.clone()); q.frustumCulled = false; q.position.copy(TF.c); q.material.opacity = 0; TF.g.parent.add(q); TF.smoke.push({ q, d: k * 0.25, ox: (Math.random() - 0.5) * 3, oz: (Math.random() - 0.5) * 3 }); }
+  const o = G.onFoot ? G.me : G.car, d = Math.hypot(o.x - TF.c.x, o.z - TF.c.z); try { shakeAdd(Math.max(0.25, 1 - d / 120)); } catch (e) {} try { boomSnd(); } catch (e) {} try { navigator.vibrate && navigator.vibrate([40, 30, 60]); } catch (e) {}
+  try { const v = document.createElement("div"); v.style.cssText = "position:fixed;inset:0;z-index:40;pointer-events:none;background:radial-gradient(circle at 50% 40%,rgba(225,240,255,.85),rgba(140,190,255,.45) 60%,rgba(60,90,160,.2));transition:opacity .5s ease-out;opacity:1"; document.body.appendChild(v); setTimeout(() => { v.style.opacity = "0"; }, 90); setTimeout(() => v.remove(), 700); } catch (e) {}
+  help("⚡ <b>Le transformateur a sauté</b> sous l'orage. Personne n'est blessé, les techniciens arrivent.", 6); try { feedPost("ville", "Orage : un transformateur a sauté en ville. Aucun blessé, le courant revient dans la soirée. ⚡"); } catch (e) {} }
+function tfClean() { if (!TF.g) return; const par = TF.g.parent; if (TF.arc) { TF.arc.material.dispose(); } [...TF.sp.map(p => p.q), ...TF.smoke.map(p => p.q), TF.flash, TF.arc].forEach(q => { if (q && q.parent) q.parent.remove(q); }); TF.smoke.forEach(p => p.q.material.dispose()); if (TF.flash) TF.flash.material.dispose(); if (par) par.remove(TF.g); (TF.geo || []).forEach(g => g.dispose()); TF.sm && TF.sm.dispose(); TF.km && TF.km.dispose(); TF.g = null; TF.arc = null; TF.sp = []; TF.smoke = []; TF.flash = null; TF.on = false; }
+function updateTransfo(dt) { if (!TF.on) { if (tfForced() && window.__wx == null && !TF.done) window.__wx = 0.9; TF.chk = (TF.chk || 0) + dt; if (TF.chk < 2) return; TF.chk = 0; if (TF.done && !tfForced()) return; if (tfEligible() && tfStart()) TF.done = true; return; }
+  TF.t += dt; const T = TF.t; if (!TF.boom) { TF.nx -= dt; if (TF.nx <= 0) { TF.nx = 0.08 + Math.random() * 0.25; tfSpark(2 + (Math.random() * 3 | 0), 3.5, 0.9); try { if (Math.random() < 0.4 && typeof clang === "function") clang(0.12); } catch (e) {} } if (TF.arc) { const k = Math.random(); TF.arc.material.opacity = 0.4 + k * 0.6; const s0 = 2 + k * 3 + T; TF.arc.scale.set(s0, s0, 1); } if (T > 2.5) tfBoom(); }
+  else if (T < 22 && Math.random() < dt * 3) tfSpark(2, 4, 0.8);
+  for (let i = TF.sp.length - 1; i >= 0; i--) { const p = TF.sp[i]; p.l -= dt; p.v.y -= 14 * dt; p.q.position.addScaledVector(p.v, dt); if (p.l <= 0 || p.q.position.y < GH(p.q.position.x, p.q.position.z)) { p.q.parent && p.q.parent.remove(p.q); TF.sp.splice(i, 1); } }
+  if (TF.flash) { const k = Math.max(0, 1 - (T - 2.5) / 0.7); TF.flash.material.opacity = k; if (k <= 0) { TF.flash.parent && TF.flash.parent.remove(TF.flash); TF.flash.material.dispose(); TF.flash = null; } }
+  TF.smoke.forEach(p => { const u = T - 2.5 - p.d; if (u < 0) return; p.q.position.set(TF.c.x + p.ox * (1 + u * 0.3), TF.c.y + u * 1.6, TF.c.z + p.oz * (1 + u * 0.3)); const s0 = 2 + u * 1.2; p.q.scale.set(s0, s0, 1); p.q.material.opacity = Math.max(0, Math.min(0.55, u * 0.8) * (1 - u / 14)); });
+  const o = G.onFoot ? G.me : G.car; if (T > 26 || (T > 4 && Math.hypot(o.x - TF.c.x, o.z - TF.c.z) > 320) || G.inside) tfClean(); }
+'''
+rep("const FIRE = { on: false };", CODE + "const FIRE = { on: false };")
+rep('try { updateXmas(dt); } catch (e) { console.warn("noel", e); }', 'try { updateXmas(dt); } catch (e) { console.warn("noel", e); } try { updateTransfo(dt); } catch (e) { console.warn("transfo", e); try { tfClean(); } catch (e2) {} }')
+open(p, "w", encoding="utf-8").write(s)
+T = {"Le transformateur a sauté": ["The transformer blew", "El transformador ha explotado", "O transformador explodiu", "Der Transformator ist explodiert"],
+     "sous l'orage. Personne n'est blessé, les techniciens arrivent.": ["in the storm. Nobody is hurt, the technicians are on their way.", "con la tormenta. Nadie está herido, los técnicos están en camino.", "na tempestade. Ninguém se feriu, os técnicos estão a caminho.", "im Gewitter. Niemand ist verletzt, die Techniker sind unterwegs."],
+     "Orage : un transformateur a sauté en ville. Aucun blessé, le courant revient dans la soirée. ⚡": ["Storm: a transformer blew in the city. Nobody hurt, power is back this evening. ⚡", "Tormenta: ha explotado un transformador en la ciudad. Sin heridos, la luz vuelve esta noche. ⚡", "Tempestade: um transformador explodiu na cidade. Ninguém se feriu, a luz volta à noite. ⚡", "Gewitter: In der Stadt ist ein Transformator explodiert. Niemand verletzt, der Strom ist heute Abend wieder da. ⚡"]}
+en = json.load(open("assets/i18n/en.json", encoding="utf-8"))
+for k, v in T.items(): en[k] = v[0]
+json.dump(en, open("assets/i18n/en.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+for i, L in enumerate(["es", "pt", "de"]):
+    f = "assets/i18n/%s.json" % L; d = json.load(open(f, encoding="utf-8"))
+    for k, v in T.items(): d[v[0]] = v[i + 1]
+    json.dump(d, open(f, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+w = "sw.js"; ws = open(w, encoding="utf-8").read(); ws2 = re.sub(r"const V = 'constancy-\d+';", "const V = 'constancy-202611272250';", ws, count=1); assert ws2 != ws; open(w, "w", encoding="utf-8").write(ws2)
+print("OK", n, "remplacements")

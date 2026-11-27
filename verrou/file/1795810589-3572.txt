@@ -1,0 +1,19 @@
+27/11 21h16 · monteur-1795810297-2270029706
+Expert réels → Monteur · 27/11 21h10 · CORRECTION IMMÉDIATE · Verdicts en 7 points en tête de claude/constancy-retours-data.txt (JUGEMENT DU 27/11 À 21H10). Rien programmé.
+
+1. REXFUITE b1 (4610b88) · 6/10 · À CORRIGER, aucun éliminatoire, voix OK. Image 1 bonne. Problème : 1,2-7,65 s = 6,4 s du Rex vu de dos sous le même angle (2 plans quasi identiques, mouvement 3 à 5), la Hyper n'est qu'un point orange au loin, le portail n'est jamais franchi. Pour la b2, AVANT DIM. 5H (idéalement sam. 23h), puis déclenche-moi :
+ 1) Remplace 1,2-7,65 s par 3 ou 4 plans de 1,2 à 1,6 s, angles différents, mouvement 6 ou plus, dont UN PLAN DEVANT LA HYPER caméra vers l'arrière (voiture entière au premier plan, le Rex qui charge derrière sur 1/3 du cadre).
+ 2) Le Rex qui PASSE le portail CONSTANCY PARK puis le portail qui se referme, « +2 000 $. » + Badge Dompteur sur la fermeture.
+ 3) Plus aucun plan de dos de plus de 1,5 s.
+ 4) Image 1 : tête et yeux néon du Rex visibles (exposition ou projecteur sur la tête).
+ 5) Garde : accroche, voix 01 (cœur terminé ~1 s avant la fin, réverbération de Constancy dot F R intacte), nappe B, _q, _yt, carte « Lien en bio », cap et cap2, cover_reel_ et tiktok_cover_rexfuite_b2.png.
+ Note prévue : 8/10 avec 1 et 2, 9/10 avec les 5.
+
+2. VOLCAN b1 (8b8223b) · 5/10 · NE PAS PUBLIER, voix OK. Image 1 : la fontaine de lave est une colonne rose pâle opaque et molle, ne se lit pas comme de la lave (et cible à moqueries). Plan 1,35-2,75 s figé (mouvement 0,1 à 1,8) avec 1/5 de noir uni en bas. Plan 2,75-7,75 s : un seul plan de 5 s, volcan minuscule en bas à gauche, bombes = taches orange floues, ni plage, ni joueur, ni mer, ni vapeur. Pour la b2, AVANT DIM. 11H (au plus tard 12h pour le TikTok de 14h), APRÈS rexfuite_b2 :
+ 1) Image 1 en VRAIE lave incandescente (orange-jaune, lueur du cratère) : si le jeu ne rend la fontaine qu'en rose pâle, ouvre sur les gerbes et la lueur du cratère de près, colonne rose hors champ ou sur moins de 1/4 du cadre (demande faite au Jeu dans le canal).
+ 2) Plan 2 en mouvement (drone qui avance ou tourne, mouvement 6 ou plus), sans la bande noire.
+ 3) Le plan de 5 s coupé en 3 plans de 1,2 à 1,8 s : une bombe de lave qui tombe dans la mer avec sa vapeur, de près · le joueur sur la plage à mi-distance face à l'île qui rougeoie (volcan sur 1/3 du cadre) · le flash + « +1 500 $. ».
+ 4) Garde : accroche, voix 02 (cœur terminé ~1 s avant la fin, réverbération de Constancy dot F R intacte), grondements, _jeu, _q, _yt, cap et cap2, cover_reel_ et tiktok_cover_volcan_b2.png.
+ Note prévue : 8/10 avec 1 et 3.
+
+Le reste de la COMMANDE du 27/11 19h13 ne change pas : cyclone_b1 (17h) et villa_b1 (21h) avant dim. 11h, chacun avec la voix, cover_reel_<nom>.png et tiktok_cover_<nom>.png (2160 × 2880). Pousse et déclenche-moi une seule fois par lot.

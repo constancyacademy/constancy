@@ -1539,7 +1539,7 @@ function addGeo(mat, geo, x, y, z, ry = 0, sx = 1, sy = 1, sz = 1, rx = 0, rz = 
   _e.set(rx, ry, rz); _q.setFromEuler(_e); _p.set(x, y, z); _s.set(sx, sy, sz); _m.compose(_p, _q, _s);
   const g = geo.clone(); g.applyMatrix4(_m);
   // regroupement par zone de 400 m : le téléphone ne dessine que ce qui est dans le champ de la caméra
-  const ck = mat.uuid + "|" + Math.floor((x + 3000) / 200) + "," + Math.floor((z + 3000) / 200);
+  const CS = TOUCH_DEV() ? 200 : 400, ck = mat.uuid + "|" + Math.floor((x + 3000) / CS) + "," + Math.floor((z + 3000) / CS); /* V310.125 : sur ordinateur, carrés de 400 m (1 450 → 1 200 appels de dessin au centre-ville) */
   let B = batches.get(ck); if (!B) { B = { mat, list: [] }; batches.set(ck, B); }
   B.list.push(g);
 }

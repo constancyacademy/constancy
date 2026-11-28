@@ -14326,8 +14326,12 @@ function renderFrame0() { if (window.__norender) return; if (TSTILL.on && !TSTIL
   if (window.__hideMe && meMesh) meMesh.visible = false; try { pedsOffCar(); } catch (e) {} titleOnlyNacre(); try { nacreFX(); } catch (e) { if (!NFX.err) { NFX.err = 1; console.warn("nacreFX", e); } }
   /* V310.49 (Thomas, 24/11 17h35, ordinateur : miroir tout blanc) : la lueur de nuit (seuil abaissé à 0,64) faisait déborder la pièce claire du miroir jusqu'au blanc · plus de lueur pendant le rêve et le miroir, et dans les intérieurs elle garde ses réglages de jour */
   if (FXR.on && FXR.comp && !MIR.on && !(DREAM && DREAM.on)) { const nk = typeof nightK === "number" && !G.inside ? nightK : 0; FXR.bloom.strength = 0.22 + nk * 0.52; FXR.bloom.threshold = 0.86 - nk * 0.22; FXR.bloom.radius = 0.35 + nk * 0.2;
-    try { FXR.comp.render(); return; } catch (e) { FXR.on = false; FXR.fail = true; } }
-  renderer.render(scene, camera); }
+    try { FXR.comp.render(); return; } catch (e) { if (renderHeal(e) && RHEAL.n < 3) return; FXR.on = false; FXR.fail = true; } }
+  try { renderer.render(scene, camera); } catch (e) { renderHeal(e); } }
+/* V310.137 · écran noir sur ordinateur : un rendu qui plante recompile tous les matériaux au lieu de laisser l'écran noir */
+const RHEAL = { n: 0, t: 0 };
+function renderHeal(e) { const now = performance.now(); if (now - RHEAL.t < 500) return false; RHEAL.t = now; RHEAL.n++; try { console.warn("rendu réparé", RHEAL.n, e && e.message); } catch (er) {} try { if (RHEAL.n === 1) stat("rendu-repare"); if (RHEAL.n === 10) stat("rendu-repare-10"); } catch (er) {}
+  try { scene.traverse(o => { const m = o.material; if (!m) return; (Array.isArray(m) ? m : [m]).forEach(x => { if (x) x.needsUpdate = true; }); }); } catch (er) {} return true; }
 // reflets : un ciel en équirectangulaire (jour / nuit) filtré en carte d'environnement, appliqué aux carrosseries et au verre
 const ENVR = { day: null, night: null, cur: null, mats: new Set() };
 function envSky(night) {

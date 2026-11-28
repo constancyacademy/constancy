@@ -11,3 +11,10 @@ def upd(f, D):
     json.dump(d, open(f, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":")); return n
 print("en", upd("assets/i18n/en.json", EN))
 for L, D in X.items(): print(L, upd("assets/i18n/%s.json" % L, D))
+# 133d : première livraison évidente
+EN2 = {"Livre ta première commande · suis la flèche violette": "Deliver your first order · Follow the purple arrow", "Glisse le pouce vers le haut pour rouler. Suis la flèche violette.": "Slide your thumb up to drive. Follow the purple arrow.", "Reste appuyé sur ↑ ou W pour rouler. Suis la flèche violette.": "Hold ↑ or W to drive. Follow the purple arrow."}
+X2 = {"es": {"Deliver your first order · Follow the purple arrow": "Entrega tu primer pedido · Sigue la flecha morada", "Slide your thumb up to drive. Follow the purple arrow.": "Desliza el pulgar hacia arriba para conducir. Sigue la flecha morada.", "Hold ↑ or W to drive. Follow the purple arrow.": "Mantén ↑ o W para conducir. Sigue la flecha morada."},
+      "pt": {"Deliver your first order · Follow the purple arrow": "Entregue seu primeiro pedido · Siga a seta roxa", "Slide your thumb up to drive. Follow the purple arrow.": "Deslize o polegar para cima para dirigir. Siga a seta roxa.", "Hold ↑ or W to drive. Follow the purple arrow.": "Segure ↑ ou W para dirigir. Siga a seta roxa."},
+      "de": {"Deliver your first order · Follow the purple arrow": "Liefere deine erste Bestellung · Folge dem lila Pfeil", "Slide your thumb up to drive. Follow the purple arrow.": "Schieb den Daumen nach oben, um zu fahren. Folge dem lila Pfeil.", "Hold ↑ or W to drive. Follow the purple arrow.": "Halte ↑ oder W gedrückt, um zu fahren. Folge dem lila Pfeil."}}
+print("en", upd("assets/i18n/en.json", EN2))
+for L, D in X2.items(): print(L, upd("assets/i18n/%s.json" % L, D))

@@ -18,3 +18,8 @@ X2 = {"es": {"Deliver your first order · Follow the purple arrow": "Entrega tu 
       "de": {"Deliver your first order · Follow the purple arrow": "Liefere deine erste Bestellung · Folge dem lila Pfeil", "Slide your thumb up to drive. Follow the purple arrow.": "Schieb den Daumen nach oben, um zu fahren. Folge dem lila Pfeil.", "Hold ↑ or W to drive. Follow the purple arrow.": "Halte ↑ oder W gedrückt, um zu fahren. Folge dem lila Pfeil."}}
 print("en", upd("assets/i18n/en.json", EN2))
 for L, D in X2.items(): print(L, upd("assets/i18n/%s.json" % L, D))
+# V310.135 : « Suis le point violet » (mot coloré)
+EN3 = {"Suis le": "Follow the", "point violet": "purple dot", "Colis chargé. Suis le": "Package loaded. Follow the"}
+X3 = {"es": {"Follow the": "Sigue el", "purple dot": "punto morado", "Package loaded. Follow the": "Paquete cargado. Sigue el"}, "pt": {"Follow the": "Siga o", "purple dot": "ponto roxo", "Package loaded. Follow the": "Pacote carregado. Siga o"}, "de": {"Follow the": "Folge dem", "purple dot": "lila Punkt", "Package loaded. Follow the": "Paket geladen. Folge dem"}}
+print("en", upd("assets/i18n/en.json", EN3))
+for L, D in X3.items(): print(L, upd("assets/i18n/%s.json" % L, D))

@@ -16,7 +16,7 @@ const { chromium } = require('playwright');
   await p.waitForTimeout(1500); await p.screenshot({ path: out + 'livre.png' });
   console.log('LIVRÉ', await p.evaluate(() => JSON.stringify({ livraison: (window.__stats || []).filter(s => /livraison-1/.test(s)), help: (document.getElementById('help') || {}).innerText })));
   await p.waitForFunction(() => window.__cgSuite != null, null, { timeout: 600000 }); console.log('SUITE TÉLÉCHARGÉE en', await p.evaluate(() => window.__cgSuite), 'ms ·', ((tot / 1e6) - moPlay).toFixed(2), 'Mo de plus');
-  await p.waitForFunction(() => window.__zonesPretes === true, null, { timeout: 600000 }).catch(() => {}); console.log('ZONES', await p.evaluate(() => { const X = window.__CGT(); return JSON.stringify({ pretes: !!window.__zonesPretes, reste: X.DEFER.q.map(i => i[0]), modeles: X.MODELS_N, temps: X.DEFER.t.slice(-6) }); }));
+  await p.waitForFunction(() => window.__zonesPretes === true, null, { timeout: 600000 }).catch(() => {}); console.log('ZONES', await p.evaluate(() => { const X = window.__CGT(); return JSON.stringify({ dalles: window.__cgTiles, look: X.P && X.P.look && X.P.look.gender, obj: X.P && X.P.goal && X.P.goal.type, pretes: !!window.__zonesPretes, reste: X.DEFER.q.map(i => i[0]), modeles: X.MODELS_N, temps: X.DEFER.t.slice(-6) }); }));
   await p.screenshot({ path: out + 'jeu.png' });
   console.log('FRANÇAIS RESTANT', JSON.stringify(await p.evaluate(() => window.__i18nMiss ? window.__i18nMiss().filter(k => /[éèàùçêô]|\b(le|la|les|ton|ta|tes|est|une|des|pour)\b/i.test(k)).slice(0, 20) : 'x')));
   console.log('ERR', errs.length ? errs.slice(0, 3).join(' | ') : 'none'); await b.close(); })();
